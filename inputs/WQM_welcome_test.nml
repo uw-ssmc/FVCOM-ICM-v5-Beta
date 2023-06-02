@@ -1,0 +1,82 @@
+!FVCOM-ICM Model for Water Quality Analysis with Toxics/Tracer Kinetics
+&WQM_SETUP
+    HydVersionNum = 2.7  ! Version number of hydrodynamic model
+    NumWqVrb = 34        ! Number of water quality variables except toxic related variables
+    WqCalcOn = .TRUE.
+    TxcKntOn = .TRUE.  ! Switch for calculating toxic(PCB)kinetics: ON or OFF
+    TcrKntOn = .FALSE.   ! Switch for calculating Bacteria/pollutant kinetics: ON or OFF 
+    NumTxVrb = 1        ! No. of Toxics contaminant variables (No. of PCB congeners)
+    NumTcrVrb = 0       ! No. of tracer/Bacteria/pollutant varibles 
+/ 
+
+&TXC_SETUP
+    !--------------- input data files for toxic module ---------------
+    TXCF_INC = 'inputs/ssm_txc_init-wc.dat'
+    TXCF_PNT = 'inputs/ssm_txc_pntscs.dat'
+    TXCF_OBC = 'inputs/ssm_txc_obc.dat'
+    TXCF_INC_SD = 'inputs/ssm_txc_init-sdm.dat'
+    TxcSdmInitType = 'UNIFORM'     ! type of the initial tracer distribution in sediment layer (UNIFORM/DISTRIBUTED)
+    TxcSdmUnfm = 0.00       ! tracer concentration for sediment layer if the distribution is uniform constant value
+    PCBTxcOn = .TRUE.       ! PCB kinetics on
+    MTLTxcOn = .FALSE.      ! Toxic metal kinetics on
+    NumTxcOutVar = 1        ! No. of Toxic output variables (PCB ot MTL)
+/
+
+&TXC_PARAMETER_PCB
+    !--------------- parameters  for PCB kinetcs ------------------ 
+    PTC_WC = 0.31     !K_PW (m^3/g) - partition coefficient
+    PTC_SD = 0.31     !K_PS (m^3/g) 
+    SED_DEN = 1.7E+06    !density (g/m^3)
+    DFFCOEFS12 = 0.05       ! diffusion coefficient for PCB transfer between sdLy1 and sdLy2 (m^2/s)
+    BRLVEL = 0.0        ! burial velocity of solid sediments from sdLy2 (m/yr)
+    MolWghtCng = 326.0   ! molecular weight arrays (g/mol)
+    HNRCFF = 0.004385     ! non-dimensional Henry's coefficient
+/
+
+&TXC_OUT_PCB
+    !------------- PCB related output variables for nectdf outputs -----------------
+    PCBOutVrb = 'PcbCon_W'
+/
+
+&TCR_SETUP
+    !--------------- input data files for tracer module ---------------
+    TCRF_INC = 'inputs/ssm_tcr_init-wc.dat'
+    TCRF_PNT = 'inputs/ssm_tcr_pntscs.dat'
+    TCRF_OBC = 'inputs/ssm_tcr_obc.dat'
+    TCRF_INC_SD = 'inputs/ssm_tcr_init-sdm.dat'
+    TcrSdmInitType = 'UNIFORM'     ! type of the initial tracer distribution in sediment layer (UNIFORM/DISTRIBUTED)
+    TcrSdmUnfm = 0.00       ! tracer concentration for sediment layer if the distribution is uniform constant value
+    BACTERIAON = .FALSE.    ! fecal bacteria kinetics on
+    RADIONUCON = .FALSE.    ! radionuclide kinetics on
+    NOTCRKNTS = .TRUE.      ! No kinetics for the tracer
+    NumTcrOutVar = 1        ! No. tracer ouput variables
+/
+
+&TCR_PARAMETER_FB
+    !-------------- input parameters of kinetics for fecal bacteria type tracer -------------- 
+    KnBact = 0.4         ! darkness condition decay rate at 20C (per day)
+    C0SalBact = 0.02        ! factor of impact from salinity
+    AlphaBact = 0.00824     ! proportionality coefficient for irradiance (cm2/cal)
+    ThetaBact = 1.05        ! temperature correction coefficient for bacteria decay (dimensionless)
+/
+
+&TCR_PARAMETER_RN
+    !------------- input parameters of kinetics for radionuclides type tracer ---------------
+    RnHalfTime = 5.2713
+    RnKd = 7.99E+05
+/
+
+&SEDIMENT_PARA
+    VonKrmn = 0.4        ! Von Karman Constant
+    Rgfh = 0.005      ! Seabed roughness height(m)
+    PtcDensity = 2760.0       ! Particle density (kg/m3)
+    ErsnCoeff = 0.0005     ! Erosion coefficient (kg/m2/s)
+    CrtShear = 0.100      ! Critical shear stress (N/m2)
+    SdmPrst = 0.62       ! Porosity of the sediment layer
+/
+
+&TCR_OUT 
+    !-------------- Tracer related output variables (for bacteria or RN or other passive tracer) for netcdf output -------------
+    TCROutVrb = 'TcrtConW'
+/
+

@@ -1,0 +1,23 @@
+Toxics Control File
+'inputs/ssm_txc_init-wc.dat'
+'inputs/ssm_txc_pntscs.dat'
+'inputs/ssm_txc_obc.dat'
+'inputs/ssm_txc_init-sdm.dat'
+!------ Partition coefficient ------------------------
+0.31     !K_PW (m^3/g)
+0.31     !K_PS (m^3/g) 
+1.7E+06    !density (g/m^3)
+0.05       ! diffusion coefficient for PCB transefer between sdLy1 and sdLy2 (m^2/s)
+0.0        ! burial velocity of solid sediments from sdLy2 (m/yr)
+!------ intial condition for sediment layer ----------
+DISTRIBUTED   ! Type of the distribution of initial conditions
+0.0E-02   ! TXC concen in sediment (g/m^3)
+!------ PCB congener information ------------------------- 
+1         ! No. of PCB congeners
+326       ! molecular weight of PCB-118 (g/mol)
+!--------- volatilization-------------------------------
+0.004385     ! non-dimensional Henry's coefficient
+!---------- Output toxicant concentration ---------------- 
+TRUE       ! switch for outputting toxicant concentration data in netcdf files 
+!---------- Hotstart/restart configuration (ON/OFF)----------------
+FALSE      ! Hot start (ON/OFF) (if ON model looks for 'Txc_HotstrWC.dat','Txc_HotstrSD1.dat','Txc_HotstrSD2.dat')

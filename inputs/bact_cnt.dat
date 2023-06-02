@@ -1,0 +1,31 @@
+Bacteria/tracer Control File
+'inputs/ssm_tcr_init-wc.dat'
+'inputs/ssm_tcr_pntscs.dat'
+'inputs/ssm_tcr_obc.dat'
+'inputs/ssm_tcr_init-sdm.dat'
+!------------ intial condition for sediment layer -----------------
+DISTRIBUTED   ! Type of the distribution of initial conditions
+0.0E-02   ! bacteria/pollutant concen in sediment (g/m^3) if uniform 
+!---------- Output bacteria/pollutant concentration ---------------- 
+TRUE       ! switch for outputting bacteria/pollutant concentration data in netcdf files
+!---------- kinetic selection for the tracer ------------------------ 
+NOTCRKNTS   !kinetics of Bacteria or radionuclides (BACTERIAON/RADIONUCON/NOTCRKNTS)
+!----------- kinetic parameters for fecal bacteria ------------------
+0.4         ! darkness condition decay rate at 20C (per day)
+0.02        ! factor of impact from salinity
+0.00824     ! proportionality coefficient for irradiance (cm2/cal)
+1.05        ! temperature correction coefficient for bacteria decay (dimensionless)
+!----------- parameters for radionuclides --------------------------- 
+1
+!------------ half life of RNs (years) ------------------------------
+5.2713      ! RN H3
+!------------ Kd values of RNs (L/kg)------------------------------ 
+7.99E+05   ! RN H3
+!------------- sediment parameters -------------------------------- 
+0.4        ! Von Karman Constant
+0.005      ! Seabed roughness height(m)
+2760.0       ! Particle density (kg/m3)
+0.0005     ! Erosion coefficient (kg/m2/s)
+0.100      ! Critical shear stress (N/m2)
+0.62       ! Porosity of the sediment layer
+
