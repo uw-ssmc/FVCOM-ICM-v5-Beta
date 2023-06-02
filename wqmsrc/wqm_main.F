@@ -111,7 +111,7 @@ Program FVCOMICM
      & VL_GL, SL_GL, TL_GL, WTSL_GL, KHL_GL, TDIC, TALK, pH, pCO2, &
      & pH_GL, pCO2_GL, ADVFLUX, ADVFLUX_GL, VDIFFLUX, VDIFFLUX_GL, &
 	 & TSS_GL, SSI_GL, TURB_GL, KESS_GL, PARAD_GL, LEAF_GL, STEM_GL, ROOT_GL, &
-	 & TUBER_GL, EP_GL, TxcKntOn, TxcOutput, NumTxVrb, TcrKntOn               !LB added ADV,VDIF FLUXES 26jan2016
+	 & TUBER_GL, EP_GL, TxcKntOn, TxcOutput, NumTxVrb, TcrKntOn,WqCalcOn             !LB added ADV,VDIF FLUXES 26jan2016
 	 ! Adi-2/13/18 added TSS_GL, SSI_GL, TURB_GL, KESS_GL
   !
       Use MOD_OWQ, Only: INTKE, NXKEI, IAVG, KESS, OWQ_DEALLOC, &
@@ -238,7 +238,7 @@ Program FVCOMICM
       Character (Len=80) :: TEMPSTR, FileNum
   !
       Integer :: I1, I2, numTxvb,jj,kk
-      Real (SP) :: ITT, TTMP1, TTMP2, DELCN
+      Real (SP) :: ITT, TTMP1, TTMP2, DELCN, numTxcVrb
 !
   !WLong Added logicals for writing station and history outputs
       Logical :: OPEN_HIS, PRINT_HIS
@@ -259,7 +259,7 @@ Program FVCOMICM
       Real (4) :: ETIME, DTIME !ETIME and DTIME are intrinsic functions to calculate time
       Real (4) :: ELAPSED (2)
   !
-      Character (Len=1024) :: TITLE_STN, TcrWCRestartFile, TcrSDRestartFile
+      Character (Len=1024) :: TITLE_STN, TcrWCRestartFile, TcrSDRestartFile, TxcWCRestartFile, TxcSD1RestartFile, TxcSD2RestartFile
   !
       Character (Len=1024) :: COMMAND_STR, SLEEPTIME_STR
       Real (SP) :: SLEEPTIME
@@ -267,7 +267,6 @@ Program FVCOMICM
       Logical :: END_RUN_CHILD = .False.
       Integer :: ISNDTAG = 0, IRCVTAG = 0
       LOGICAL :: PTNTX_SLD = .FALSE.
-      LOGICAL :: WqCalcOn = .FALSE.
 !
 #if defined (ONLY_AIRSEA)
       Real (SP) :: FLUXCO2, TDOS, RNU, KRDO, KRCO2, FACTOR, Sc
@@ -331,7 +330,6 @@ Program FVCOMICM
 !-------------------------------------------------------------------------------
   !
       Call INPUTS ()			!  Initialze
-  !
 
 #if defined (OUTPUT_NETCDF)
 	  CALL SET_NCD_IO(IREPORT)
@@ -354,40 +352,21 @@ Program FVCOMICM
   !
       Call SETUP_OBC
 
-    !------------------------- storing the global TCE areas for testing - added by Laki ------------------
-                !  IF (PAR) THEN
-                !       CALL GathExtra
-                !  END IF
-    !--------------------------------------------------------------------------------------
-
-
     !----------------------------------- Computations for toxics -----------------------------
       IF (TxcKntOn) THEN
-              PTNTX_SLD = .TRUE.
-              !IF(MSR) THEN
-                !OPEN(UNIT= 975, FILE = 'outputs/tem_spl_data.dat', ACTION = 'WRITE')
-               ! OPEN(UNIT= 976, FILE = 'inputs/transect_ids.dat', ACTION = 'READ')
-                !READ(976,*) NOCHN_IDS
-                !ALLOCATE(CHN_IDS(NOCHN_IDS))
-               ! DO J=1,NOCHN_IDS
-               !   READ(976,*) CHN_IDS(j)
-               ! END DO
-                !CLOSE(976)
-              !END IF
-
+            IF (MSR) WRITE(*,*)'Toxic module is activated ..........'
             CALL TXC_ALLOC
             CALL READ_TXC_DATA
       END IF
     !------------------------------------------------------------------------------------------
 
-
     !---------------------------------- computations for bacteria/pollutants ---------------------- 
       IF (TcrKntOn) THEN 
             IF (MSR) WRITE(*,*)'Tracer module is activated ..........'
-        CALL ReadBactData
-        CALL BactAlloc
+            CALL BactAlloc
+            CALL ReadBactData
       END IF
-    !----------------------------------------------------------------------------------------------
+    !---------------------------------------------------------------------------------------------- 
 
     !--------------------------------------------------------------------------------------
   !CALL SET_BNDRY           !WLong: Was in FVCOM, but now This removed,
@@ -748,18 +727,9 @@ IF (TxcKntOn) THEN
      CALL UpdtTX_FRCNS
      CALL ExtractTxcData
      CALL PCB_KNT
-     numTxvb = NCP - NTXVB + 1
-     !DO I=numTxvb, NCP
-       !C2(:,:,I) = C2(:,:,I) + DWPCB(:,:,I)*DLT
-     !END DO
+     numTxvb = NCP - NTXVB - NBTCR + 1
      C2(:,:,numTxvb:NCP) = C2(:,:,numTxvb:NCP) + DWPCB(:,:,:)*DLT
-     !CONPCB_W = C2(:,:,numTxvb:NCP)     ! Total PCB in the water column
-     !CONPCB_W = CONPCB_W + DWPCB*DLT
-     !CONPCB_S = CONPCB_S + DSPCB*DLT   ! Total PCB in sediment
-     !C2(:,:,35) = CONPCB_W(:,:)
-     !DO I=1,MLOC
-       !CONPCB_W(I,K) = CONPCB_W(I,K) + DWPCB(I,K)*DLT
-       !C2(I,:,35) = C2(I,:,35) + DWPCB(I)*DLT
+     !------------- For sediment Layer ----------------------------------
      DO I=1,MLOC
        DO K=1,NTXVB
         CONPCB_S1(I,K) = CONPCB_S1(I,K) + DSPCB(I,K,1)*DLT
@@ -809,10 +779,9 @@ END IF
      !In next section first subscript changed to 0 per KURT
          If (SOLIDS_CALC) Call SOLIDS (DTC(0, 1, 3), FLUXS(0, 1, 1))!WLong and LB, we should move this into the IF block below as well??
     END IF  ! for wqm calculations 
+
          If (Mod(ELTMS, DLT) .Eq. 0) Then
-        !RGL added sub cycling of ecosystem model, above
-        !WL  IF(MSR) WRITE(*,*)'calling ecosystem model'
-!
+
 #     if(1)
     IF(WqCalcOn == .TRUE.) THEN     ! for wqm calculations
             If (ZOO_CALC) Call ZOOPL (DTC(0, 1, 7), DTC(0, 1, 8))
@@ -833,8 +802,7 @@ END IF
             If (SILICA_CALC) Call SILICA (DTC(0, 1, 28), DTC(0, 1, 29), &
            & FLUXS(0, 1, 10))
         !
-        
-        !If(MSR) Write (*,*) 'LBnote 2. pH,pCO2,RHO(at some surf place)= ',pH(1,1),pCO2(1,1),RHO(1,1)
+
             If (CARBONATE_CALC) Then
                Call CALC_PH_PCO2
                Call TOTINC (DTC(0, 1, 33))!DTC for TDIC and TALK is in mmol/m3/sec
@@ -884,8 +852,6 @@ END IF
      
          Call VISCOF_H !LB and WL added this call 12may2016
 
-
-!
 !RGL uncommented VERTVL below for full PS run
 !      CALL VERTVL  !Wen Long: We may need this vertical velocity here
 !
@@ -1653,6 +1619,9 @@ END IF  ! for wqm calculations
             CALL ExtractTcrData
         END IF
         !----------------------------------------------------------------------------------------------------
+    
+    WRITE(*,*)'Went through one iteration.........'
+    STOP
 
 !=========================================================================================================== 
 !---------------------------------------- Outputting Results -----------------------------------------------
@@ -1692,6 +1661,14 @@ END IF  ! for wqm calculations
                 !ConTcrSdm2_GL = 0.0
             END IF
 
+    !----------------------------------------------- Global arrays for toxic related variables for restart-------------------        
+            IF(TxcKntOn == .TRUE.) THEN 
+                ALLOCATE(CONPCB_S1GL(MGL,NTXVB))
+                CONPCB_S1GL = 0.0
+                ALLOCATE(CONPCB_S2GL(MGL,NTXVB))
+                CONPCB_S2GL = 0.0
+            END IF
+    !-----------------------------------------------------------------------------------------------------------------------
             
             If (PAR) Then
                   Do J = 1, NCP
@@ -1705,6 +1682,14 @@ END IF  ! for wqm calculations
                   !     Call GATHER (1, MTLOC, MLOC, MGL, NBTCR, MYID, &
                   !      & NPROCS, NMAP, ConTcrSdm2, ConTcrSdm2_GL)
                   END IF
+    !---------------------------------------------- Gathering of toxic related variables for restart files---------------------------              
+                  IF(TxcKntOn == .TRUE.) THEN 
+                        Call GATHER (1, MTLOC, MLOC, MGL, NTXVB, MYID, &
+                        & NPROCS, NMAP, CONPCB_S1, CONPCB_S1GL)
+                       Call GATHER (1, MTLOC, MLOC, MGL, NTXVB, MYID, &
+                        & NPROCS, NMAP, CONPCB_S2, CONPCB_S2GL)
+                  END IF
+    !---------------------------------------------------------------------------------------------------------------------------------
 
                   If (SEDIMENT_CALC) Then
                      Call GATHER (1, MTLOC, MLOC, MGL, 1, MYID, NPROCS, &
@@ -1926,13 +1911,49 @@ END IF  ! for wqm calculations
                 END IF
             END IF
 
-!-----------------------------------------------------------------------------------------------------            
+!------------------------------------ Writing toxics concentration for restart--------------------------  
+
+            IF(TxcKntOn == .TRUE.) THEN
+                numTxcVrb = NCP - NTXVB - NBTCR + 1
+                IF(MSR) THEN
+                    WRITE(FileNum,FMT='(I3.3)')IJDAY
+                    TxcWCRestartFile = "outputs/TxcWCRestart"//TRIM(FileNum)//".dat"
+                    OPEN(UNIT=875, FILE=TxcWCRestartFile, ACTION = 'WRITE')
+                    WRITE(875,'(A)')'Hot start for toxics in water column'
+                        DO ii=1,MGL
+                            DO jj=1,KBM1
+                                WRITE(875,'(<numTxcVrb>(e10.4,3x))')(C2_GL(ii,jj,kk),kk=numTxcVrb,NCP)
+                            END DO
+                        END DO
+                    CLOSE(875)
+
+                    TxcSD1RestartFile = "outputs/TxcSD1Restart"//TRIM(FileNum)//".dat"
+                    OPEN(UNIT=876, FILE=TxcSD1RestartFile, ACTION = 'WRITE')
+                    WRITE(876,'(A)')'Hot start for toxics in water column'
+                        DO ii=1,MGL
+                                WRITE(876,'(<numTxcVrb>(e10.4,3x))')(CONPCB_S1GL(ii,jj),jj=1,NTXVB)
+                        END DO
+                    CLOSE(876)
+
+                    TxcSD2RestartFile = "outputs/TxcSD2Restart"//TRIM(FileNum)//".dat"
+                    OPEN(UNIT=877, FILE=TxcSD2RestartFile, ACTION = 'WRITE')
+                    WRITE(877,'(A)')'Hot start for toxics in water column'
+                        DO ii=1,MGL
+                                WRITE(877,'(<numTxcVrb>(e10.4,3x))')(CONPCB_S2GL(ii,jj),jj=1,NTXVB)
+                        END DO
+                    CLOSE(877)
+                END IF
+            END IF
+
+!----------------------------------------------------------------------------------------------------
             End If   ! RSOD points
         End If !END RESTART_OUT
 
         IF(ALLOCATED(C2_GL)) DEALLOCATE(C2_GL)
         IF(ALLOCATED(ConTcrSdm1_GL)) DEALLOCATE(ConTcrSdm1_GL)
         !IF(ALLOCATED(ConTcrSdm2_GL)) DEALLOCATE(ConTcrSdm2_GL)
+        IF(ALLOCATED(CONPCB_S1GL)) DEALLOCATE(CONPCB_S1GL)
+        IF(ALLOCATED(CONPCB_S2GL)) DEALLOCATE(CONPCB_S2GL)
 
 !-----------------------------------------------------------------------------------------------------
          !IF(MSR) THEN
@@ -3728,6 +3749,12 @@ END SUBROUTINE
 !-------------------- Initial setup for the program - added by Laki -------------------------
 SUBROUTINE MainSetup
   USE MOD_WQM, ONLY: NumWqVrb,NumTxVrb,TxcKntOn, TxcOutput, NumTcrVrb, TcrKntOn, TcrtOutput
+  USE MOD_WQM, ONLY: TXCF_INC,TXCF_PNT,TXCF_OBC, TXCF_INC_SD,TCRF_INC,TCRF_PNT,TCRF_OBC,TCRF_INC_SD, &
+                     & TxcSdmInitType,TxcSdmUnfm,PCBTxcOn,MTLTxcOn,NumTxcOutVar,PTC_WC,PTC_SD,SED_DEN, &
+                     & DFFCOEFS12,BRLVEL,MolWghtCng,HNRCFF,TcrSdmInitType,TcrSdmUnfm,BACTERIAON, &
+                     & RADIONUCON,NOTCRKNTS,NumTcrOutVar,KnBact,C0SalBact,AlphaBact,ThetaBact, &
+                     & RnHalfTime,RnKd,VonKrmn,Rgfh,PtcDensity,ErsnCoeff,CrtShear,SdmPrst,WqCalcOn, PCBOutVrb, &
+                     & TCROutVrb
   USE MOD_SIZES, ONLY: NCP, NTXVB, NBTCR, HydVersionNum
   USE MOD_CONTROL, ONLY: MSR
   IMPLICIT NONE
@@ -3735,39 +3762,82 @@ SUBROUTINE MainSetup
   CHARACTER(LEN = 64) :: FLAG_TXC, FLAG_TCR
   INTEGER :: end_file
   
-  TxcKntOn = .FALSE.
-  TxcOutput = .FALSE.  
-  TcrKntOn = .FALSE.
-  TcrtOutput= .FALSE.
-  
-  IF(MSR) THEN
-    WRITE(*,*)'Starting FVCOM-ICM model run..........'
-  END IF
-  OPEN(UNIT = 377, FILE = 'inputs/WQM_welcome.dat', ACTION = 'READ')
-  READ(377,*, IOSTAT = end_file)
-  IF(end_file < 0) THEN
-  	    WRITE (*,*) "Error occured - Problem with WQM_welcome.dat"
-  	    STOP
+!------------------------- Reading Main setup file ------------------------------ 
+  !INQUIRE(FILE='inputs/WQM_welcome.nml', IOSTAT = end_file)
+  INQUIRE(FILE='WQM_welcome.nml', IOSTAT = end_file)
+
+  IF(end_file /= 0) THEN 
+    WRITE(*,*)'The file WQM_welcome.nml does not exist'
+    STOP
   END IF
 
-  READ(377,*) HydVersionNum     ! Version number of hydrodynamic model 
-  READ(377,*) NumWqVrb    ! Number of main water-quality-variables except toxics
-  READ(377,*) FLAG_TXC    ! switch for the Toxic kinetics: TRUE or FALSE
-  READ(377,*) FLAG_TCR    ! switch for the Toxic kinetics: TRUE or FALSE
-  READ(377,*) NumTxVrb    ! Number of toxics related variables
-  READ(377,*) NumTcrVrb   ! Number of tracer variables
+  NAMELIST /WQM_SETUP/ HydVersionNum,NumWqVrb,WqCalcOn,TxcKntOn,TcrKntOn,NumTxVrb,NumTcrVrb
+  OPEN (UNIT=377,FILE='WQM_welcome.nml', ACTION = 'READ')
 
-  IF(TRIM(FLAG_TXC) == 'ON') THEN
-      TxcKntOn = .TRUE.
-  ELSE
-      TxcKntOn = .FALSE.
+  READ(377,NML = WQM_SETUP, IOSTAT = end_file)
+  IF(end_file /= 0) THEN 
+    WRITE(*,*)'Invalid namelist format'
+    STOP 
   END IF
+  !------------------------------------------------------------------------------ 
+  IF(TxcKntOn == .TRUE.) THEN
+    NAMELIST /TXC_SETUP/ TXCF_INC,TXCF_PNT,TXCF_OBC,TXCF_INC_SD,TxcSdmInitType, &
+                        & TxcSdmUnfm,PCBTxcOn,MTLTxcOn,NumTxcOutVar 
+    READ(377,NML = TXC_SETUP, IOSTAT = end_file)
+    IF(end_file /= 0) THEN
+        WRITE(*,*)'Invalid namelist format for toxics'
+    END IF
+    IF(PCBTxcOn .AND. MTLTxcOn) THEN 
+        WRITE(*,*)'Only one type of toxic kinetics can be activated at a time ......'
+        STOP
+    END IF
 
-  IF(TRIM(FLAG_TCR) == 'ON') THEN
-      TcrKntOn = .TRUE.
-  ELSE 
-      TcrKntOn = .FALSE.
+    IF(PCBTxcOn) THEN
+        ALLOCATE(MolWghtCng(NumTxVrb))
+        NAMELIST /TXC_PARAMETER_PCB/ PTC_WC,PTC_SD,SED_DEN,DFFCOEFS12,BRLVEL,MolWghtCng, &
+                            & HNRCFF
+        READ(377,NML = TXC_PARAMETER_PCB, IOSTAT = end_file)
+        ALLOCATE(PCBOutVrb(NumTxcOutVar))
+        NAMELIST /TXC_OUT_PCB/PCBOutVrb
+        READ(377,NML = TXC_OUT_PCB, IOSTAT = end_file)
+    END IF
+
   END IF
+  !------------------------------------------------------------------------------
+  IF(TcrKntOn == .TRUE.) THEN 
+    NAMELIST /TCR_SETUP/ TCRF_INC,TCRF_PNT,TCRF_OBC,TCRF_INC_SD,TcrSdmInitType, &
+                & TcrSdmUnfm,BACTERIAON,RADIONUCON,NOTCRKNTS,NumTcrOutVar
+    READ(377,NML = TCR_SETUP, IOSTAT = end_file)
+    IF(end_file /= 0) THEN 
+        WRITE(*,*)'Invalid namelist format for tracer'
+    END IF
+    
+    IF((BACTERIAON .AND. RADIONUCON) .OR. (BACTERIAON .AND. NOTCRKNTS) .OR. &
+           & (RADIONUCON .AND. NOTCRKNTS)) THEN 
+        WRITE(*,*)'Only one type of tracer kinetics can be activated at a time ......'
+        STOP 
+    END IF
+
+    IF(BACTERIAON) THEN 
+        NAMELIST /TCR_PARAMETER_FB/KnBact,C0SalBact,AlphaBact,ThetaBact
+        READ(377,NML = TCR_PARAMETER_FB, IOSTAT = end_file)
+    END IF
+
+    IF(RADIONUCON) THEN 
+        ALLOCATE(RnHalfTime(NumTcrVrb))
+        ALLOCATE(RnKd(NumTcrVrb))
+        NAMELIST /TCR_PARAMETER_RN/RnHalfTime,RnKd
+        READ(377,NML = TCR_PARAMETER_RN, IOSTAT = end_file)
+        NAMELIST /SEDIMENT_PARA/VonKrmn,Rgfh,PtcDensity,ErsnCoeff,CrtShear,SdmPrst
+        READ(377,NML = SEDIMENT_PARA, IOSTAT = end_file)
+    END IF
+
+    ALLOCATE(TCROutVrb(NumTcrOutVar))
+    NAMELIST /TCR_OUT/TCROutVrb
+    READ(377,NML = TCR_OUT, IOSTAT = end_file) 
+
+  END IF
+  !------------------------------------------------------------------------------
 
  IF((TxcKntOn == .FALSE.) .AND. (NumTxVrb > 0)) THEN
     NumTxVrb = 0
@@ -3795,7 +3865,9 @@ SUBROUTINE MainSetup
     NTXVB = NumTxVrb
     NBTCR = NumTcrVrb
 
-  !WRITE(*,*)'The value of TxcKntOn', TxcKntOn
+WRITE(*,*)'Main setup was completed........'
+
+
 END SUBROUTINE
 !--------------------------------------------------------------------------------
 

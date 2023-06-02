@@ -38,8 +38,8 @@
 #                           UNCOMMENT TO INCLUDE NETCDF OUTPUT CAPABILITY
 #--------------------------------------------------------------------------
            FLAG_2       =  -DNETCDF_IO
-           IOLIBS       =  -L/share/apps/netcdf/4.7.4/intel/18.0.4/lib -lnetcdff # /home/BIAN431/mypsdiag/netcdf_install/lib  -lnetcdf
-           IOINCS       =  -I/share/apps/netcdf/4.7.4/intel/18.0.4/include      # /home/BIAN431/mypsdiag/netcdf_install/include
+           IOLIBS       =  -L/share/apps/netcdf/4.3.2/intel/18.0.0/lib -lnetcdff # /home/BIAN431/mypsdiag/netcdf_install/lib  -lnetcdf
+           IOINCS       =  -I/share/apps/netcdf/4.3.2/intel/18.0.0/include      # /home/BIAN431/mypsdiag/netcdf_install/include
 
 #
 #Flag to turn on the various outputs for program checking
@@ -99,7 +99,7 @@
 #--------------------------------------------------------------------------
 #  Intel Compiler Definitions
 #--------------------------------------------------------------------------
-          CPP      = /usr/bin/cpp -P -nostdinc
+          CPP      = /usr/bin/cpp
           CPPFLAGS = $(DEF_FLAGS) -DINTEL
           FC       = mpif90
           #DEBFLGS  = -r8 -warn all -i4 -g -nozero -O0  -check all -g -debug -ftrapuv -debug-parameters -fp-stack-check -fpe0 -traceback -automatic
@@ -132,6 +132,7 @@
 #==========================================================================
 
          FFLAGS = $(DEBFLGS) $(OPT)
+         #FFLAGS = $(DEBFLGS)
          MDEPFLAGS = --cpp --fext=f90 --file=-
          RANLIB = ranlib
 

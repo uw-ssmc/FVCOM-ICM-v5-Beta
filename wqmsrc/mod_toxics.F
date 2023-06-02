@@ -2,7 +2,7 @@ MODULE TXC_KNT
 
   USE MOD_LIMS, Only: MTLOC, KBM1, KB, MLOC, NBTX_PNT
   USE MOD_PREC, Only: SP
-  USE MOD_SIZES, Only: MGL, NGL,NCP,NTXVB  ! NTXVB - no. of variables for toxics
+  USE MOD_SIZES, Only: MGL, NGL,NCP,NTXVB,NBTCR  ! NTXVB - no. of variables for toxics
   USE MOD_WQM, ONLY: SSI, C1, C2, POC_CONCENS, DOC_CONCENS, WMS, TxcOutVar, NumTxcOutVar, TxcOutput, &
                     & PcbCon_W, PcbCon_AlgW, PcbCon_ZplW, PcbCon_SldW, PcbCon_POCW,PcbConTW, PcbConTW_GL, &
                     & PcbConW_GL, PcbConAlgW_GL, PcbConZplW_GL, PcbConSldW_GL, PcbConPOCW_GL, &
@@ -10,7 +10,10 @@ MODULE TXC_KNT
                     & PcbConWS1_GL, PcbConPOCS1_GL, PcbConDOCS1_GL, PcbConSldS1_GL, &
                     & PcbConW_S2, PcbCon_POCS2, PcbCon_DOCS2, PcbCon_SldS2, &
                     & PcbConWS2_GL, PcbConPOCS2_GL, PcbConDOCS2_GL, PcbConSldS2_GL, &
-                    & PcbConTS1, PcbConTS1_GL, PcbConTS2, PcbConTS2_GL
+                    & PcbConTS1, PcbConTS1_GL, PcbConTS2, PcbConTS2_GL, &
+                    & TXCF_INC,TXCF_PNT,TXCF_OBC, TXCF_INC_SD,PTC_SD, PTC_WC,SED_DEN, & 
+                    & DFFCOEFS12, BRLVEL,MolWghtCng,HNRCFF,TxcSdmInitType,TxcSdmUnfm, &
+                    & PCBTxcOn,MTLTxcOn,NumTxcOutVar
 
   USE MOD_CONTROL, ONLY: SERIAL, MSR, PAR
   USE MOD_PAR, Only: NGID, NHN, HN_LST, NLID
@@ -47,8 +50,8 @@ IMPLICIT NONE
  REAL(SP), ALLOCATABLE, DIMENSION (:,:) :: FD_WS2, FP_SSI_S2,FP_POC_S2,FP_DOC_S2
  REAL(SP), ALLOCATABLE, DIMENSION (:,:) :: KP_POC_S1, KP_DOC_S1,KP_SSI_S1,KP_POC_S2, KP_SSI_S2, KP_DOC_S2
  REAL(SP), ALLOCATABLE, DIMENSION (:) ::  PSRT1, PSRT1_GL,PSRT2, PSRT2_GL
- REAL(SP), ALLOCATABLE, DIMENSION (:) :: WSSI12, WPOC12, DFFVS12W, MolWghtCng
- REAL(SP) :: SED_DEN, DFFCOEFS12, BRLVEL, SED_DEN1, SED_DEN2
+ REAL(SP), ALLOCATABLE, DIMENSION (:) :: WSSI12, WPOC12, DFFVS12W
+ REAL(SP) ::  SED_DEN1, SED_DEN2
 ! FD_S - dissolved fraction of toxics in sediment layer
 ! FP_SSI_S - particulate fraction of toxics in sediment layer
 ! KP_SSI_S - Partition coefficient of SSI for sediment
@@ -57,9 +60,9 @@ IMPLICIT NONE
 ! PRST1 - porosity of layer 1
 ! PRST2 - Porosity of layer 2
  INTEGER :: TXCST, I, K, JCON, JJ, JT, JK, J, CNT, NJ, NOCHN_IDS, NumCng
- CHARACTER(LEN = 1024) :: TXCF_INC,TXCF_PNT,TXCF_OBC, TXCF_INC_SD,FLAG_SD_INI, FLAG_WIND
+ CHARACTER(LEN = 1024) :: FLAG_SD_INI, FLAG_WIND
  INTEGER, ALLOCATABLE, DIMENSION(:) :: TEMP, TEMP2, TEMP3, CHN_IDS
- REAL(SP) :: WNSSI, WNPOC, WINDVEL, HNRCFF
+ REAL(SP) :: WNSSI, WNPOC, WINDVEL
 
  CONTAINS
 
@@ -232,12 +235,12 @@ SUBROUTINE TXC_ALLOC
           CONPCB_S1 = 0.0
           ALLOCATE(CONPCB_S2(MTLOC,NTXVB))
           CONPCB_S2 = 0.0
-          ALLOCATE(CONPCB_WGL(MGL,KBM1,NTXVB))
-          CONPCB_WGL = 0.0
-          ALLOCATE(CONPCB_S1GL(MGL,NTXVB))
-          CONPCB_S1GL = 0.0
-          ALLOCATE(CONPCB_S2GL(MGL,NTXVB))
-          CONPCB_S2GL = 0.0
+          !ALLOCATE(CONPCB_WGL(MGL,KBM1,NTXVB))
+          !CONPCB_WGL = 0.0
+          !ALLOCATE(CONPCB_S1GL(MGL,NTXVB))
+          !CONPCB_S1GL = 0.0
+          !ALLOCATE(CONPCB_S2GL(MGL,NTXVB))
+          !CONPCB_S2GL = 0.0
 
           !ALLOCATE(SSI_GL(0:MGL,KBM1))
           !SSI_GL = 0.0
@@ -263,7 +266,7 @@ SUBROUTINE READ_TXC_DATA()
  REAL(SP), ALLOCATABLE, DIMENSION(:,:,:) :: RTEMP1
  REAL(SP), ALLOCATABLE, DIMENSION(:,:) :: TEMPTXC
  CHARACTER(LEN = 64) :: FLGTXC_OUTPUT
- REAL (SP) :: TTIME, PTC_SD, PTC_WC, TXC_INIT_SD, UNIT_SCALE, UNIT_SCALE_SD, UNIT_SCL_LDN
+ REAL (SP) :: TTIME, TXC_INIT_SD, UNIT_SCALE, UNIT_SCALE_SD, UNIT_SCL_LDN
  INTEGER :: NumLine
 
 #if defined (MULTIPROCESSOR)
@@ -273,20 +276,7 @@ SUBROUTINE READ_TXC_DATA()
 UNIT_SCALE = 1E-06      ! ng/L to g/m^3 unit conversion , data is available in ng/L
 UNIT_SCALE_SD = 1E-09   ! ng/g to g/m^3 unit conversion, g/m^3 = ng/g *rho(g/m^3)*UNIT_SCALE_SD
 UNIT_SCL_LDN = 1E-09    ! ng/m3   to g/m3 for loading data
-OPEN(UNIT = 378, FILE = 'inputs/txc_cnt.dat', ACTION = 'READ')
-READ(378,*, IOSTAT = end_file)
-IF(end_file < 0) THEN
-	    WRITE (*,*) "Error occured - Problem with txc_cnt.dat"
-	    STOP
-END IF
- READ(378,*)TXCF_INC    ! input file of initial conditions for toxics
- READ(378,*)TXCF_PNT    ! input file of loading from point sources
- READ(378,*)TXCF_OBC    ! input file for open boundary conditions
- READ(378,*)TXCF_INC_SD ! file for txc initial conditions for sediment layer
- READ(378,*)
- READ(378,*)PTC_WC     ! partition coefficient for water column
- READ(378,*)PTC_SD     ! partition coefficient for sediment layer
- READ(378,*)SED_DEN   ! solid density of sediment layers
+
  KP_SSI_W = PTC_WC
  KP_SSI_S1 = PTC_SD
  KP_SSI_S2 = PTC_SD
@@ -302,25 +292,10 @@ END IF
  KP_DOC_S1 = PTC_SD
  KP_POC_S2 = PTC_SD
  KP_DOC_S2 = PTC_SD
- READ(378,*)DFFCOEFS12   ! diff. coefficient for molecular diffusion between sdlyr 1 and sdlyr 2
- READ(378,*)BRLVEL       ! burial velocity of solids from sdlyr 2
- READ(378,*)
- READ(378,*)FLAG_SD_INI ! flag for initial txc distribution in sediment (constant/variable = 1/0)
- READ(378,*)TXC_INIT_SD     ! uniform txc concen if txc distribution in sediment is uniform
- READ(378,*)
- READ(378,*)NumCng         ! number of PCB congeners
- ALLOCATE(MolWghtCng(NumCng))   ! congener molar weight array
- DO I=1, NumCng
-   READ(378,*)MolWghtCng(I)
- END DO
- READ(378,*)
- READ(378,*)HNRCFF
- READ(378,*)
- READ(378,*)FLGTXC_OUTPUT    ! Flag for outputting toxicant concentration data 
 !------------------------------- initialization of toxics in sediment layer ----------------------------
- IF(TRIM(FLAG_SD_INI) == 'UNIFORM') THEN
-   CONPCB_S1 = TXC_INIT_SD
-   CONPCB_S2 = TXC_INIT_SD
+ IF(TRIM(TxcSdmInitType) == 'UNIFORM') THEN
+   CONPCB_S1 = TxcSdmUnfm
+   CONPCB_S2 = TxcSdmUnfm
  ELSE
    OPEN(UNIT = 211, FILE = TRIM(TXCF_INC_SD), ACTION = 'READ')
    READ(211,*, IOSTAT = end_file)
@@ -365,20 +340,20 @@ IF(end_file < 0) THEN
 	    WRITE (*,*) "Error occured - No file for initial conditions for toxics.dat"
 	    STOP
 END IF
-TXCST = NCP - NTXVB + 1
-ALLOCATE (RTMPX(0:MGL, KBM1, TXCST:NCP))         ! NTXVB - toxics related variables for water column
+TXCST = NCP - NTXVB - NBTCR + 1
+ALLOCATE (RTMPX(0:MGL, KBM1, TXCST:NCP-NBTCR))         ! NTXVB - toxics related variables for water column
 RTMPX = 0.0
 DO I = 1, MGL
         DO K = 1, KBM1
-            READ (212,*) (RTMPX(I, K, JCON), JCON=TXCST, NCP)
+            READ (212,*) (RTMPX(I, K, JCON), JCON=TXCST, NCP-NBTCR)
         END DO
 END DO
 RTMPX = RTMPX*UNIT_SCALE
-If (SERIAL) C1(:,:,TXCST:NCP) = RTMPX
+If (SERIAL) C1(:,:,TXCST:NCP-NBTCR) = RTMPX
 
 #  if defined (MULTIPROCESSOR)
          IF (PAR) THEN
-            DO JCON = TXCST, NCP
+            DO JCON = TXCST, NCP-NBTCR
                DO K = 1, KBM1
                   DO I = 1, MLOC
                      C1 (I, K, JCON) = RTMPX (NGID(I), K, JCON)
@@ -397,46 +372,46 @@ If (SERIAL) C1(:,:,TXCST:NCP) = RTMPX
  CLOSE(212)
 
 !---------------------------------------------------------------------------------------------
-OPEN(UNIT = 213, FILE = TRIM(TXCF_OBC), ACTION = 'READ')
-READ(213,*)NUM_NDS
-IF(NUM_NDS /= IOBCN_GL) THEN
-  WRITE(*,*)'Number of nodes for OBC does not match with water quality related OBC nodes'
-  STOP
-END IF
+!OPEN(UNIT = 213, FILE = TRIM(TXCF_OBC), ACTION = 'READ')
+!READ(213,*)NUM_NDS
+!IF(NUM_NDS /= IOBCN_GL) THEN
+!  WRITE(*,*)'Number of nodes for OBC does not match with water quality related OBC nodes'
+!  STOP
+!END IF
 
-ALLOCATE(OBC_NDS(IOBCN_GL))
-DO J =1,IOBCN_GL
-  READ(213,*)OBC_NDS(j)
-END DO
+!ALLOCATE(OBC_NDS(IOBCN_GL))
+!DO J =1,IOBCN_GL
+!  READ(213,*)OBC_NDS(j)
+!END DO
 
-#  if defined (MULTIPROCESSOR)
-    IF(PAR) THEN
-        DO JT = 1, NUT_TM%NTIMES
-          READ(213,*)
-          DO JJ = TXCST, NCP
-            DO I = 1, IOBCN_GL
-               I1 = NLID(I_OBC_GL(I))
-                IF(I1 == 0) THEN
-                  READ(213,*)
-                  CYCLE
-                END IF
+!#  if defined (MULTIPROCESSOR)
+!    IF(PAR) THEN
+!        DO JT = 1, NUT_TM%NTIMES
+!          READ(213,*)
+!          DO JJ = TXCST, NCP
+!            DO I = 1, IOBCN_GL
+!               I1 = NLID(I_OBC_GL(I))
+!                IF(I1 == 0) THEN
+!                  READ(213,*)
+!                  CYCLE
+!                END IF
 
-                DO JK = 1, IOBCN
-                  IF (I1 == I_OBC_N(JK)) THEN
-                    READ(213,*) (WQOBC(JK,K,JT,JJ), K=1, KBM1)
-                    EXIT
-                  ELSE
-                    !WRITE(*,*)'Reading of OBC data for Toxics encountered a problem', I,I1,IOBCN, I_OBC_N
-                    CYCLE
-                  END IF
-                END DO
+!                DO JK = 1, IOBCN
+!                  IF (I1 == I_OBC_N(JK)) THEN
+!                    READ(213,*) (WQOBC(JK,K,JT,JJ), K=1, KBM1)
+!                    EXIT
+!                  ELSE
+!                    !WRITE(*,*)'Reading of OBC data for Toxics encountered a problem', I,I1,IOBCN, I_OBC_N
+!                    CYCLE
+!                 END IF
+!                END DO
 
-              END DO
-            END DO
-        END DO
-    END IF
-# endif
- CLOSE(213)
+!              END DO
+!            END DO
+!        END DO
+!    END IF
+!# endif
+! CLOSE(213)
 
 !-------------------------------------------------------------------------------------------
 OPEN(UNIT = 215, FILE = TRIM(TXCF_PNT), ACTION = 'READ')
@@ -494,14 +469,14 @@ READ(215,*) TXQTIME
 TX_TM%NTIMES = TXQTIME
 TX_TM%LABEL = "TX-point source"
 ALLOCATE (TX_TM%TIMES(TXQTIME))
-ALLOCATE (RTEMP1(NBTX_PNT_GL, TXCST:NCP, TXQTIME))
+ALLOCATE (RTEMP1(NBTX_PNT_GL, TXCST:NCP-NBTCR, TXQTIME))
 ALLOCATE (RTEMP2(NBTX_PNT_GL, TXQTIME))
 !------------------------------------------------------------------------------------
 DO I = 1, TXQTIME
    READ (215,*) TTIME
    TX_TM%TIMES (I) = TTIME
    READ (215,*) (RTEMP2(J, I), J=1, NBTX_PNT_GL)
-   DO NJ = TXCST,NCP
+   DO NJ = TXCST,NCP-NBTCR
       READ (215,*) (RTEMP1(J, NJ, I), J=1, NBTX_PNT_GL)
    END DO
 END DO
@@ -510,7 +485,7 @@ RTEMP1 = RTEMP1*UNIT_SCL_LDN
 
 !-------------- Transforming data into local arrays --------------------------------
 ALLOCATE (TXQDIS(NBTX_PNT,TXQTIME))
-ALLOCATE (TXCQDIS(NBTX_PNT, TXCST:NCP, TXQTIME))
+ALLOCATE (TXCQDIS(NBTX_PNT, TXCST:NCP-NBTCR, TXQTIME))
 
 IF(SERIAL) THEN
   TXQDIS(1:NBTX_PNT,:) = RTEMP2 (1:NBTX_PNT_GL,:)
@@ -530,28 +505,10 @@ CLOSE(215)
 END IF
 HSED1 = 0.1
 HSED = 0.9
-!WRITE(*,*),NBTX_PNT,TXCQDIS
-!WRITE(*,*)'----------------------------------'
+
 !----------------------- information for outputing toxicant concentration data ----------------  
-IF(TRIM(FLGTXC_OUTPUT) == 'TRUE') THEN 
+IF(NumTxcOutVar > 0) THEN 
   TxcOutput = .TRUE. 
-  OPEN(UNIT = 216, FILE = 'inputs/txc_output_infor.dat', ACTION = 'READ') 
-  NumLine = 0
-  DO
-    READ(216, *,IOSTAT=end_file)
-    IF(end_file /= 0) THEN
-      REWIND(216)
-      EXIT
-    ELSE
-      NumLine = NumLine + 1
-    END IF
-  END DO
-  NumTxcOutVar = NumLine
-  ALLOCATE(TxcOutVar(NumLine))
-  DO i=1,NumLine
-    READ(216,*) TxcOutVar(i)
-  END DO
-  CLOSE(216)
 ELSE 
   TxcOutput = .FALSE.
 END IF 
@@ -580,12 +537,12 @@ SUBROUTINE SLD_KNT(TMSTEP)
  TTL_MASS = 0.0
  TTL_MASS2 = 0.0
  TTL_MASS3 = 0.0
- txcID = NCP - NTXVB + 1
+ txcID = NCP - NTXVB - NBTCR + 1
  DO I=1, MLOC
    DO J=1, KBM1
      !TTL_MASS(I) = TTL_MASS(I) + C2(I,J,3)*ART1(I)*D(I)*DZ2D(I,KBM1)*0.001
-      CONPCB_W(I,J,:) = C2(I,J,txcID:NCP)
-      DO JJ=txcID, NCP
+      CONPCB_W(I,J,:) = C2(I,J,txcID:NCP-NBTCR)
+      DO JJ=txcID, NCP - NBTCR
         TTL_MASS(I) = TTL_MASS(I) + C2(I,J,JJ)*ART1(I)*D(I)*DZ(J)*0.001
       END DO
 
@@ -613,56 +570,56 @@ END SUBROUTINE
 !---------------------------------------------------------------------------------------
 
 
-!---------------------------------------------------------------------------------------
-!--------- auxilliary subroutine to compute 1D mass accumulation for analytical solutions--------
-SUBROUTINE OneDimMassAcc()
+!!---------------------------------------------------------------------------------------
+!!--------- auxilliary subroutine to compute 1D mass accumulation for analytical solutions--------
+!SUBROUTINE OneDimMassAcc()
 
-  USE MOD_WQM, ONLY : TTL_MASS, TTL_MASS_GL,M1DMass, ART1_GL, D_GL, M1SDMass, &
+!  USE MOD_WQM, ONLY : TTL_MASS, TTL_MASS_GL,M1DMass, ART1_GL, D_GL, M1SDMass, &
                       & PCB_W, PCB_S, PORST1, PORST2
-  USE MOD_PREC, ONLY: SP
-  IMPLICIT NONE
+!  USE MOD_PREC, ONLY: SP
+!  IMPLICIT NONE
 
-  INTEGER :: j,k,I
-  REAL(SP) :: TOT_VOL, SED_VOL
+!  INTEGER :: j,k,I
+!  REAL(SP) :: TOT_VOL, SED_VOL
 
-  k = MGL
-  j = 1
+!  k = MGL
+!  j = 1
 
-  DO WHILE (k > 0)
-    M1DMass(j) = 0.0
-    M1SDMass(j) = 0.0
-    PCB_W(j,:) = 0.0
-    PCB_S(j,:) = 0.0
-    PORST1(j) = 0.0
-    PORST2(j) = 0.0
-    TOT_VOL = 0.0
-    SED_VOL = 0.0
-    DO I = k-4, k
-      !M1DMass(j) = M1DMass(j) + TTL_MASS_GL(I)   ! accumulated mass along sections (1D)
-      M1SDMass(j) = M1SDMass(j) + SSDL_GL(I)     ! accumulated sediment mass along sections (1D)
-      !M1SDMass(j) = M1SDMass(j) + PSRT_GL(I)
-      !TOT_VOL = TOT_VOL + ART1_GL(I)*D_GL(I)
-      !SED_VOL = SED_VOL + ART1_GL(I)*1.0
-      PCB_W(j,:) = PCB_W(j,:) + CONPCB_WGL(I,KBM1,:)
-      PCB_S(j,:) = PCB_S(j,:) + CONPCB_S1GL(I,:)
-      PORST1(j) = PORST1(j) + PSRT1_GL(I)
-      PORST2(j) = PORST2(j) + PSRT2_GL(I)
+!  DO WHILE (k > 0)
+!    M1DMass(j) = 0.0
+!    M1SDMass(j) = 0.0
+!    PCB_W(j,:) = 0.0
+!    PCB_S(j,:) = 0.0
+!    PORST1(j) = 0.0
+!    PORST2(j) = 0.0
+!    TOT_VOL = 0.0
+!    SED_VOL = 0.0
+!    DO I = k-4, k
+!      !M1DMass(j) = M1DMass(j) + TTL_MASS_GL(I)   ! accumulated mass along sections (1D)
+!      M1SDMass(j) = M1SDMass(j) + SSDL_GL(I)     ! accumulated sediment mass along sections (1D)
+!      !M1SDMass(j) = M1SDMass(j) + PSRT_GL(I)
+!      !TOT_VOL = TOT_VOL + ART1_GL(I)*D_GL(I)
+!      !SED_VOL = SED_VOL + ART1_GL(I)*1.0
+!      PCB_W(j,:) = PCB_W(j,:) + CONPCB_WGL(I,KBM1,:)
+!      PCB_S(j,:) = PCB_S(j,:) + CONPCB_S1GL(I,:)
+!      PORST1(j) = PORST1(j) + PSRT1_GL(I)
+!      PORST2(j) = PORST2(j) + PSRT2_GL(I)
 
-    END DO
-      M1DMass(j) = M1DMass(j)/5.0         ! average concentration across a section
-      !M1DMass(j) =   M1DMass(j)/TOT_VOL  ! Mass is converted into concentration
-      !M1SDMass(j) = M1SDMass(j)/SED_VOL  ! sediment mass converted into concentration
-      M1SDMass(j) = M1SDMass(j)/5.0
-      PCB_W(j,:) = PCB_W(j,:)/5.0
-      PCB_S(j,:) = PCB_S(j,:)/5.0
-      PORST1(j) = PORST1(j)/5.0
-      PORST2(j) = PORST2(j)/5.0
-    k = k - 5
-    j = j + 1
-  END DO
+!    END DO
+!      M1DMass(j) = M1DMass(j)/5.0         ! average concentration across a section
+!      !M1DMass(j) =   M1DMass(j)/TOT_VOL  ! Mass is converted into concentration
+!      !M1SDMass(j) = M1SDMass(j)/SED_VOL  ! sediment mass converted into concentration
+!      M1SDMass(j) = M1SDMass(j)/5.0
+!      PCB_W(j,:) = PCB_W(j,:)/5.0
+!      PCB_S(j,:) = PCB_S(j,:)/5.0
+!      PORST1(j) = PORST1(j)/5.0
+!      PORST2(j) = PORST2(j)/5.0
+!    k = k - 5
+!    j = j + 1
+!  END DO
 
-END SUBROUTINE
-!--------------------------------------------------------------------------------------
+!END SUBROUTINE
+!!--------------------------------------------------------------------------------------
 
 
 !--------------------------------------------------------------------------------------
@@ -673,8 +630,6 @@ USE MOD_WQM, ONLY : TTL_MASS
 
  REAL(SP) :: fracDenominatorWC, fracDenominatorSD1, fracDenominatorSD2
 
- !KP_SSI_W = 0.0301
- !KP_SSI_S = 0.0301
 
  DO I=1, MLOC
    DO K=1, KBM1

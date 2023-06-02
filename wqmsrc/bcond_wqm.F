@@ -114,11 +114,7 @@ Subroutine BCOND_WQM
          End Do
      !---------End LB addition Jan 7 2016
 #endif
-                DO K=1, KBM1 
-                    DO I=1, IOBCN
-                        WQOBC_TMP(I,K,35:45) = 0.0000
-                    END DO
-                END DO
+
 
      !RAMP_TS = Tanh (FLOAT(IINT)/FLOAT(8640+1)) !this is only the same as HYD if DLT=10sec
          RAMP_TS = Tanh (FLOAT(IINT)/FLOAT(stepsIn1day+1))!LB changed to assure ramp time is 1 day, as in HYD for SalishSea 20may2016

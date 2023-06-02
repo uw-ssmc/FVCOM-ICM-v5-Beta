@@ -950,8 +950,8 @@ Module MOD_WQM
   !
  Real (SP) :: IWCMS, IWCMN, IWCMP, IWCMC !total initial carbon in water column
  LOGICAL :: TxcKntOn, TxcOutput    ! added by Laki for Toxics
- INTEGER :: NumWqVrb, NumTxVrb, NumTxcOutVar    ! added by Laki for Toxics
- INTEGER :: NumTcrVrb, NumTcrOutVar                   ! added by Laki for FC-Bacteria
+ INTEGER :: NumWqVrb, NumTxVrb    ! added by Laki for Toxics
+ INTEGER :: NumTcrVrb                   ! added by Laki for FC-Bacteria
  LOGICAL :: TcrKntOn, TcrtOutput  ! added by Laki for FC-Bacteria   
  CHARACTER(LEN = 64), ALLOCATABLE, DIMENSION(:) :: TxcOutVar,TcrOutVar
  REAL(SP), ALLOCATABLE, DIMENSION (:, :, :) :: PcbCon_W, PcbCon_AlgW, PcbCon_ZplW, PcbCon_SldW, PcbCon_POCW
@@ -974,6 +974,26 @@ Module MOD_WQM
  REAL(SP), ALLOCATABLE, DIMENSION (:, :) :: RdcnConWS2_GL, RdcnConPOCS2_GL, RdcnConDOCS2_GL, RdcnConSldS2_GL
  REAL(SP), ALLOCATABLE, DIMENSION (:) :: RdcnConTS1, RdcnConTS1_GL, RdcnConTS2, RdcnConTS2_GL, SedFlux, SusFlux, BtmShear
  REAL(SP), ALLOCATABLE, DIMENSION (:) :: ULND,VLND,WWLND,SdmHT,SdmBRL
+ LOGICAL :: WqCalcOn
+ !---------------------------------- Toxics cmm parameters --------------------------------------
+ CHARACTER(LEN = 1024) :: TXCF_INC,TXCF_PNT,TXCF_OBC, TXCF_INC_SD
+ REAL (SP) :: PTC_SD, PTC_WC,SED_DEN,DFFCOEFS12,BRLVEL,TxcSdmUnfm
+ REAL (SP) :: HNRCFF
+ REAL(SP), ALLOCATABLE, DIMENSION (:) :: MolWghtCng
+ CHARACTER(LEN = 120) :: TxcSdmInitType
+ LOGICAL :: PCBTxcOn,MTLTxcOn
+ INTEGER :: NumTxcOutVar
+ CHARACTER(LEN = 30), ALLOCATABLE, DIMENSION (:) :: PCBOutVrb
+ !---------------------------------- Tracer cmm parameters --------------------------------------
+ CHARACTER(LEN = 1024) :: TCRF_INC,TCRF_PNT,TCRF_OBC,TCRF_INC_SD
+ CHARACTER(LEN = 120) :: TcrSdmInitType
+ REAL(SP) :: TcrSdmUnfm,KnBact,C0SalBact,AlphaBact,ThetaBact
+ LOGICAL :: BACTERIAON,RADIONUCON,NOTCRKNTS
+ REAL(SP), ALLOCATABLE, DIMENSION(:) :: RnKd, RnHalfTime
+ INTEGER :: NumTcrOutVar
+ CHARACTER(LEN = 30), ALLOCATABLE, DIMENSION (:) :: TCROutVrb
+ !---------------------------------- sediment cmm parameters ------------------------------------
+ REAL(SP) :: VonKrmn,Rgfh,PtcDensity,ErsnCoeff,CrtShear,SdmPrst
 
 
 Contains
@@ -1251,26 +1271,6 @@ Contains
          Allocate (WSPM(0:MTLOC, KBM1))
          WSPM = 0.0
 
-         IF(TcrKntOn == .TRUE.) THEN 
-               Allocate (SusFlux(0:MTLOC))
-               SusFlux = 0.0
-               Allocate (SedFlux(0:MTLOC))
-               SedFlux = 0.0
-               Allocate (BtmShear(0:MTLOC))
-               BtmShear = 0.0
-               Allocate (ULND(0:MTLOC))
-               ULND = 0.0
-               Allocate (VLND(0:MTLOC))
-               VLND = 0.0 
-               Allocate (WWLND(0:MTLOC))
-               WWLND = 0.0
-               Allocate (SdmHT(0:MTLOC))
-               SdmHT = 0.0
-               Allocate (SdmBRL(0:MTLOC))
-               SdmBRL = 0.0
-               Allocate (DTSPM(0:MTLOC,KBM1))
-               DTSPM = 0.0
-         END IF
     !
          Allocate (FLXSPIB1(MTLOC, KBM1))
          FLXSPIB1 = 0.0

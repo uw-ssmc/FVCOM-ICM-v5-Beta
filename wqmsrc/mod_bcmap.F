@@ -2,7 +2,7 @@ Module MOD_BCMAP
   !
       Use MOD_PREC, Only: SP
       Use MOD_TYPES, Only: BC
-      USE MOD_WQM, ONLY: TcrKntOn
+      USE MOD_WQM, ONLY: TcrKntOn,TCRF_OBC,TXCF_OBC,TxcKntOn
   !
   !WLong moved the following here from mod_obcs.F
       Integer :: IOBCN_GL !!GLOBAL NUMBER OF OPEN BOUNDARY NODES
@@ -47,7 +47,7 @@ Contains
          Real (SP) :: FTEMP1
          Real (SP), Allocatable :: WQOBC_GL (:, :, :, :)!!NUT Series at OB sigma layer
     !
-         Integer ::  NTMP, numTcrtVrb
+         Integer ::  NTMP, numTcrtVrb, numTxcVrb
          Character (Len=100) :: ISTR
     !
 
@@ -108,7 +108,7 @@ Contains
             Allocate (NUT_TM%TIMES(NUT_TM%NTIMES))
             NUT_TM%TIMES = 0.
             Allocate (WQOBC_GL(IOBCN_GL, KBM1, NUT_TM%NTIMES, NCP))
-            WQOBC_GL = 0.
+            WQOBC_GL = 0.0
        !
             Read (INOBC,*)
             Do I = 1, IOBCN_GL
@@ -126,27 +126,48 @@ Contains
           !          NUT_TM%TIMES = 24.0*(NUT_TM%TIMES) !shift to model hours
             End Do
             Close (INOBC)
+          
+!-----------------------------------------------------------------------------------------
+           IF(TxcKntOn == .TRUE.) THEN 
+                numTxcVrb = NCP - NTXVB - NBTCR + 1
+                OPEN(UNIT = 222, FILE = TRIM(TXCF_OBC), ACTION = 'READ')
+                READ(222,*)
+                DO I = 1, IOBCN_GL
+                     READ (222,*)
+                END DO
+                DO JT = 1, NUT_TM%NTIMES
+                READ (222,*)
+                     DO JJ = numTxcVrb, NCP - NBTCR
+                          DO I = 1, IOBCN_GL
+                               READ (222,*) (WQOBC_GL(I, K, JT, JJ), K=1, &
+                               & KBM1)!temp in OB sigma layer
+                          END DO
+                     END DO
+                END DO
+                CLOSE(222)
+           END IF
 
-          IF(TcrKntOn == .TRUE.) THEN 
-               numTcrtVrb = NCP - NBTCR + 1
-               OPEN(UNIT = 212, FILE = 'inputs/tepco_tcr_obc.dat', ACTION = 'READ')
-               READ(212,*)
-               DO I = 1, IOBCN_GL
-                    READ (212,*)
-               END DO
-               DO JT = 1, NUT_TM%NTIMES
-               READ (212,*)
-                    DO JJ = numTcrtVrb, NCP
-                         DO I = 1, IOBCN_GL
-                              READ (212,*) (WQOBC_GL(I, K, JT, JJ), K=1, &
-                              & KBM1)!temp in OB sigma layer
-                         END DO
-                    END DO
-          !          NUT_TM%TIMES = 24.0*(NUT_TM%TIMES) !shift to model hours
-               END DO
-               CLOSE(212)
+!-----------------------------------------------------------------------------------------
+           IF(TcrKntOn == .TRUE.) THEN 
+                numTcrtVrb = NCP - NBTCR + 1
+                OPEN(UNIT = 212, FILE = TRIM(TCRF_OBC), ACTION = 'READ')
+                READ(212,*)
+                DO I = 1, IOBCN_GL
+                     READ (212,*)
+                END DO
+                DO JT = 1, NUT_TM%NTIMES
+                READ (212,*)
+                     DO JJ = numTcrtVrb, NCP
+                          DO I = 1, IOBCN_GL
+                               READ (212,*) (WQOBC_GL(I, K, JT, JJ), K=1, &
+                               & KBM1)!temp in OB sigma layer
+                          END DO
+                     END DO
+          ! !          NUT_TM%TIMES = 24.0*(NUT_TM%TIMES) !shift to model hours
+                END DO
+                CLOSE(212)
 
-          END IF
+           END IF
        !
        !---------Note in log file if TALK is a function of Salinity at open boundary---------!
        !            (done in bcond_wqm.F, not here) - LB Jan 7 2016                          !

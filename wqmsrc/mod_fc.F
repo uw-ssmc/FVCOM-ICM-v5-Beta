@@ -10,7 +10,11 @@ MODULE SC_TCR
                     & RdcnConWS1_GL, RdcnConPOCS1_GL, RdcnConDOCS1_GL, RdcnConSldS1_GL, &
                     & RdcnConW_S2, RdcnCon_POCS2, RdcnCon_DOCS2, RdcnCon_SldS2, &
                     & RdcnConWS2_GL, RdcnConPOCS2_GL, RdcnConDOCS2_GL, RdcnConSldS2_GL, &
-                    & RdcnConTS1, RdcnConTS1_GL, RdcnConTS2, RdcnConTS2_GL,SdmHT,JDAY
+                    & RdcnConTS1, RdcnConTS1_GL, RdcnConTS2, RdcnConTS2_GL,SdmHT,JDAY, &
+                    & TCRF_INC,TCRF_PNT,TCRF_OBC,TCRF_INC_SD,TcrSdmInitType,TcrSdmUnfm, &
+                    & BACTERIAON,RADIONUCON,NOTCRKNTS,NumTcrOutVar,KnBact,C0SalBact, AlphaBact, &
+                    & ThetaBact,RnHalfTime,RnKd,VonKrmn,Rgfh,PtcDensity,ErsnCoeff,CrtShear, &
+                    & SdmPrst,SPM,WSPM,SedFlux,SusFlux,ULND,VLND,WWLND,SdmBRL,DTSPM, BtmShear
 
   USE MOD_CONTROL, ONLY: SERIAL, MSR, PAR
   USE MOD_PAR, Only: NGID, NHN, HN_LST, NLID
@@ -39,12 +43,10 @@ REAL(SP), ALLOCATABLE, DIMENSION (:, :, :) :: KPrnSSI_W, DSTCR
 REAL(SP), ALLOCATABLE, DIMENSION (:, :, :) :: KPrnPOC_W, KPrnBOC1_W, KPrnDOC_W, KPrnZOO_W, KPrnBOC2_W
 
 REAL(SP) :: SED_DEN, DFFCOEFS12, BRLVEL, SED_DEN1, SED_DEN2,SdmDryDen
-REAL(SP) :: PtcDensity, Rgfh, VonKrmn, ErsnCoeff, CrtShear, SdmPrst
-CHARACTER(LEN = 1024) :: TCRF_INC,TCRF_PNT,TCRF_OBC,TCRF_INC_SD,FLAG_SD_INI, FLAG_WIND
+CHARACTER(LEN = 1024) :: FLAG_SD_INI, FLAG_WIND
 CHARACTER(LEN = 1024) :: KINETICSWT
-REAL(SP) ::TCR_INIT_SD, KD, KBact, KnBact, C0SalBact, AlphaBact, ThetaBact
+REAL(SP) ::TCR_INIT_SD, KD, KBact
 INTEGER :: NoRnds
-REAL(SP), ALLOCATABLE, DIMENSION(:) :: RnKd, RnHalfTime
 REAL(SP), DIMENSION(12) :: SpAct
 REAL(SP), DIMENSION(12) :: DecayConst
 LOGICAL :: DstrSdmHT,InitDstrSPM
@@ -80,7 +82,7 @@ INTEGER :: end_file,I
           TcrtConSdm = 0.0
 
 !------------------ Allocation for radionuclides concentrations in each constituents -------------- 
-IF(TRIM(KINETICSWT) == 'RADIONUCON') THEN
+IF(RADIONUCON) THEN
           ALLOCATE(RdcnCon_W(MTLOC,KBM1,NBTCR))
           RdcnCon_W = 0.0 
           ALLOCATE(RdcnCon_AlgW(MTLOC,KBM1,NBTCR))
@@ -91,16 +93,7 @@ IF(TRIM(KINETICSWT) == 'RADIONUCON') THEN
           RdcnCon_SldW = 0.0 
           ALLOCATE(RdcnCon_POCW(MTLOC,KBM1,NBTCR))
           RdcnCon_POCW = 0.0
-          !ALLOCATE(RdcnConW_GL(MGL,KBM1,NBTCR))
-          !RdcnConW_GL = 0.0
-          !ALLOCATE(RdcnConAlgW_GL(MGL,KBM1,NBTCR))
-          !RdcnConAlgW_GL = 0.0 
-          !ALLOCATE(RdcnConZplW_GL(MGL,KBM1,NBTCR))
-          !RdcnConZplW_GL = 0.0 
-          !ALLOCATE(RdcnConSldW_GL(MGL,KBM1,NBTCR))
-          !RdcnConSldW_GL = 0.0 
-          !ALLOCATE(RdcnConPOCW_GL(MGL,KBM1,NBTCR))
-          !RdcnConPOCW_GL = 0.0
+
           ALLOCATE(RdcnConW_S1(MTLOC,NBTCR))
           RdcnConW_S1 = 0.0 
           ALLOCATE(RdcnConW_S2(MTLOC,NBTCR))
@@ -117,22 +110,7 @@ IF(TRIM(KINETICSWT) == 'RADIONUCON') THEN
           RdcnCon_SldS1 = 0.0 
           ALLOCATE(RdcnCon_SldS2(MTLOC,NBTCR))
           RdcnCon_SldS2 = 0.0 
-          !ALLOCATE(RdcnConWS1_GL(MGL,NBTCR))
-          !RdcnConWS1_GL = 0.0 
-          !ALLOCATE(RdcnConWS2_GL(MGL,NBTCR))
-          !RdcnConWS2_GL = 0.0 
-          !ALLOCATE(RdcnConPOCS1_GL(MGL,NBTCR))
-          !RdcnConPOCS1_GL = 0.0 
-          !ALLOCATE(RdcnConPOCS2_GL(MGL,NBTCR))
-          !RdcnConPOCS2_GL = 0.0
-          !ALLOCATE(RdcnConDOCS1_GL(MGL,NBTCR))
-          !RdcnConDOCS1_GL = 0.0 
-          !ALLOCATE(RdcnConDOCS2_GL(MGL,NBTCR))
-          !RdcnConDOCS2_GL = 0.0
-          !ALLOCATE(RdcnConSldS1_GL(MGL,NBTCR))
-          !RdcnConSldS1_GL = 0.0
-          !ALLOCATE(RdcnConSldS2_GL(MGL,NBTCR))
-          !RdcnConSldS2_GL = 0.0
+
           ALLOCATE(RdcnConTW(MTLOC,KBM1))
           RdcnConTW = 0.0 
           ALLOCATE(RdcnConTS1(MTLOC))
@@ -160,7 +138,7 @@ END IF
           ALLOCATE(TCRHT2(MTLOC))
           TCRHT2 = 0.0
 
-IF(TRIM(KINETICSWT) == 'RADIONUCON') THEN
+IF(RADIONUCON) THEN
           ALLOCATE(FPrnSSI_W(0:MTLOC,KBM1,NBTCR))
           FPrnSSI_W = 0.0
           ALLOCATE(FPrnPOC_W(MTLOC,KBM1,NBTCR))
@@ -241,9 +219,30 @@ IF(TRIM(KINETICSWT) == 'RADIONUCON') THEN
           ALLOCATE(DOCCNS2(MTLOC))
           DOCCNS2 = 0.0
 !-------------------------------------------------------------------------------------------
+         IF(RADIONUCON) THEN 
+               ALLOCATE (SusFlux(0:MTLOC))
+               SusFlux = 0.0
+               ALLOCATE (SedFlux(0:MTLOC))
+               SedFlux = 0.0
+               ALLOCATE (BtmShear(0:MTLOC))
+               BtmShear = 0.0
+               ALLOCATE (ULND(0:MTLOC))
+               ULND = 0.0
+               ALLOCATE (VLND(0:MTLOC))
+               VLND = 0.0 
+               ALLOCATE (WWLND(0:MTLOC))
+               WWLND = 0.0
+               ALLOCATE (SdmHT(0:MTLOC))
+               SdmHT = 0.0
+               ALLOCATE (SdmBRL(0:MTLOC))
+               SdmBRL = 0.0
+               ALLOCATE (DTSPM(0:MTLOC,KBM1))
+               DTSPM = 0.0
+         END IF
+
 !------------------------------- initialization of tracer in sediment layer ----------------------------
-InitDstrSPM = .TRUE.
-IF(InitDstrSPM) THEN
+InitDstrSPM = .FALSE.
+IF(InitDstrSPM .AND. RADIONUCON) THEN
    OPEN(UNIT = 210, FILE = 'inputs/InitSPM.dat', ACTION = 'READ')
    READ(210,*, IOSTAT = end_file)
    IF(end_file < 0) THEN
@@ -274,8 +273,8 @@ IF(InitDstrSPM) THEN
     DEALLOCATE(TEMPBTC)
 END IF
 !----------------------------------------------------------------------------------------------------------
-DstrSdmHT = .TRUE.
-IF(DstrSdmHT) THEN 
+DstrSdmHT = .FALSE.
+IF(DstrSdmHT .AND. RADIONUCON) THEN 
   OPEN(UNIT = 212, FILE = 'inputs/SdmThickness.dat', ACTION = 'READ')
   READ(212,*, IOSTAT = end_file)
    IF(end_file < 0) THEN
@@ -320,130 +319,62 @@ SUBROUTINE ReadBactData
 
 FBUnitScale = 1E+04       ! FB units - cfu/100 ml ---> cfu/m3
 
-OPEN(UNIT = 379, FILE = 'inputs/bact_cnt.dat', ACTION = 'READ')
-READ(379,*, IOSTAT = end_file)
-IF(end_file < 0) THEN
-	    WRITE (*,*) "Error occured - Problem with bact_cnt.dat"
-	    STOP
-END IF
-
-READ(379,*) TCRF_INC    ! input file of initial conditions for tracer
-READ(379,*) TCRF_PNT    ! input file of loading from point sources
-READ(379,*) TCRF_OBC    ! input file for open boundary conditions
-READ(379,*) TCRF_INC_SD ! file for tracer initial conditions for sediment layer
-READ(379,*)
-READ(379,*) FLAG_SD_INI  ! flag for initial tracer distribution in sediment (DISTRIBUTED/UNIFORM)
-READ(379,*) TCR_INIT_SD     ! uniform tracer concen if tracer distribution in sediment is uniform
-READ(379,*)
-READ(379,*) FLGTCR_OUTPUT   ! Flag for outputting tracer concentration data 
-READ(379,*)
-READ(379,*) KINETICSWT    ! type of kinetics to be used for the tracers
-READ(379,*)
-
-  READ(379,*) KnBact 
-  READ(379,*) C0SalBact
-  READ(379,*) AlphaBact
-  READ(379,*) ThetaBact
-
-  READ(379,*)
-  READ(379,*) NoRnds      ! No. of radionuclides
-  READ(379,*)
-
-  ALLOCATE(RnHalfTime(NoRnds))
-  ALLOCATE(RnKd(NoRnds))
-
-  DO I=1,NoRnds
-    READ(379,*) RnHalfTime(I)
-  END DO
-  READ(379,*)
-  DO I=1,NoRnds
-    READ(379,*) RnKd(I)
-  END DO
-  READ(379,*)
-
-  READ(379,*) VonKrmn
-  READ(379,*) Rgfh
-  READ(379,*) PtcDensity
-  READ(379,*) ErsnCoeff
-  READ(379,*) CrtShear
-  READ(379,*) SdmPrst
-
-
-CLOSE(379)
 
 HSED1 = 0.1         ! initialization of sediment layer thickness
 HSED = 0.9          ! initialization of sediment layer thickness
 SdmHT = 0.1
+IF(RADIONUCON) THEN
+    SpAct(1) = 3.560E14
+    SpAct(2) = 1.657E11
+    SpAct(3) = 4.187E13
+    SpAct(4) = 2.100E12
+    SpAct(5) = 5.111E12
+    SpAct(6) = 6.336E08
+    SpAct(7) = 1.221E14
+    SpAct(8) = 3.839E13
+    SpAct(9) = 3.839E13
+    SpAct(10) = 6.537E06
+    SpAct(11) = 3.203E12
 
-!RNH3          # (Bq/m3)
-!RNC14
-!RNCo60
-!RNNi63
-!RNSr90
-!RNTc99
-!RNRu106
-!RNSb125
-!RNTe125m
-!RNI129
-!RNCs137
-
-SpAct(1) = 3.560E14
-SpAct(2) = 1.657E11
-SpAct(3) = 4.187E13
-SpAct(4) = 2.100E12
-SpAct(5) = 5.111E12
-SpAct(6) = 6.336E08
-SpAct(7) = 1.221E14
-SpAct(8) = 3.839E13
-SpAct(9) = 3.839E13
-SpAct(10) = 6.537E06
-SpAct(11) = 3.203E12
-
-DO I=1,NoRnds
-  DecayConst(I) = LOG(2.0)*(1.0/(RnHalfTime(I)*3.154E7))
-END DO
-
-!IF(MSR) THEN 
-!  DO I=1,1
-!    WRITE(*,*)'decay constant .......',DecayConst(I)
-!  END DO
-!END IF
-!STOP
+    DO I=1,NoRnds
+      DecayConst(I) = LOG(2.0)*(1.0/(RnHalfTime(I)*3.154E7))
+    END DO
+END IF
 !------------------------------- initialization of tracer in sediment layer ----------------------------
-! IF(TRIM(FLAG_SD_INI) == 'UNIFORM') THEN
-!   ConTcrSdm1 = TCR_INIT_SD
-!   ConTcrSdm2 = TCR_INIT_SD
-! ELSE
-!   OPEN(UNIT = 210, FILE = TRIM(TCRF_INC_SD), ACTION = 'READ')
-!   READ(210,*, IOSTAT = end_file)
-!   IF(end_file < 0) THEN
-!   	    WRITE (*,*) "Error occured - No file for initial conditions for toxics in sediments"
-!   	    STOP
-!   END IF
-!   ALLOCATE(TEMPBTC(MGL,NBTCR))
-!   DO I=1, MGL
-!     READ(210,*) (TEMPBTC(I,j), j=1,NBTCR)
-!   END DO
+ IF(TRIM(TcrSdmInitType) == 'UNIFORM') THEN
+   ConTcrSdm1 = TcrSdmUnfm
+   ConTcrSdm2 = TcrSdmUnfm
+ ELSE
+   OPEN(UNIT = 210, FILE = TRIM(TCRF_INC_SD), ACTION = 'READ')
+   READ(210,*, IOSTAT = end_file)
+   IF(end_file < 0) THEN
+   	    WRITE (*,*) "Error occured - No file for initial conditions for toxics in sediments"
+   	    STOP
+   END IF
+   ALLOCATE(TEMPBTC(MGL,NBTCR))
+   DO I=1, MGL
+     READ(210,*) (TEMPBTC(I,j), j=1,NBTCR)
+   END DO
 
-!   CLOSE(210)
-!   If (SERIAL) THEN
-!     ConTcrSdm1 = TEMPBTC
-!     ConTcrSdm2 = TEMPBTC
-!   END IF
-!# if defined(MULTIPROCESSOR)
-!    IF (PAR) THEN
-!          DO I = 1, MLOC
-!            ConTcrSdm1(I,:) = TEMPBTC(NGID(I),:)
-!            ConTcrSdm2(I,:) = TEMPBTC(NGID(I),:)
-!          END DO
-!          DO I = 1, NHN
-!            ConTcrSdm1(I+MLOC,:) = TEMPBTC(HN_LST(I),:)
-!            ConTcrSdm2(I+MLOC,:) = TEMPBTC(HN_LST(I),:)
-!          END DO
-!     END IF
-!# endif
-!    DEALLOCATE(TEMPBTC)
-! END IF
+   CLOSE(210)
+   If (SERIAL) THEN
+     ConTcrSdm1 = TEMPBTC
+     ConTcrSdm2 = TEMPBTC
+   END IF
+# if defined(MULTIPROCESSOR)
+    IF (PAR) THEN
+          DO I = 1, MLOC
+            ConTcrSdm1(I,:) = TEMPBTC(NGID(I),:)
+            ConTcrSdm2(I,:) = TEMPBTC(NGID(I),:)
+          END DO
+          DO I = 1, NHN
+            ConTcrSdm1(I+MLOC,:) = TEMPBTC(HN_LST(I),:)
+            ConTcrSdm2(I+MLOC,:) = TEMPBTC(HN_LST(I),:)
+          END DO
+     END IF
+# endif
+    DEALLOCATE(TEMPBTC)
+ END IF
 
 !-------------------------------- initial conditions for tracer in the water column -------------------
 OPEN(UNIT = 211, FILE = TRIM(TCRF_INC), ACTION = 'READ')
@@ -596,7 +527,7 @@ END DO
 !---------------------------------------- FB Unit Conversion -------------------------------
 ! Fecal bacteria concentration usually is ususally expressed in cfu/100 ml
 ! unit connversion is needed for loading, advection and diffusion process cfu/m3
-IF(TRIM(KINETICSWT) == 'BACTERIAON') THEN 
+IF(BACTERIAON) THEN 
     RTEMP1 = RTEMP1*FBUnitScale
 END IF
 
@@ -622,25 +553,8 @@ DEALLOCATE (RTEMP, RTEMP1, RTEMP2)
 CLOSE(213)
 END IF
 !----------------------- information for outputing tracer concentration data ----------------  
-IF(TRIM(FLGTCR_OUTPUT) == 'TRUE') THEN 
+IF(NumTcrOutVar > 0) THEN 
   TcrtOutput= .TRUE. 
-  OPEN(UNIT = 215, FILE = 'inputs/bact_output_infor.dat', ACTION = 'READ') 
-  NumLine = 0
-  DO
-    READ(215, *,IOSTAT=end_file)
-    IF(end_file /= 0) THEN
-      REWIND(215)
-      EXIT
-    ELSE
-      NumLine = NumLine + 1
-    END IF
-  END DO
-  NumTcrOutVar  = NumLine
-  ALLOCATE(TcrOutVar(NumLine))
-  DO i=1,NumLine
-    READ(215,*) TcrOutVar(i)
-  END DO
-  CLOSE(215)
 ELSE 
   TcrtOutput= .FALSE.
 END IF 
@@ -652,8 +566,7 @@ END SUBROUTINE
 
 !------------------------------------------------------------------------------------------------
 SUBROUTINE TcrSldKnt(TMSTEP)
-  USE MOD_WQM, ONLY: SPM,WSPM,SedFlux,SusFlux,ULND,VLND,WWLND,SdmBRL, &
-                        & DTSPM, BtmShear
+
   USE MOD_HYDROVARS, ONLY : D,DZ,ART1,DZ2D,RHO,UU,VV
   USE MOD_TGE, ONLY: NBVE,NTVE
   IMPLICIT NONE
@@ -665,7 +578,7 @@ SUBROUTINE TcrSldKnt(TMSTEP)
 
 
  !--------------------- Specific Sedimentation process for RN fate and transport -----------------------
- IF(TRIM(KINETICSWT) == 'RADIONUCON') THEN
+ IF(RADIONUCON) THEN
      MonthArray = (/31,28,31,30,31,30,31,31,30,31,30,31/)
      SusPTM = (/1.20344,1.0072,0.8111,1.02414,0.93935,0.6287,0.55816,0.53322,0.73771,1.12175,1.38323,1.39962/)
      TmCount = 0.0
@@ -781,7 +694,7 @@ REAL (SP) :: DCrnDecay,VelSus, VelBRL
 ! 1 E = 217502.84661581277 J
 ! 1 J = 0.239006 cal
 ! 1 E/m2/day  =>  factor cal/cm2/day => (51984.48535825895/1E6) cal/cm2/day
-IF(TRIM(KINETICSWT) == 'BACTERIAON') THEN
+IF(BACTERIAON) THEN
 UnitCnv = 0.05198448535825895
   DO K=1, KBM1
     DO I=1, MLOC 
@@ -797,7 +710,7 @@ END IF
 !*********************************************************************************************************
 !------------------------------ Radionuclide kinetics -----------------------------------------------
 ! This kinetics are similar to toxics, but created as a separate module to keep the flexibility for future expansion
-IF(TRIM(KINETICSWT) == 'RADIONUCON') THEN
+IF(RADIONUCON) THEN
 !------------------------- data assignment ------------------------------------------ 
 DFFCOEFS12 = 3.51E-10
 
@@ -974,7 +887,7 @@ IMPLICIT NONE
 
 INTEGER :: I,K,JJ
 
-    IF(TRIM(KINETICSWT) == 'BACTERIAON') THEN
+    IF (BACTERIAON) THEN
         TcrtConW = ConTcr*1E-04     ! FB units back to cfu/100 ml in outputs     
     ELSE 
         TcrtConW(:,:,:) = ConTcr(:,:,:)
