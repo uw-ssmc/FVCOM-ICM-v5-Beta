@@ -976,12 +976,12 @@ Module MOD_WQM
  REAL(SP), ALLOCATABLE, DIMENSION (:) :: ULND,VLND,WWLND,SdmHT,SdmBRL
  LOGICAL :: WqCalcOn
  !---------------------------------- Toxics cmm parameters --------------------------------------
- CHARACTER(LEN = 1024) :: TXCF_INC,TXCF_PNT,TXCF_OBC, TXCF_INC_SD
+ CHARACTER(LEN = 1024) :: TXCF_INC,TXCF_PNT,TXCF_OBC,TXCF_INC_SD,TxcHotWC,TxcHotSD1,TxcHotSD2
  REAL (SP) :: PTC_SD, PTC_WC,SED_DEN,DFFCOEFS12,BRLVEL,TxcSdmUnfm
  REAL (SP) :: HNRCFF
  REAL(SP), ALLOCATABLE, DIMENSION (:) :: MolWghtCng
  CHARACTER(LEN = 120) :: TxcSdmInitType
- LOGICAL :: PCBTxcOn,MTLTxcOn
+ LOGICAL :: PCBTxcOn,MTLTxcOn, TxcHotstart
  INTEGER :: NumTxcOutVar
  CHARACTER(LEN = 30), ALLOCATABLE, DIMENSION (:) :: PCBOutVrb
  !---------------------------------- Tracer cmm parameters --------------------------------------
@@ -1080,23 +1080,10 @@ Contains
          pCO2 = 0.0 !LB
 !
 
-#if defined (MULTIPROCESSOR)
-          IF (MYID .EQ. 1) THEN
-
                Allocate (pH_GL(MGL, KBM1))
                pH_GL = 8.0 !LB
                Allocate (pCO2_GL(MGL, KBM1))
                pCO2_GL = 0.0 !LB
-          
-          ELSE 
-               Allocate (pH_GL(1, 1))
-               pH_GL = 8.0 !LB
-               Allocate (pCO2_GL(1, 1))
-               pCO2_GL = 0.0 !LB
-
-          END IF
-#endif
-
 
          Allocate (PN1(MTLOC, KBM1))
          PN1 = 0.0
@@ -1888,11 +1875,9 @@ Contains
          Allocate (BURIALFLXCB(MTLOC))
          BURIALFLXCB = 0.0
 
-#if defined (MULTIPROCESSOR)
-     IF (MYID .EQ. 1) THEN
     ! KURT GLAESEMANN add C2_GL
-         !Allocate (C2_GL(MGL, KBM1, NCP))
-         !C2_GL = 0.0
+         Allocate (C2_GL(MGL, KBM1, NCP))
+         C2_GL = 0.0
           ! RGl added below for output of CCHL1_GL
          Allocate (CCHL1_GL(MGL, KBM1))
          CCHL1_GL = 0.0
@@ -1904,10 +1889,10 @@ Contains
          total_netPP_GL = 0.0
 
     ! LB: to save GPP and NPP in history output
-     !    Allocate (GPP_GL(MGL, KBM1))
-     !    GPP_GL = 0.0
-     !    Allocate (NPP_GL(MGL, KBM1))
-     !   NPP_GL = 0.0
+         Allocate (GPP_GL(MGL, KBM1))
+         GPP_GL = 0.0
+         Allocate (NPP_GL(MGL, KBM1))
+         NPP_GL = 0.0
 
     !
     !Wen Long added D_GL, EL_GL, H_GL (total depth, surface elevation and bathymetric depth)
@@ -1919,116 +1904,19 @@ Contains
          EL_GL = 0.0
 
     !Wen Long debugging benthic fluxes-------
-         Allocate (BFLUXNX_GL(MGL, 9))
-         BFLUXNX_GL = 0.0
          Allocate (BFLUX_GL(MGL, 9))
          BFLUX_GL = 0.0
          Allocate (BFLUXB_GL(MGL, 9))
          BFLUXB_GL = 0.0
-
-
-
-         !--Wen Long  added the following algae debugging global variables here ---
+         Allocate (BFLUXNX(MTLOC, 9))
+         BFLUXNX = 0.0
+         Allocate (BFLUXNX_GL(MGL, 9))
+         BFLUXNX_GL = 0.0
+         Allocate (BFLUX(MTLOC, 9))
+         BFLUX = 0.0
     !
-     !    Allocate (P1_GL(MGL, KBM1))
-     !    P1_GL = 0.0
-     !    Allocate (P2_GL(MGL, KBM1))
-     !    P2_GL = 0.0
-     !    Allocate (BM1_GL(MGL, KBM1))
-     !   BM1_GL = 0.0
-     !   Allocate (BM2_GL(MGL, KBM1))
-     !   BM2_GL = 0.0
-     !   Allocate (NL1_GL(MGL, KBM1))
-     !   NL1_GL = 0.0
-     !   Allocate (NL2_GL(MGL, KBM1))
-     !   NL2_GL = 0.0
-     !   Allocate (PL1_GL(MGL, KBM1))
-     !   PL1_GL = 0.0
-     !   Allocate (PL2_GL(MGL, KBM1))
-     !   PL2_GL = 0.0
-     !   Allocate (B1SZ_GL(MGL, KBM1))
-     !   B1SZ_GL = 0.0
-     !   Allocate (B2SZ_GL(MGL, KBM1))
-     !   B2SZ_GL = 0.0
-     !   Allocate (B1LZ_GL(MGL, KBM1))
-     !   B1LZ_GL = 0.0
-     !   Allocate (B2LZ_GL(MGL, KBM1))
-     !   B2LZ_GL = 0.0
-     !   Allocate (PR1_GL(MGL, KBM1))
-     !   PR1_GL = 0.0
-     !   Allocate (PR2_GL(MGL, KBM1))
-     !   PR2_GL = 0.0
+    !--Wen Long allocating global hydro variables here ---
     !
-         If (LIGHT_EXTINCTION) Then
-            Allocate (IAVG_GL(MGL, KBM1))
-            IAVG_GL = 0.0
-            Allocate (FI1_GL(MGL, KBM1))
-            FI1_GL = 0.0
-            Allocate (FI2_GL(MGL, KBM1))
-            FI2_GL = 0.0
-         End If
-
-
-		If (SAV_CALC) Then !Adi 4/23/18
-		  Allocate (LEAF_GL(MGL,NSAVM))
-            LEAF_GL = 0.0
-            Allocate (STEM_GL(MGL,NSAVM))
-            STEM_GL = 0.0
-            Allocate (ROOT_GL(MGL,NSAVM))
-            ROOT_GL = 0.0
-            Allocate (TUBER_GL(MGL,NSAVM))
-            TUBER_GL = 0.0
-		  Allocate (EP_GL(MGL,NSAVM))
-            EP_GL = 0.0
-		end if 
-          
-         !
-		 If (SOLIDS_CALC) Then !Adi 2/13/18
-		  Allocate (TSS_GL(MGL, KBM1))
-            TSS_GL = 0.0
-            Allocate (SSI_GL(MGL, KBM1))
-            SSI_GL = 0.0
-            Allocate (KESS_GL(MGL, KBM1))
-            KESS_GL = 0.0
-            Allocate (TURB_GL(MGL, KBM1))
-            TURB_GL = 0.0
-		  Allocate (PARAD_GL(MGL, KBM1))
-            PARAD_GL = 0.0
-		 end if
-
-     !---Wen Long added the following for debugging DOXG
-    !
-     !    Allocate (DDOC_GL(MGL, KBM1))
-     !    DDOC_GL = 0.0
-     !    Allocate (DCOD_GL(MGL, KBM1))
-     !    DCOD_GL = 0.0
-     !    Allocate (NITRIF_GL(MGL, KBM1))
-     !    NITRIF_GL = 0.0
-     !    Allocate (DOSZ_GL(MGL, KBM1))
-     !    DOSZ_GL = 0.0
-     !    Allocate (DOLZ_GL(MGL, KBM1))
-     !    DOLZ_GL = 0.0
-     !    Allocate (DOPR_GL(MGL, KBM1))
-     !    DOPR_GL = 0.0
-     !    Allocate (DORALG_GL(MGL, KBM1))
-     !    DORALG_GL = 0.0
-     !    Allocate (RESP_GL(MGL, KBM1))
-     !    RESP_GL = 0.0
-     !    Allocate (FTCOD_GL(MGL, KBM1))
-     !    FTCOD_GL = 0.0
-     !    Allocate (COD_GL(MGL, KBM1))
-     !    COD_GL = 0.0
-     !    Allocate (REAERDO_GL(MGL, KBM1))
-     !    REAERDO_GL = 0.0
-     ELSE 
-         Allocate (C2_GL(1, 1, NCP))
-         C2_GL = 0.0
-
-     END IF
-#endif
-
-
-     !--Wen Long allocating global hydro variables here --- 
          Allocate (UL_GL(NGL, KBM1))
          UL_GL = 0.0
     !LB: had added "0:" because parallel mode gave error "Subscript #1 of the array UL_GL has value 0 which is less than the lower b
@@ -2047,29 +1935,114 @@ Contains
          ELL_GL = 0.0
          Allocate (DTFAL_GL(MGL))
          DTFAL_GL = 0.0
-
-    !--Wen Long debugging benthic fluxes ---
-
-         Allocate (BFLUXNX(MTLOC, 9))
-         BFLUXNX = 0.0
-         Allocate (BFLUX(MTLOC, 9))
-         BFLUX = 0.0
-    !
-
          Allocate (UARD_OBCN_GL(NOBTY+1))
          UARD_OBCN_GL = 0.0
          Allocate (XFLUX_OBC_GL(NOBTY, KBM1))
          XFLUX_OBC_GL = 0.0
+    !
+    !
 
-         !Allocate (IK1_GL(MGL, KBM1))
-         !IK1_GL = 0.0
-         !Allocate (IK2_GL(MGL, KBM1))
-         !IK2_GL = 0.0
+
+
+         !--Wen Long  added the following algae debugging global variables here ---
+    !
+        Allocate (P1_GL(MGL, KBM1))
+        P1_GL = 0.0
+        Allocate (P2_GL(MGL, KBM1))
+        P2_GL = 0.0
+        Allocate (BM1_GL(MGL, KBM1))
+        BM1_GL = 0.0
+        Allocate (BM2_GL(MGL, KBM1))
+        BM2_GL = 0.0
+        Allocate (NL1_GL(MGL, KBM1))
+        NL1_GL = 0.0
+        Allocate (NL2_GL(MGL, KBM1))
+        NL2_GL = 0.0
+        Allocate (PL1_GL(MGL, KBM1))
+        PL1_GL = 0.0
+        Allocate (PL2_GL(MGL, KBM1))
+        PL2_GL = 0.0
+        Allocate (B1SZ_GL(MGL, KBM1))
+        B1SZ_GL = 0.0
+        Allocate (B2SZ_GL(MGL, KBM1))
+        B2SZ_GL = 0.0
+        Allocate (B1LZ_GL(MGL, KBM1))
+        B1LZ_GL = 0.0
+        Allocate (B2LZ_GL(MGL, KBM1))
+        B2LZ_GL = 0.0
+        Allocate (PR1_GL(MGL, KBM1))
+        PR1_GL = 0.0
+        Allocate (PR2_GL(MGL, KBM1))
+        PR2_GL = 0.0
+    !
+         If (LIGHT_EXTINCTION) Then
+            Allocate (IAVG_GL(MGL, KBM1))
+            IAVG_GL = 0.0
+            Allocate (FI1_GL(MGL, KBM1))
+            FI1_GL = 0.0
+            Allocate (FI2_GL(MGL, KBM1))
+            FI2_GL = 0.0
+         End If
+
+
+		!If (SAV_CALC) Then !Adi 4/23/18
+		  Allocate (LEAF_GL(MGL,NSAVM))
+            LEAF_GL = 0.0
+            Allocate (STEM_GL(MGL,NSAVM))
+            STEM_GL = 0.0
+            Allocate (ROOT_GL(MGL,NSAVM))
+            ROOT_GL = 0.0
+            Allocate (TUBER_GL(MGL,NSAVM))
+            TUBER_GL = 0.0
+		  Allocate (EP_GL(MGL,NSAVM))
+            EP_GL = 0.0
+		!end if 
+          
+         !
+		! If (SOLIDS_CALC) Then !Adi 2/13/18
+		  Allocate (TSS_GL(MGL, KBM1))
+            TSS_GL = 0.0
+            Allocate (SSI_GL(MGL, KBM1))
+            SSI_GL = 0.0
+            Allocate (KESS_GL(MGL, KBM1))
+            KESS_GL = 0.0
+            Allocate (TURB_GL(MGL, KBM1))
+            TURB_GL = 0.0
+		  Allocate (PARAD_GL(MGL, KBM1))
+            PARAD_GL = 0.0
+         Allocate (IK1_GL(MGL, KBM1))
+         IK1_GL = 0.0
+         Allocate (IK2_GL(MGL, KBM1))
+         IK2_GL = 0.0
          Allocate (IK1(MTLOC, KBM1))
          IK1 = 0.0
          Allocate (IK2(MTLOC, KBM1))
          IK2 = 0.0
-    
+    !
+    !---Wen Long added the following for debugging DOXG
+    !
+         Allocate (DDOC_GL(MGL, KBM1))
+         DDOC_GL = 0.0
+         Allocate (DCOD_GL(MGL, KBM1))
+         DCOD_GL = 0.0
+         Allocate (NITRIF_GL(MGL, KBM1))
+         NITRIF_GL = 0.0
+         Allocate (DOSZ_GL(MGL, KBM1))
+         DOSZ_GL = 0.0
+         Allocate (DOLZ_GL(MGL, KBM1))
+         DOLZ_GL = 0.0
+         Allocate (DOPR_GL(MGL, KBM1))
+         DOPR_GL = 0.0
+         Allocate (DORALG_GL(MGL, KBM1))
+         DORALG_GL = 0.0
+         Allocate (RESP_GL(MGL, KBM1))
+         RESP_GL = 0.0
+         Allocate (FTCOD_GL(MGL, KBM1))
+         FTCOD_GL = 0.0
+         Allocate (COD_GL(MGL, KBM1))
+         COD_GL = 0.0
+         Allocate (REAERDO_GL(MGL, KBM1))
+         REAERDO_GL = 0.0
          Allocate (REAERDO(MTLOC, KBM1))  !Wen LONG: we really do not have to have it all vertical layers
 										  !SHOULD HAVE BEEN JUST FOR THE SURFACE LAYER
          REAERDO = 0.0 ! local variabl

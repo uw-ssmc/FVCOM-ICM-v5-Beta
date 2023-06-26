@@ -728,18 +728,31 @@ IF (TxcKntOn) THEN
      CALL ExtractTxcData
      CALL PCB_KNT
      numTxvb = NCP - NTXVB - NBTCR + 1
-     C2(:,:,numTxvb:NCP) = C2(:,:,numTxvb:NCP) + DWPCB(:,:,:)*DLT
+     !C2(:,:,numTxvb:NCP) = C2(:,:,numTxvb:NCP) + DWPCB(:,:,:)*DLT
+
+     DO I=1,MLOC
+        DO J=1,KBM1 
+            kk = 0
+            DO K=numTxvb,NCP
+                kk = kk + 1
+                C2(I,J,K) = C2(I,J,K) + DWPCB(I,J,kk)*DLT
+                IF(C2(I,J,K) < 1E-32) C2(I,J,K) = 1E-28
+            END DO 
+        END DO 
+     END DO
+
      !------------- For sediment Layer ----------------------------------
      DO I=1,MLOC
        DO K=1,NTXVB
         CONPCB_S1(I,K) = CONPCB_S1(I,K) + DSPCB(I,K,1)*DLT
         CONPCB_S2(I,K) = CONPCB_S2(I,K) + DSPCB(I,K,2)*DLT
+        IF(CONPCB_S1(I,K) < 1E-32) CONPCB_S1(I,K) = 1E-28
+        IF(CONPCB_S2(I,K) < 1E-32) CONPCB_S2(I,K) = 1E-28
        END DO
      END DO
 
 END IF
-!---------------------------------------------------------------------------------
-
+!--------------------------------------------------------------------------------- 
 
 !------------------------ Tracer kinetic update -------------------------------- 
 IF(TcrKntOn) THEN
@@ -1069,6 +1082,7 @@ END IF
 # endif
 ! !defined (NO_BIOLOGY)
 #endif
+
 
 #if defined (ONLY_AIRSEA)
      !LB: case with no biology but open to atmospheric exchange (DO and TDIC) - Feb 26, 2016
@@ -1604,6 +1618,7 @@ END IF  ! for wqm calculations
          TDIC (:, :) = C2 (:, :, 33)!LB
          TALK (:, :) = C2 (:, :, 34)!LB
 
+
          CALL DebugNan()
 
         !-------------------------------------- For tracer/pollutant module----------------------------------
@@ -1619,12 +1634,10 @@ END IF  ! for wqm calculations
             CALL ExtractTcrData
         END IF
         !----------------------------------------------------------------------------------------------------
-    
-    WRITE(*,*)'Went through one iteration.........'
-    STOP
 
 !=========================================================================================================== 
 !---------------------------------------- Outputting Results -----------------------------------------------
+
 
 !--------------------------------------------NETCDF OUTPUT---------------------------------------------------
 
@@ -1634,8 +1647,9 @@ END IF  ! for wqm calculations
 		ENDIF
 #endif
 
-!         Call WQM_OUTPUT (NTHIS_OLD, NTSTN_OLD, NTHIS, NTSTN, CTR_HIS, &
-!        & CTR_STN)
+
+         Call WQM_OUTPUT (NTHIS_OLD, NTSTN_OLD, NTHIS, NTSTN, CTR_HIS, &
+        & CTR_STN)
 
                 !IF(MSR) THEN
                       !IF(MOD(NIT,20) == 0.0) THEN
@@ -1644,15 +1658,14 @@ END IF  ! for wqm calculations
                       !END IF
                 ! END IF
 
-
 !!---------------------- Writing restart files according to given restart points ----------------------------
      ! KURT GLAESEMANN - restarts
     If (RESTART_OUT) Then
             If (JDAY >= RSOD(RSODP) .Or. END_RUN) Then
 
 # if defined (MULTIPROCESSOR)
-            ALLOCATE (C2_GL(MGL,KBM1,NCP))
-            C2_GL = 0.0
+            !ALLOCATE (C2_GL(MGL,KBM1,NCP))
+            !C2_GL = 0.0
 
             IF(TcrKntOn == .TRUE.) THEN 
                 ALLOCATE(ConTcrSdm1_GL(MGL,NBTCR))
@@ -1765,8 +1778,8 @@ END IF  ! for wqm calculations
               !
                Else
 #endif
-                    ALLOCATE (C2_GL(MGL,KBM1,NCP))
-                    C2_GL = 0.0  
+                    !ALLOCATE (C2_GL(MGL,KBM1,NCP))
+                    !C2_GL = 0.0  
 
                     Do J = 1, NCP
                         C2_GL (1:MGL, 1:KBM1, J) = C2 (1:MGL, 1:KBM1, J)
@@ -1949,7 +1962,7 @@ END IF  ! for wqm calculations
             End If   ! RSOD points
         End If !END RESTART_OUT
 
-        IF(ALLOCATED(C2_GL)) DEALLOCATE(C2_GL)
+        !IF(ALLOCATED(C2_GL)) DEALLOCATE(C2_GL)
         IF(ALLOCATED(ConTcrSdm1_GL)) DEALLOCATE(ConTcrSdm1_GL)
         !IF(ALLOCATED(ConTcrSdm2_GL)) DEALLOCATE(ConTcrSdm2_GL)
         IF(ALLOCATED(CONPCB_S1GL)) DEALLOCATE(CONPCB_S1GL)
@@ -1964,6 +1977,8 @@ END IF  ! for wqm calculations
         !     END IF
         ! END IF
 !-----------------------------------------------------------------------------------------------------
+!WRITE(*,*)'Went through one iteration.........1'
+!STOP
  End Do !END DO WHILE(.NOT.END_RUN)
 
   !************************************************************************
@@ -2462,11 +2477,12 @@ Subroutine WQM_OUTPUT (NTHIS_OLD, NTSTN_OLD, NTHIS, NTSTN, CTR_HIS, &
 
 			! We are doing all K for some variables, K=1 for others
 
-        !!    Call GATHER (1, MTLOC, MLOC, MGL, KBM1, MYID, NPROCS, NMAP, &
-        !!   & CCHL1(1, 1), CCHL1_GL(1, 1))
+            Call GATHER (1, MTLOC, MLOC, MGL, KBM1, MYID, NPROCS, NMAP, &
+           & CCHL1(1, 1), CCHL1_GL(1, 1))
 
-        !!    Call GATHER (0, MTLOC, MLOC, MGL, 1, MYID, NPROCS, NMAP, &
-        !!   & total_netPP(0), total_netPP_GL(1))
+            Call GATHER (0, MTLOC, MLOC, MGL, 1, MYID, NPROCS, NMAP, &
+            & total_netPP(0), total_netPP_GL(1))
+
 			!call gather(1,MTLOC,MLOC,MGL,1,   MYID,NPROCS,NMAP,total_netPP(1),total_netPP_GL(1))  !LB
 
             Call GATHER (0, MTLOC, MLOC, MGL, KBM1, MYID, NPROCS, NMAP, &
@@ -2500,16 +2516,16 @@ Subroutine WQM_OUTPUT (NTHIS_OLD, NTSTN_OLD, NTHIS, NTSTN, CTR_HIS, &
             Call GATHER (0, MTLOC, MLOC, MGL, KBM1, MYID, NPROCS, NMAP, &
            & C2(0, 1, 20), C2_GL(1, 1, 20))
 
-        !!    Call GATHER (0, MTLOC, MLOC, MGL, KBM1, MYID, NPROCS, NMAP, &
-        !!   & T(0, 1), T_GL(1, 1))!Wen Long, correction, pass all layers
-        !!    Call GATHER (0, MTLOC, MLOC, MGL, KBM1, MYID, NPROCS, NMAP, &
-        !!   & SALT(0, 1), S_GL(1, 1))!Wen Long, correction, pass all layers
-        !!    Call GATHER (0, MTLOC, MLOC, MGL, 1, MYID, NPROCS, NMAP, &
-        !!   & D(0), D_GL(1))!Wen Long, add D_GL for total depth
-        !!    Call GATHER (0, MTLOC, MLOC, MGL, 1, MYID, NPROCS, NMAP, &
-        !!   & EL(0), EL_GL(1))!Wen Long, add EL_GL for surface elevation
-        !!    Call GATHER (0, MTLOC, MLOC, MGL, 1, MYID, NPROCS, NMAP, &
-        !!   & H(0), H_GL(1))!Wen Long, add H_GL for still water depth
+            Call GATHER (0, MTLOC, MLOC, MGL, KBM1, MYID, NPROCS, NMAP, &
+           & T(0, 1), T_GL(1, 1))!Wen Long, correction, pass all layers
+            Call GATHER (0, MTLOC, MLOC, MGL, KBM1, MYID, NPROCS, NMAP, &
+           & SALT(0, 1), S_GL(1, 1))!Wen Long, correction, pass all layers
+            Call GATHER (0, MTLOC, MLOC, MGL, 1, MYID, NPROCS, NMAP, &
+           & D(0), D_GL(1))!Wen Long, add D_GL for total depth
+            Call GATHER (0, MTLOC, MLOC, MGL, 1, MYID, NPROCS, NMAP, &
+           & EL(0), EL_GL(1))!Wen Long, add EL_GL for surface elevation
+            Call GATHER (0, MTLOC, MLOC, MGL, 1, MYID, NPROCS, NMAP, &
+           & H(0), H_GL(1))!Wen Long, add H_GL for still water depth
 
 
             Call GATHER (0, MTLOC, MLOC, MGL, KBM1, MYID, NPROCS, NMAP, &
@@ -2530,6 +2546,7 @@ Subroutine WQM_OUTPUT (NTHIS_OLD, NTSTN_OLD, NTHIS, NTSTN, CTR_HIS, &
            & C2(0, 1, 18), C2_GL(1, 1, 18))
             Call GATHER (0, MTLOC, MLOC, MGL, KBM1, MYID, NPROCS, NMAP, &
            & C2(0, 1, 19), C2_GL(1, 1, 19))
+
 
         !    Call GATHER (0, MTLOC, MLOC, MGL, KBM1, MYID, NPROCS, NMAP, &
         !    & C2(0, 1, 35), C2_GL(1, 1, 35))    ! PCBW  - Laki
@@ -2605,92 +2622,90 @@ Subroutine WQM_OUTPUT (NTHIS_OLD, NTSTN_OLD, NTHIS, NTSTN, CTR_HIS, &
 
         ! Wen Long added the following for debugging algae
         !
-        !    Call GATHER (1, MTLOC, MLOC, MGL, KBM1, MYID, NPROCS, NMAP, &
-        !   & P1(1, 1), P1_GL(1, 1))
-        !    Call GATHER (1, MTLOC, MLOC, MGL, KBM1, MYID, NPROCS, NMAP, &
-        !   & P2(1, 1), P2_GL(1, 1))
-        !    Call GATHER (1, MTLOC, MLOC, MGL, KBM1, MYID, NPROCS, NMAP, &
-        !   & BM1(1, 1), BM1_GL(1, 1))
-        !    Call GATHER (1, MTLOC, MLOC, MGL, KBM1, MYID, NPROCS, NMAP, &
-        !   & BM2(1, 1), BM2_GL(1, 1))
-        !    Call GATHER (1, MTLOC, MLOC, MGL, KBM1, MYID, NPROCS, NMAP, &
-        !   & NL1(1, 1), NL1_GL(1, 1))
-        !    Call GATHER (1, MTLOC, MLOC, MGL, KBM1, MYID, NPROCS, NMAP, &
-        !   & NL2(1, 1), NL2_GL(1, 1))
-        !    Call GATHER (1, MTLOC, MLOC, MGL, KBM1, MYID, NPROCS, NMAP, &
-        !   & PL1(1, 1), PL1_GL(1, 1))
-        !    Call GATHER (1, MTLOC, MLOC, MGL, KBM1, MYID, NPROCS, NMAP, &
-        !   & PL2(1, 1), PL2_GL(1, 1))
-        !    Call GATHER (1, MTLOC, MLOC, MGL, KBM1, MYID, NPROCS, NMAP, &
-        !   & B1SZ(1, 1), B1SZ_GL(1, 1))
-        !    Call GATHER (1, MTLOC, MLOC, MGL, KBM1, MYID, NPROCS, NMAP, &
-        !  & B2SZ(1, 1), B2SZ_GL(1, 1))
-        !    Call GATHER (1, MTLOC, MLOC, MGL, KBM1, MYID, NPROCS, NMAP, &
-        !   & B1LZ(1, 1), B1LZ_GL(1, 1))
-        !    Call GATHER (1, MTLOC, MLOC, MGL, KBM1, MYID, NPROCS, NMAP, &
-        !   & B2LZ(1, 1), B2LZ_GL(1, 1))
-        !    Call GATHER (1, MTLOC, MLOC, MGL, KBM1, MYID, NPROCS, NMAP, &
-        !   & PR1(1, 1), PR1_GL(1, 1))
-        !    Call GATHER (1, MTLOC, MLOC, MGL, KBM1, MYID, NPROCS, NMAP, &
-        !   & PR2(1, 1), PR2_GL(1, 1))
+            Call GATHER (1, MTLOC, MLOC, MGL, KBM1, MYID, NPROCS, NMAP, &
+           & P1(1, 1), P1_GL(1, 1))
+            Call GATHER (1, MTLOC, MLOC, MGL, KBM1, MYID, NPROCS, NMAP, &
+           & P2(1, 1), P2_GL(1, 1))
+            Call GATHER (1, MTLOC, MLOC, MGL, KBM1, MYID, NPROCS, NMAP, &
+           & BM1(1, 1), BM1_GL(1, 1))
+            Call GATHER (1, MTLOC, MLOC, MGL, KBM1, MYID, NPROCS, NMAP, &
+           & BM2(1, 1), BM2_GL(1, 1))
+            Call GATHER (1, MTLOC, MLOC, MGL, KBM1, MYID, NPROCS, NMAP, &
+           & NL1(1, 1), NL1_GL(1, 1))
+            Call GATHER (1, MTLOC, MLOC, MGL, KBM1, MYID, NPROCS, NMAP, &
+           & NL2(1, 1), NL2_GL(1, 1))
+            Call GATHER (1, MTLOC, MLOC, MGL, KBM1, MYID, NPROCS, NMAP, &
+           & PL1(1, 1), PL1_GL(1, 1))
+            Call GATHER (1, MTLOC, MLOC, MGL, KBM1, MYID, NPROCS, NMAP, &
+           & PL2(1, 1), PL2_GL(1, 1))
+            Call GATHER (1, MTLOC, MLOC, MGL, KBM1, MYID, NPROCS, NMAP, &
+           & B1SZ(1, 1), B1SZ_GL(1, 1))
+            Call GATHER (1, MTLOC, MLOC, MGL, KBM1, MYID, NPROCS, NMAP, &
+          & B2SZ(1, 1), B2SZ_GL(1, 1))
+            Call GATHER (1, MTLOC, MLOC, MGL, KBM1, MYID, NPROCS, NMAP, &
+           & B1LZ(1, 1), B1LZ_GL(1, 1))
+            Call GATHER (1, MTLOC, MLOC, MGL, KBM1, MYID, NPROCS, NMAP, &
+           & B2LZ(1, 1), B2LZ_GL(1, 1))
+            Call GATHER (1, MTLOC, MLOC, MGL, KBM1, MYID, NPROCS, NMAP, &
+           & PR1(1, 1), PR1_GL(1, 1))
+            Call GATHER (1, MTLOC, MLOC, MGL, KBM1, MYID, NPROCS, NMAP, &
+           & PR2(1, 1), PR2_GL(1, 1))
+
+            If (LIGHT_EXTINCTION) Then
+               Call GATHER (1, MTLOC, MLOC, MGL, KBM1, MYID, NPROCS, &
+              & NMAP, IAVG(1, 1), IAVG_GL(1, 1))
+               Call GATHER (1, MTLOC, MLOC, MGL, KBM1, MYID, NPROCS, &
+              & NMAP, FI1(1, 1), FI1_GL(1, 1))
+               Call GATHER (1, MTLOC, MLOC, MGL, KBM1, MYID, NPROCS, &
+              & NMAP, FI2(1, 1), FI2_GL(1, 1))
+            End If
 
 
+            Call GATHER (1, MTLOC, MLOC, MGL, KBM1, MYID, NPROCS, NMAP, &
+           & IK1(1, 1), IK1_GL(1, 1))
+            Call GATHER (1, MTLOC, MLOC, MGL, KBM1, MYID, NPROCS, NMAP, &
+           & IK2(1, 1), IK2_GL(1, 1))
 
-        !    If (LIGHT_EXTINCTION) Then
-        !       Call GATHER (1, MTLOC, MLOC, MGL, KBM1, MYID, NPROCS, &
-        !      & NMAP, IAVG(1, 1), IAVG_GL(1, 1))
-        !       Call GATHER (1, MTLOC, MLOC, MGL, KBM1, MYID, NPROCS, &
-        !      & NMAP, FI1(1, 1), FI1_GL(1, 1))
-        !       Call GATHER (1, MTLOC, MLOC, MGL, KBM1, MYID, NPROCS, &
-        !      & NMAP, FI2(1, 1), FI2_GL(1, 1))
-        !    End If
+            Call GATHER (1, MTLOC, MLOC, MGL, KBM1, MYID, NPROCS, NMAP, &
+           & GPP(1, 1), GPP_GL(1, 1))!LB
 
-
-        !    Call GATHER (1, MTLOC, MLOC, MGL, KBM1, MYID, NPROCS, NMAP, &
-        !   & IK1(1, 1), IK1_GL(1, 1))
-        !    Call GATHER (1, MTLOC, MLOC, MGL, KBM1, MYID, NPROCS, NMAP, &
-        !   & IK2(1, 1), IK2_GL(1, 1))
-
-        !    Call GATHER (1, MTLOC, MLOC, MGL, KBM1, MYID, NPROCS, NMAP, &
-        !   & GPP(1, 1), GPP_GL(1, 1))!LB
-
-        !    Call GATHER (1, MTLOC, MLOC, MGL, KBM1, MYID, NPROCS, NMAP, &
-        !   & NPP(1, 1), NPP_GL(1, 1))!LB
+            Call GATHER (1, MTLOC, MLOC, MGL, KBM1, MYID, NPROCS, NMAP, &
+           & NPP(1, 1), NPP_GL(1, 1))!LB
 
         !
         !LB added the following to save TDIC and TALK fluxes in output
 		!use 0 as start point as local array DICUPT is from 0
         !
-        !    Call GATHER (0, MTLOC, MLOC, MGL, KBM1, MYID, NPROCS, NMAP, &
-        !   & DICUPT(0, 1), DICUPT_GL(1, 1))
-        !    Call GATHER (0, MTLOC, MLOC, MGL, KBM1, MYID, NPROCS, NMAP, &
-        !   & DICBMP(0, 1), DICBMP_GL(1, 1))
-        !    Call GATHER (0, MTLOC, MLOC, MGL, KBM1, MYID, NPROCS, NMAP, &
-        !   & DICPRD(0, 1), DICPRD_GL(1, 1))
-        !    Call GATHER (0, MTLOC, MLOC, MGL, KBM1, MYID, NPROCS, NMAP, &
-        !   & DICMNL(0, 1), DICMNL_GL(1, 1))
-        !    Call GATHER (0, MTLOC, MLOC, MGL, KBM1, MYID, NPROCS, NMAP, &
-        !   & DICDEN(0, 1), DICDEN_GL(1, 1))
+            Call GATHER (0, MTLOC, MLOC, MGL, KBM1, MYID, NPROCS, NMAP, &
+           & DICUPT(0, 1), DICUPT_GL(1, 1))
+            Call GATHER (0, MTLOC, MLOC, MGL, KBM1, MYID, NPROCS, NMAP, &
+           & DICBMP(0, 1), DICBMP_GL(1, 1))
+            Call GATHER (0, MTLOC, MLOC, MGL, KBM1, MYID, NPROCS, NMAP, &
+           & DICPRD(0, 1), DICPRD_GL(1, 1))
+            Call GATHER (0, MTLOC, MLOC, MGL, KBM1, MYID, NPROCS, NMAP, &
+           & DICMNL(0, 1), DICMNL_GL(1, 1))
+            Call GATHER (0, MTLOC, MLOC, MGL, KBM1, MYID, NPROCS, NMAP, &
+           & DICDEN(0, 1), DICDEN_GL(1, 1))
         ! Call GATHER (0,MTLOC,MLOC,MGL,KBM1,MYID,NPROCS, &
              !& NMAP,DICNIT(0,1),DICNIT_GL(1,1))
-        !    Call GATHER (0, MTLOC, MLOC, MGL, KBM1, MYID, NPROCS, NMAP, &
-        !   & DICGAS(0, 1), DICGAS_GL(1, 1))
-        !    Call GATHER (0, MTLOC, MLOC, MGL, KBM1, MYID, NPROCS, NMAP, &
-        !   & DICSED(0, 1), DICSED_GL(1, 1))
-        !    Call GATHER (0, MTLOC, MLOC, MGL, KBM1, MYID, NPROCS, NMAP, &
-        !   & ALKNH4(0, 1), ALKNH4_GL(1, 1))
-        !    Call GATHER (0, MTLOC, MLOC, MGL, KBM1, MYID, NPROCS, NMAP, &
-        !   & ALKNO3(0, 1), ALKNO3_GL(1, 1))
-        !    Call GATHER (0, MTLOC, MLOC, MGL, KBM1, MYID, NPROCS, NMAP, &
-        !   & ALKNIT(0, 1), ALKNIT_GL(1, 1))
-        !    Call GATHER (0, MTLOC, MLOC, MGL, KBM1, MYID, NPROCS, NMAP, &
-        !   & ALKDEN(0, 1), ALKDEN_GL(1, 1))
-        !    Call GATHER (0, MTLOC, MLOC, MGL, KBM1, MYID, NPROCS, NMAP, &
-        !   & ALKREM(0, 1), ALKREM_GL(1, 1))
-        !    Call GATHER (0, MTLOC, MLOC, MGL, KBM1, MYID, NPROCS, NMAP, &
-        !   & ALKNH4SED(0, 1), ALKNH4SED_GL(1, 1))
-        !    Call GATHER (0, MTLOC, MLOC, MGL, KBM1, MYID, NPROCS, NMAP, &
-        !   & ALKNO3SED(0, 1), ALKNO3SED_GL(1, 1))
+            Call GATHER (0, MTLOC, MLOC, MGL, KBM1, MYID, NPROCS, NMAP, &
+           & DICGAS(0, 1), DICGAS_GL(1, 1))
+            Call GATHER (0, MTLOC, MLOC, MGL, KBM1, MYID, NPROCS, NMAP, &
+           & DICSED(0, 1), DICSED_GL(1, 1))
+            Call GATHER (0, MTLOC, MLOC, MGL, KBM1, MYID, NPROCS, NMAP, &
+           & ALKNH4(0, 1), ALKNH4_GL(1, 1))
+            Call GATHER (0, MTLOC, MLOC, MGL, KBM1, MYID, NPROCS, NMAP, &
+           & ALKNO3(0, 1), ALKNO3_GL(1, 1))
+            Call GATHER (0, MTLOC, MLOC, MGL, KBM1, MYID, NPROCS, NMAP, &
+           & ALKNIT(0, 1), ALKNIT_GL(1, 1))
+            Call GATHER (0, MTLOC, MLOC, MGL, KBM1, MYID, NPROCS, NMAP, &
+           & ALKDEN(0, 1), ALKDEN_GL(1, 1))
+            Call GATHER (0, MTLOC, MLOC, MGL, KBM1, MYID, NPROCS, NMAP, &
+           & ALKREM(0, 1), ALKREM_GL(1, 1))
+            Call GATHER (0, MTLOC, MLOC, MGL, KBM1, MYID, NPROCS, NMAP, &
+           & ALKNH4SED(0, 1), ALKNH4SED_GL(1, 1))
+            Call GATHER (0, MTLOC, MLOC, MGL, KBM1, MYID, NPROCS, NMAP, &
+           & ALKNO3SED(0, 1), ALKNO3SED_GL(1, 1))
 
 		!
         !LB added the following to save Advection+horizDiff fluxes in output
@@ -2706,36 +2721,35 @@ Subroutine WQM_OUTPUT (NTHIS_OLD, NTSTN_OLD, NTHIS, NTSTN, CTR_HIS, &
         !   & VDIFFLUX(0, 1, 34), VDIFFLUX_GL(1, 1, 34))!TALK
 
 
-        !
         ! Wen Long added the following for debugging DOXG
         !
-        !    Call GATHER (1, MTLOC, MLOC, MGL, KBM1, MYID, NPROCS, NMAP, &
-        !   & DDOC(1, 1), DDOC_GL(1, 1))
-        !    Call GATHER (1, MTLOC, MLOC, MGL, KBM1, MYID, NPROCS, NMAP, &
-        !   & DCOD(1, 1), DCOD_GL(1, 1))
-        !    Call GATHER (1, MTLOC, MLOC, MGL, KBM1, MYID, NPROCS, NMAP, &
-        !   & NITRIF(1, 1), NITRIF_GL(1, 1))
-        !    Call GATHER (1, MTLOC, MLOC, MGL, KBM1, MYID, NPROCS, NMAP, &
-        !   & DOSZ(1, 1), DOSZ_GL(1, 1))
-        !    Call GATHER (1, MTLOC, MLOC, MGL, KBM1, MYID, NPROCS, NMAP, &
-        !   & DOLZ(1, 1), DOLZ_GL(1, 1))
-        !    Call GATHER (1, MTLOC, MLOC, MGL, KBM1, MYID, NPROCS, NMAP, &
-        !   & DOPR(1, 1), DOPR_GL(1, 1))
-        !    Call GATHER (1, MTLOC, MLOC, MGL, KBM1, MYID, NPROCS, NMAP, &
-        !   & DORALG(1, 1), DORALG_GL(1, 1))
-        !    Call GATHER (1, MTLOC, MLOC, MGL, KBM1, MYID, NPROCS, NMAP, &
-        !   & RESP(1, 1), RESP_GL(1, 1))
-        !    Call GATHER (1, MTLOC, MLOC, MGL, KBM1, MYID, NPROCS, NMAP, &
-        !   & FTCOD(1, 1), FTCOD_GL(1, 1))
-        !    Call GATHER (0, MTLOC, MLOC, MGL, KBM1, MYID, NPROCS, NMAP, &
-        !   & COD(0, 1), COD_GL(1, 1))
-        !    Call GATHER (1, MTLOC, MLOC, MGL, KBM1, MYID, NPROCS, NMAP, &
-        !   & REAERDO(1, 1), REAERDO_GL(1, 1))
+            Call GATHER (1, MTLOC, MLOC, MGL, KBM1, MYID, NPROCS, NMAP, &
+           & DDOC(1, 1), DDOC_GL(1, 1))
+            Call GATHER (1, MTLOC, MLOC, MGL, KBM1, MYID, NPROCS, NMAP, &
+           & DCOD(1, 1), DCOD_GL(1, 1))
+            Call GATHER (1, MTLOC, MLOC, MGL, KBM1, MYID, NPROCS, NMAP, &
+           & NITRIF(1, 1), NITRIF_GL(1, 1))
+            Call GATHER (1, MTLOC, MLOC, MGL, KBM1, MYID, NPROCS, NMAP, &
+           & DOSZ(1, 1), DOSZ_GL(1, 1))
+            Call GATHER (1, MTLOC, MLOC, MGL, KBM1, MYID, NPROCS, NMAP, &
+           & DOLZ(1, 1), DOLZ_GL(1, 1))
+            Call GATHER (1, MTLOC, MLOC, MGL, KBM1, MYID, NPROCS, NMAP, &
+           & DOPR(1, 1), DOPR_GL(1, 1))
+            Call GATHER (1, MTLOC, MLOC, MGL, KBM1, MYID, NPROCS, NMAP, &
+           & DORALG(1, 1), DORALG_GL(1, 1))
+            Call GATHER (1, MTLOC, MLOC, MGL, KBM1, MYID, NPROCS, NMAP, &
+           & RESP(1, 1), RESP_GL(1, 1))
+            Call GATHER (1, MTLOC, MLOC, MGL, KBM1, MYID, NPROCS, NMAP, &
+           & FTCOD(1, 1), FTCOD_GL(1, 1))
+            Call GATHER (0, MTLOC, MLOC, MGL, KBM1, MYID, NPROCS, NMAP, &
+           & COD(0, 1), COD_GL(1, 1))
+            Call GATHER (1, MTLOC, MLOC, MGL, KBM1, MYID, NPROCS, NMAP, &
+           & REAERDO(1, 1), REAERDO_GL(1, 1))
         !
         !Wen Long added the following for debugging benthic flux including benthic SOD
         !
-        !    Call GATHER (1, MTLOC, MLOC, MGL, 9, MYID, NPROCS, NMAP, &
-        !   & BFLUX(1, 1), BFLUX_GL(1, 1))
+            Call GATHER (1, MTLOC, MLOC, MGL, 9, MYID, NPROCS, NMAP, &
+           & BFLUX(1, 1), BFLUX_GL(1, 1))
         !
         !WLong: Note above, C2 and C2_GL all have first indices starting from zero
         !    I wonder why would we pass C2(0,,) to C2_GL(1,,) instead of C2_GL(0,*,*)
@@ -2764,14 +2778,14 @@ Subroutine WQM_OUTPUT (NTHIS_OLD, NTSTN_OLD, NTHIS, NTSTN, CTR_HIS, &
            !(JPOP_GL(MGL,3));
            !(JPOS_GL(MGL));
            !
-           !    Call GATHER (1, MTLOC, MLOC, MGL, 3, MYID, NPROCS, NMAP, &
-           !   & JPOC(1, 1), JPOC_GL(1, 1))
-           !    Call GATHER (1, MTLOC, MLOC, MGL, 3, MYID, NPROCS, NMAP, &
-           !   & JPON(1, 1), JPON_GL(1, 1))
-           !    Call GATHER (1, MTLOC, MLOC, MGL, 3, MYID, NPROCS, NMAP, &
-           !   & JPOP(1, 1), JPOP_GL(1, 1))
-           !    Call GATHER (1, MTLOC, MLOC, MGL, 1, MYID, NPROCS, NMAP, &
-           !   & JPOS(1), JPOS_GL(1))
+               Call GATHER (1, MTLOC, MLOC, MGL, 3, MYID, NPROCS, NMAP, &
+              & JPOC(1, 1), JPOC_GL(1, 1))
+               Call GATHER (1, MTLOC, MLOC, MGL, 3, MYID, NPROCS, NMAP, &
+              & JPON(1, 1), JPON_GL(1, 1))
+               Call GATHER (1, MTLOC, MLOC, MGL, 3, MYID, NPROCS, NMAP, &
+              & JPOP(1, 1), JPOP_GL(1, 1))
+               Call GATHER (1, MTLOC, MLOC, MGL, 1, MYID, NPROCS, NMAP, &
+              & JPOS(1), JPOS_GL(1))
            !
            !!(O20_GL(MGL));            !given by C2_GL(:,:,27)
            !!(D_GL(MGL));                !already defined
@@ -2921,31 +2935,31 @@ Subroutine WQM_OUTPUT (NTHIS_OLD, NTSTN_OLD, NTHIS, NTSTN, CTR_HIS, &
            
             End If !!end LBcomment
 
-			!If (SOLIDS_CALC) Then !Adi-2/13/18
-            !   Call GATHER (1, MTLOC, MLOC, MGL, KBM1, MYID, NPROCS, &
-            !  & NMAP, TSS(1, 1), TSS_GL(1, 1))
-            !   Call GATHER (1, MTLOC, MLOC, MGL, KBM1, MYID, NPROCS, &
-            !  & NMAP, KESS(1, 1), KESS_GL(1, 1))
-            !   Call GATHER (0, MTLOC, MLOC, MGL, KBM1, MYID, NPROCS, &
-            !  & NMAP, SSI(0, 1), SSI_GL(1, 1))
-			!   Call GATHER (1, MTLOC, MLOC, MGL, KBM1, MYID, NPROCS, &
-            !  & NMAP, TURB(1, 1), TURB_GL(1, 1))
-			!   Call GATHER (1, MTLOC, MLOC, MGL, KBM1, MYID, NPROCS, &
-            !  & NMAP, PARAD(1, 1), PARAD_GL(1, 1))
-            !End If
+			If (SOLIDS_CALC) Then !Adi-2/13/18
+               Call GATHER (1, MTLOC, MLOC, MGL, KBM1, MYID, NPROCS, &
+              & NMAP, TSS(1, 1), TSS_GL(1, 1))
+               Call GATHER (1, MTLOC, MLOC, MGL, KBM1, MYID, NPROCS, &
+              & NMAP, KESS(1, 1), KESS_GL(1, 1))
+               Call GATHER (0, MTLOC, MLOC, MGL, KBM1, MYID, NPROCS, &
+              & NMAP, SSI(0, 1), SSI_GL(1, 1))
+			   Call GATHER (1, MTLOC, MLOC, MGL, KBM1, MYID, NPROCS, &
+              & NMAP, TURB(1, 1), TURB_GL(1, 1))
+			   Call GATHER (1, MTLOC, MLOC, MGL, KBM1, MYID, NPROCS, &
+              & NMAP, PARAD(1, 1), PARAD_GL(1, 1))
+            End If
 			!
-			! If (SAV_CALC) Then !AN
-            !   Call GATHER (1, MTLOC, MLOC, MGL, NSAVM, MYID, NPROCS, &
-            !  & NMAP, LEAF(1, 1), LEAF_GL(1, 1))
-            !   Call GATHER (1, MTLOC, MLOC, MGL, NSAVM, MYID, NPROCS, &
-            !  & NMAP, STEM(1, 1), STEM_GL(1, 1))
-            !   Call GATHER (1, MTLOC, MLOC, MGL, NSAVM, MYID, NPROCS, &
-            !  & NMAP, ROOT(1, 1), ROOT_GL(1, 1))
-			!   Call GATHER (1, MTLOC, MLOC, MGL, NSAVM, MYID, NPROCS, &
-            !  & NMAP, TUBER(1, 1), TUBER_GL(1, 1))
-			!   Call GATHER (1, MTLOC, MLOC, MGL, NSAVM, MYID, NPROCS, &
-            !  & NMAP, EP(1, 1), EP_GL(1, 1))
-            !End If
+			 If (SAV_CALC) Then !AN
+               Call GATHER (1, MTLOC, MLOC, MGL, NSAVM, MYID, NPROCS, &
+              & NMAP, LEAF(1, 1), LEAF_GL(1, 1))
+               Call GATHER (1, MTLOC, MLOC, MGL, NSAVM, MYID, NPROCS, &
+              & NMAP, STEM(1, 1), STEM_GL(1, 1))
+               Call GATHER (1, MTLOC, MLOC, MGL, NSAVM, MYID, NPROCS, &
+              & NMAP, ROOT(1, 1), ROOT_GL(1, 1))
+			   Call GATHER (1, MTLOC, MLOC, MGL, NSAVM, MYID, NPROCS, &
+              & NMAP, TUBER(1, 1), TUBER_GL(1, 1))
+			   Call GATHER (1, MTLOC, MLOC, MGL, NSAVM, MYID, NPROCS, &
+              & NMAP, EP(1, 1), EP_GL(1, 1))
+            End If
 
          Else
 # endif
@@ -2980,8 +2994,6 @@ Subroutine WQM_OUTPUT (NTHIS_OLD, NTSTN_OLD, NTHIS, NTSTN, CTR_HIS, &
             C2_GL (1:MGL, 1:KBM1, 34) = C2 (1:MGL, 1:KBM1, 34)!LB
             pH_GL (1:MGL, 1:KBM1) = pH (1:MGL, 1:KBM1)!LB
             pCO2_GL (1:MGL, 1:KBM1) = pCO2 (1:MGL, 1:KBM1)!LB
-            TTL_MASS_GL = TTL_MASS
-!
 !
         !LB adding LDON, RDON, LPON, RPON  23jun2016
             C2_GL (1:MGL, 1:KBM1, 16) = C2 (1:MGL, 1:KBM1, 16)
@@ -2993,44 +3005,44 @@ Subroutine WQM_OUTPUT (NTHIS_OLD, NTSTN_OLD, NTHIS, NTSTN, CTR_HIS, &
         !
         ! Wen Long added following for debugging algae
         !
-        !   P1_GL = P1
-        !   P2_GL = P2
-        !   BM1_GL = BM1
-        !   BM2_GL = BM2
-        !   NL1_GL = NL1
-        !   NL2_GL = NL2
-        !   PL1_GL = PL1
-        !   PL2_GL = PL2
-        !   B1SZ_GL = B1SZ
-        !   B2SZ_GL = B2SZ
-        !   B1LZ_GL = B1LZ
-        !   B2LZ_GL = B2LZ
-        !   PR1_GL = PR1
-        !   PR2_GL = PR2
+           P1_GL = P1
+           P2_GL = P2
+           BM1_GL = BM1
+           BM2_GL = BM2
+           NL1_GL = NL1
+           NL2_GL = NL2
+           PL1_GL = PL1
+           PL2_GL = PL2
+           B1SZ_GL = B1SZ
+           B2SZ_GL = B2SZ
+           B1LZ_GL = B1LZ
+           B2LZ_GL = B2LZ
+           PR1_GL = PR1
+           PR2_GL = PR2
             If (LIGHT_EXTINCTION) Then
                IAVG_GL = IAVG
                FI1_GL = FI1
                FI2_GL = FI2
             End If
-            !IK1_GL = IK1
-            !IK2_GL = IK2
+            IK1_GL = IK1
+            IK2_GL = IK2
         !
-        !    GPP_GL = GPP !LB
-        !   NPP_GL = NPP !LB
+            GPP_GL = GPP !LB
+            NPP_GL = NPP !LB
         !
         ! Wen Long added the following for debugging DOXG
         !
-            !DDOC_GL = DDOC
-            !DCOD_GL = DCOD
-            !NITRIF_GL = NITRIF
-            !DOSZ_GL = DOSZ
-            !DOLZ_GL = DOLZ
-            !DOPR_GL = DOPR
-            !DORALG_GL = DORALG
-            !RESP_GL = RESP
-            !FTCOD_GL = FTCOD
-            !COD_GL = COD
-            !REAERDO_GL = REAERDO
+            DDOC_GL = DDOC
+            DCOD_GL = DCOD
+            NITRIF_GL = NITRIF
+            DOSZ_GL = DOSZ
+            DOLZ_GL = DOLZ
+            DOPR_GL = DOPR
+            DORALG_GL = DORALG
+            RESP_GL = RESP
+            FTCOD_GL = FTCOD
+            COD_GL = COD
+            REAERDO_GL = REAERDO
         !
         ! Wen Long added the following for debuguing benthic fluxes
             BFLUX_GL = BFLUX
@@ -3231,8 +3243,7 @@ Subroutine WQM_OUTPUT (NTHIS_OLD, NTSTN_OLD, NTHIS, NTSTN, CTR_HIS, &
                     & MGL), (S_GL(I, K), I=1, MGL), (IAVG_GL(I, K), &
                     & I=1, MGL), (C2_GL(I, K, 10), I=1, MGL), (C2_GL(I, &
                     & K, 11), I=1, MGL), (C2_GL(I, K, 12), I=1, MGL), &
-                    !& (GPP_GL(I, K), I=1, MGL), (NPP_GL(I, K), I=1, &
-                    !& MGL), 
+                    & (GPP_GL(I, K), I=1, MGL), (NPP_GL(I, K), I=1, MGL), &
                     & (C2_GL(I, K, 33), I=1, MGL), (C2_GL(I, K, &
                     & 34), I=1, MGL), (pH_GL(I, K), I=1, MGL), &
                     & (pCO2_GL(I, K), I=1, MGL), (DICUPT_GL(I, K), I=1, &
@@ -3332,8 +3343,7 @@ Subroutine WQM_OUTPUT (NTHIS_OLD, NTSTN_OLD, NTHIS, NTSTN, CTR_HIS, &
                     & MGL), (S_GL(I, K), I=1, MGL), (IAVG_GL(I, K), &
                     & I=1, MGL), (C2_GL(I, K, 10), I=1, MGL), (C2_GL(I, &
                     & K, 11), I=1, MGL), (C2_GL(I, K, 12), I=1, MGL), &
-                    !& (GPP_GL(I, K), I=1, MGL), (NPP_GL(I, K), I=1, &
-                    !& MGL), 
+                    & (GPP_GL(I, K), I=1, MGL), (NPP_GL(I, K), I=1, MGL), & 
                     & (C2_GL(I, K, 33), I=1, MGL), (C2_GL(I, K, &
                     & 34), I=1, MGL), (pH_GL(I, K), I=1, MGL), &
                     & (pCO2_GL(I, K), I=1, MGL)!pCO2		!LB
@@ -3447,11 +3457,9 @@ Subroutine WQM_OUTPUT (NTHIS_OLD, NTSTN_OLD, NTHIS, NTSTN, CTR_HIS, &
            ! TITLE_STN=TRIM(TITLE_STN)//',"DICUPT","DICBMP","DICPRD"&
                 !&,"DICMNL","DICDEN","DICNIT","DICGAS","DICSED"'      !LB
                TITLE_STN = TRIM (TITLE_STN) // ',"DICUPT","DICBMP","DIC&
-              &PRD","DICMNL","DICDEN","DICGAS","DICSED","DICADV","DICVD&
-              &IF"' !LB
+              &PRD","DICMNL","DICDEN","DICGAS","DICSED"' !LB
                TITLE_STN = TRIM (TITLE_STN) // ',"ALKNH4","ALKNO3","ALK&
-              &NIT","ALKDEN","ALKREM","ALKNH4SED","ALKNO3SED","ALKADV",&
-              &"ALKVDIF"' !LB
+              &NIT","ALKDEN","ALKREM","ALKNH4SED","ALKNO3SED"' !LB
 !
 			   If (SOLIDS_CALC) Then
 			         TITLE_STN = TRIM (TITLE_STN) // ',"TSS","SSI","TURB"&
@@ -3505,21 +3513,18 @@ Subroutine WQM_OUTPUT (NTHIS_OLD, NTSTN_OLD, NTHIS, NTSTN, CTR_HIS, &
                     & (NstationNum_GL(I), K, 9), C2_GL (NstationNum_GL(I), K, 10), C2_GL (NstationNum_GL(I), K, 11), C2_GL &
                     & (NstationNum_GL(I), K, 12), C2_GL (NstationNum_GL(I), K, 20), C2_GL (NstationNum_GL(I), K, 33), C2_GL &
                     & (NstationNum_GL(I), K, 34), pH_GL (NstationNum_GL(I), K), pCO2_GL (NstationNum_GL(I), K), T_GL &
-                    & (NstationNum_GL(I), K), S_GL (NstationNum_GL(I), K)
-
-                !    P1_GL (NstationNum_GL(I), K), P2_GL (NstationNum_GL(I), &
-                !    & K), BM1_GL (NstationNum_GL(I), K), BM2_GL (NstationNum_GL(I), K), NL1_GL (NstationNum_GL(I), K), NL2_GL &
-                !    & (NstationNum_GL(I), K), PL1_GL (NstationNum_GL(I), K), PL2_GL (NstationNum_GL(I), K), FI1_GL &
-                !    & (NstationNum_GL(I), K), FI2_GL (NstationNum_GL(I), K), B1SZ_GL (NstationNum_GL(I), K), B2SZ_GL &
-                !    & (NstationNum_GL(I), K), B1LZ_GL (NstationNum_GL(I), K), B2LZ_GL (NstationNum_GL(I), K), PR1_GL &
-                !    & (NstationNum_GL(I), K), PR2_GL (NstationNum_GL(I), K), &
-                !    & IAVG_GL (NstationNum_GL(I), K), DICUPT_GL &
-                !    & (NstationNum_GL(I), K), DICBMP_GL (NstationNum_GL(I), K), DICPRD_GL (NstationNum_GL(I), K), DICMNL_GL &
-                !    & (NstationNum_GL(I), K), DICDEN_GL (NstationNum_GL(I), K), DICGAS_GL (NstationNum_GL(I), K), DICSED_GL &
-                !    & (NstationNum_GL(I), K), &
-                !    & ALKNH4_GL (NstationNum_GL(I), K), ALKNO3_GL (NstationNum_GL(I), K), ALKNIT_GL (NstationNum_GL(I), K), &
-                !    & ALKDEN_GL (NstationNum_GL(I), K), ALKREM_GL (NstationNum_GL(I), K), ALKNH4SED_GL (NstationNum_GL(I), K), &
-                !    & ALKNO3SED_GL (NstationNum_GL(I), K)                       !& (NstationNum_GL(I), K), DICNIT_GL &!
+                    & (NstationNum_GL(I), K), S_GL (NstationNum_GL(I), K), P1_GL (NstationNum_GL(I), K), P2_GL (NstationNum_GL(I), &
+                    & K), BM1_GL (NstationNum_GL(I), K), BM2_GL (NstationNum_GL(I), K), NL1_GL (NstationNum_GL(I), K), NL2_GL &
+                    & (NstationNum_GL(I), K), PL1_GL (NstationNum_GL(I), K), PL2_GL (NstationNum_GL(I), K), FI1_GL &
+                    & (NstationNum_GL(I), K), FI2_GL (NstationNum_GL(I), K), B1SZ_GL (NstationNum_GL(I), K), B2SZ_GL &
+                    & (NstationNum_GL(I), K), B1LZ_GL (NstationNum_GL(I), K), B2LZ_GL (NstationNum_GL(I), K), PR1_GL &
+                    & (NstationNum_GL(I), K), PR2_GL (NstationNum_GL(I), K), IAVG_GL (NstationNum_GL(I), K), DICUPT_GL &
+                    & (NstationNum_GL(I), K), DICBMP_GL (NstationNum_GL(I), K), DICPRD_GL (NstationNum_GL(I), K), DICMNL_GL &
+                    & (NstationNum_GL(I), K), DICDEN_GL (NstationNum_GL(I), K), DICGAS_GL (NstationNum_GL(I), K), DICSED_GL &
+                    & (NstationNum_GL(I), K), &
+                    & ALKNH4_GL (NstationNum_GL(I), K), ALKNO3_GL (NstationNum_GL(I), K), ALKNIT_GL (NstationNum_GL(I), K), &
+                    & ALKDEN_GL (NstationNum_GL(I), K), ALKREM_GL (NstationNum_GL(I), K), ALKNH4SED_GL (NstationNum_GL(I), K), &
+                    & ALKNO3SED_GL (NstationNum_GL(I), K)                       !& (NstationNum_GL(I), K), DICNIT_GL &!
 
                    If (SOLIDS_CALC) Then
                     Write (UNIT_STN, '(:8(E13.6e3,1X),E13.6e3)') TSS_GL (NstationNum_GL(I), K), SSI_GL &
@@ -3607,7 +3612,7 @@ SUBROUTINE DebugNan()
    USE MOD_LIMS, ONLY: MTLOC, MLOC, KBM1
    USE MOD_WQM, ONLY: C2
    USE MOD_SIZES, ONLY: NCP
-   USE SC_TCR, ONLY : DWTCR
+
    IMPLICIT NONE
 
    INTEGER :: ii,jj,kk
@@ -3616,7 +3621,7 @@ SUBROUTINE DebugNan()
         DO ii=1,KBM1
             DO jj=1,MLOC
                 IF(ISNAN(C2(jj,ii,kk))) THEN
-                    WRITE(*,*)"This variable goes to NAN",jj,ii,kk, DWTCR(jj,ii,kk)
+                    WRITE(*,*)"This variable goes to NAN",jj,ii,kk
                     STOP
                 END IF
             END DO
@@ -3691,61 +3696,6 @@ END SUBROUTINE
 !---------------------------------------------------------------------------------
 
 
-!!--------------------- gathering initial mass for testing - added by Laki ------------------
-SUBROUTINE GatherTxcBactVrbs()
-  Use MOD_LIMS, Only: MYID, NPROCS, IINT, MTLOC, MLOC, KBM1
-  Use MOD_PAR, Only: NMAP,GATHER_TXC, GATHER
-  USE MOD_WQM, ONLY: NumTxVrb, TxcKntOn, TcrKntOn, NumTcrVrb
-  USE MOD_SIZES, ONLY: MGL
-  USE TXC_KNT, ONLY: PcbCon_W, PcbCon_AlgW, PcbCon_ZplW, PcbCon_SldW, PcbCon_POCW, &
-                     & PcbConW_GL, PcbConAlgW_GL, PcbConZplW_GL, PcbConSldW_GL, PcbConPOCW_GL, &
-                     & PcbConW_S1, PcbCon_POCS1, PcbCon_DOCS1, PcbCon_SldS1, &
-                     & PcbConWS1_GL, PcbConPOCS1_GL, PcbConDOCS1_GL, PcbConSldS1_GL, &
-                     & PcbConW_S2, PcbCon_POCS2, PcbCon_DOCS2, PcbCon_SldS2, &
-                     & PcbConWS2_GL, PcbConPOCS2_GL, PcbConDOCS2_GL, PcbConSldS2_GL
-  USE SC_TCR, ONLY: ConTcr, ConTcrSdm1,ConTcrSdm2, ConTcr_GL, ConTcrSdm1_GL, ConTcrSdm2_GL,TcrtConW, &
-                     & TcrtConW_GL, TcrtConSdm, TcrtConSdm_GL
-  IMPLICIT NONE
-
-   IF(TxcKntOn) THEN
-
-            Call GATHER_TXC(1, MTLOC, MLOC, MGL, KBM1, NumTxVrb, MYID, NPROCS, NMAP, & 
-                                    & PcbCon_W(1, 1, 1), PcbConW_GL(1, 1, 1))    ! Pcb in water 
-            Call GATHER_TXC(1, MTLOC, MLOC, MGL, KBM1, NumTxVrb, MYID, NPROCS, NMAP, & 
-                                    & PcbCon_ZplW(1, 1, 1), PcbConZplW_GL(1, 1, 1))    ! Pcb in water 
-            Call GATHER_TXC(1, MTLOC, MLOC, MGL, KBM1, NumTxVrb, MYID, NPROCS, NMAP, & 
-                                    & PcbCon_AlgW(1, 1, 1), PcbConAlgW_GL(1, 1, 1))    ! Pcb in water 
-            Call GATHER_TXC(1, MTLOC, MLOC, MGL, KBM1, NumTxVrb, MYID, NPROCS, NMAP, & 
-                                    & PcbCon_SldW(1, 1, 1), PcbConSldW_GL(1, 1, 1))    ! Pcb in water 
-            Call GATHER_TXC(1, MTLOC, MLOC, MGL, KBM1, NumTxVrb, MYID, NPROCS, NMAP, & 
-                                    & PcbCon_POCW(1, 1, 1), PcbConPOCW_GL(1, 1, 1))    ! Pcb in water
-            Call GATHER (1, MTLOC, MLOC, MGL, NumTxVrb, MYID, NPROCS, &
-                                    & NMAP, PcbConW_S1(1, 1), PcbConWS1_GL(1, 1))
-            Call GATHER (1, MTLOC, MLOC, MGL, NumTxVrb, MYID, NPROCS, &
-                                    & NMAP, PcbCon_POCS1(1, 1), PcbConPOCS1_GL(1, 1))
-            Call GATHER (1, MTLOC, MLOC, MGL, NumTxVrb, MYID, NPROCS, &
-                                    & NMAP, PcbCon_DOCS1(1, 1), PcbConDOCS1_GL(1, 1))
-            Call GATHER (1, MTLOC, MLOC, MGL, NumTxVrb, MYID, NPROCS, &
-                                    & NMAP, PcbConW_S2(1, 1), PcbConWS2_GL(1, 1))
-            Call GATHER (1, MTLOC, MLOC, MGL, NumTxVrb, MYID, NPROCS, &
-                                    & NMAP, PcbCon_POCS2(1, 1), PcbConPOCS2_GL(1, 1))
-            Call GATHER (1, MTLOC, MLOC, MGL, NumTxVrb, MYID, NPROCS, &
-                                    & NMAP, PcbCon_DOCS2(1, 1), PcbConDOCS2_GL(1, 1))
-   END IF
-
-   IF(TcrKntOn) THEN 
-
-            Call GATHER_TXC(1, MTLOC, MLOC, MGL, KBM1, NumTcrVrb, MYID, NPROCS, NMAP, & 
-                                    & TcrtConW(1, 1, 1), TcrtConW_GL(1, 1, 1))    ! tracer/pollutant in water 
-            Call GATHER (1, MTLOC, MLOC, MGL, NumTcrVrb, MYID, NPROCS, NMAP, & 
-                                    & TcrtConSdm(1, 1), TcrtConSdm_GL(1, 1))    ! tracer/pollutant in sediments 
-
-   END IF
-
-END SUBROUTINE
-!-------------------------------------------------------------------------------------------- 
-
-
 !-------------------- Initial setup for the program - added by Laki -------------------------
 SUBROUTINE MainSetup
   USE MOD_WQM, ONLY: NumWqVrb,NumTxVrb,TxcKntOn, TxcOutput, NumTcrVrb, TcrKntOn, TcrtOutput
@@ -3754,7 +3704,7 @@ SUBROUTINE MainSetup
                      & DFFCOEFS12,BRLVEL,MolWghtCng,HNRCFF,TcrSdmInitType,TcrSdmUnfm,BACTERIAON, &
                      & RADIONUCON,NOTCRKNTS,NumTcrOutVar,KnBact,C0SalBact,AlphaBact,ThetaBact, &
                      & RnHalfTime,RnKd,VonKrmn,Rgfh,PtcDensity,ErsnCoeff,CrtShear,SdmPrst,WqCalcOn, PCBOutVrb, &
-                     & TCROutVrb
+                     & TCROutVrb, TxcHotstart, TxcHotWC,TxcHotSD1,TxcHotSD2
   USE MOD_SIZES, ONLY: NCP, NTXVB, NBTCR, HydVersionNum
   USE MOD_CONTROL, ONLY: MSR
   IMPLICIT NONE
@@ -3782,7 +3732,8 @@ SUBROUTINE MainSetup
   !------------------------------------------------------------------------------ 
   IF(TxcKntOn == .TRUE.) THEN
     NAMELIST /TXC_SETUP/ TXCF_INC,TXCF_PNT,TXCF_OBC,TXCF_INC_SD,TxcSdmInitType, &
-                        & TxcSdmUnfm,PCBTxcOn,MTLTxcOn,NumTxcOutVar 
+                        & TxcSdmUnfm,PCBTxcOn,MTLTxcOn,NumTxcOutVar,TxcHotstart, &
+                        & TxcHotWC,TxcHotSD1,TxcHotSD2
     READ(377,NML = TXC_SETUP, IOSTAT = end_file)
     IF(end_file /= 0) THEN
         WRITE(*,*)'Invalid namelist format for toxics'

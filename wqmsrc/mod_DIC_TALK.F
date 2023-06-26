@@ -104,7 +104,7 @@ Contains
                Do I = 1, MLOC
                   pCO2atm (I) = RTMP21 (NGID(I))
                End Do
-               Do I = 1, NHN !LB: I don't think pCO2atm is used in halo nodes,
+               Do I = 1, NHN !LB: I dont think pCO2atm is used in halo nodes,
 			                 !but I leave it for the sake of completeness
                   pCO2atm (I+MLOC) = RTMP21 (HN_LST(I))
                End Do
@@ -272,8 +272,8 @@ Contains
                CPSAV = 0.0
                DO II=1,NSAVCELL
                   IF(I == SAVCELL(II)) THEN
-                     CPSAV = 0.3*PLEAF(I,1)*LEAF(I,1)/(D(I)*DZ2D(I,K))   ! gC/m3   ! Added by Laki
-                     EXIT              ! 0.3 was added as temporary solution to account DIC production due to respiration by SAV
+                     CPSAV = 0.14*PLEAF(I,1)*LEAF(I,1)/(D(I)*DZ2D(I,K))   ! gC/m3   ! Added by Laki
+                     EXIT              ! 0.14 was added as temporary solution to account DIC production due to respiration by SAV
                   END IF
                END DO
           ELSE

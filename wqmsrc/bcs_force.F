@@ -99,7 +99,7 @@ Subroutine BCS_FORCE
 !#  endif
   !
     NUMQBC = 0
-    INFLOW_TYPE = 'node'
+ !   INFLOW_TYPE = 'node'
 !      If (NUMQBC_GL > 0) Then
      !
     !     Allocate (TEMP(NUMQBC_GL), TEMP2(NUMQBC_GL), TEMP3(NUMQBC_GL))

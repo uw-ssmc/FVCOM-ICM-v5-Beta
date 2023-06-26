@@ -6,7 +6,7 @@
     TxcKntOn = .TRUE.  ! Switch for calculating toxic(PCB)kinetics: ON or OFF
     TcrKntOn = .FALSE.   ! Switch for calculating Bacteria/pollutant kinetics: ON or OFF 
     NumTxVrb = 1        ! No. of Toxics contaminant variables (No. of PCB congeners)
-    NumTcrVrb = 0       ! No. of tracer/Bacteria/pollutant varibles 
+    NumTcrVrb = 0       ! No. of tracer/Bacteria/pollutant variables 
 / 
 
 &TXC_SETUP
@@ -15,17 +15,21 @@
     TXCF_PNT = 'inputs/ssm_txc_pntscs.dat'
     TXCF_OBC = 'inputs/ssm_txc_obc.dat'
     TXCF_INC_SD = 'inputs/ssm_txc_init-sdm.dat'
-    TxcSdmInitType = 'UNIFORM'     ! type of the initial tracer distribution in sediment layer (UNIFORM/DISTRIBUTED)
+    TxcSdmInitType = 'DISTRIBUTED'     ! type of the initial tracer distribution in sediment layer (UNIFORM/DISTRIBUTED)
     TxcSdmUnfm = 0.00       ! tracer concentration for sediment layer if the distribution is uniform constant value
     PCBTxcOn = .TRUE.       ! PCB kinetics on
     MTLTxcOn = .FALSE.      ! Toxic metal kinetics on
-    NumTxcOutVar = 1        ! No. of Toxic output variables (PCB ot MTL)
+    NumTxcOutVar = 3        ! No. of Toxic output variables (PCB ot MTL)
+    TxcHotstart = .TRUE.   ! initial condition with hot start
+    TxcHotWC = 'inputs/TxcWCRestart364.dat'     ! hot start file for water column
+    TxcHotSD1 = 'inputs/TxcSD1Restart364.dat'   ! hot start file for sediment layer 1
+    TxcHotSD2 = 'inputs/TxcSD2Restart364.dat'   ! hot start file for sediment layer 2
 /
 
 &TXC_PARAMETER_PCB
     !--------------- parameters  for PCB kinetcs ------------------ 
-    PTC_WC = 0.31     !K_PW (m^3/g) - partition coefficient
-    PTC_SD = 0.31     !K_PS (m^3/g) 
+    PTC_WC = 3.16     !K_PW (m^3/g) - partition coefficient
+    PTC_SD = 3.16     !K_PS (m^3/g) 
     SED_DEN = 1.7E+06    !density (g/m^3)
     DFFCOEFS12 = 0.05       ! diffusion coefficient for PCB transfer between sdLy1 and sdLy2 (m^2/s)
     BRLVEL = 0.0        ! burial velocity of solid sediments from sdLy2 (m/yr)
@@ -34,8 +38,19 @@
 /
 
 &TXC_OUT_PCB
-    !------------- PCB related output variables for nectdf outputs -----------------
-    PCBOutVrb = 'PcbCon_W'
+    !------------- PCB related output variables for netcdf outputs -----------------
+    PCBOutVrb = 'PcbCon_W','PcbCon_AlgW','PcbCon_POCW'
+    !PcbCon_W = PCBs in dissolved phase
+    !PcbCon_ZplW = PCBs in zooplankton (both micro and messo)
+    !PcbCon_AlgW = PCBs in algae (both in diatom and dinoflagellates) 
+    !PcbCon_SldW = PCBs in inorganic soilds
+    !PcbCon_POCW = PCBs in POC
+    !PcbConW_S1 = PCBs in dissolved phase of sediment layer 1
+    !PcbCon_POCS1 = PCBs in POC of sediment layer 1
+    !PcbCon_DOCS1 = PCBs in DOC of sediment layer 1
+    !PcbConW_S2 = PCBs in dissolved phase of sediment layer 2
+    !PcbCon_POCS2 = PCBs in POC of sediment layer 2
+    !PcbCon_DOCS2 = PCBs in DOC of sediment layer 2
 /
 
 &TCR_SETUP

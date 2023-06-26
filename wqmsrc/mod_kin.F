@@ -130,7 +130,7 @@ Contains
                If (SSI(I, K) < 100.) Then !Adi 2/16/18
                   WSSHI (I, K) = WSS (I, K)
                Else
-                 WSSHI (I, K) = 0.25     ! original code
+                 WSSHI (I, K) = 5.0     ! original code
                  !WRITE(*,*)'SSI concentration is above 100.0'
                  !STOP
                End If

@@ -1014,7 +1014,7 @@ Subroutine INPUTS ()
      !      READ(ICI,*) (CIC(K,JCON),K=1,KB,JCON=1,NCP)
      !
      ! KRG 22-JUNE-2010, the above now in parallel, KURT GLAESEMANN
-         Allocate (RTMP(0:MGL, KBM1, TXCRT))
+         Allocate (RTMP(0:MGL, KBM1, NCP))
          RTMP = 0.0 !WLong, note index starts from zero
          Do I = 1, MGL
             Do K = 1, KBM1
@@ -1046,7 +1046,7 @@ Subroutine INPUTS ()
      !
 #      if defined (MULTIPROCESSOR)
          If (PAR) Then
-            Do JCON = 1, TXCRT
+            Do JCON = 1, NCP
                Do K = 1, KBM1
                   Do I = 1, MLOC
                      C1 (I, K, JCON) = RTMP (NGID(I), K, JCON)
@@ -1503,7 +1503,7 @@ Subroutine INPUTS ()
          Open (RSI, File=RSIFN, Status='OLD', Form='UNFORMATTED')
          Read (RSI) OLDTITLE
      !
-         Allocate (RTMP(0:MGL, KBM1, NCP))
+         Allocate (RTMP(0:MGL, KBM1, TXCRT))
          RTMP = 0.0 !WLong: note index from zero
          Read (RSI) (((RTMP(I, K, JCON), I=1, MGL), K=1, KBM1), JCON=1, &
         & TXCRT)

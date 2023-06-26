@@ -13,7 +13,7 @@ MODULE TXC_KNT
                     & PcbConTS1, PcbConTS1_GL, PcbConTS2, PcbConTS2_GL, &
                     & TXCF_INC,TXCF_PNT,TXCF_OBC, TXCF_INC_SD,PTC_SD, PTC_WC,SED_DEN, & 
                     & DFFCOEFS12, BRLVEL,MolWghtCng,HNRCFF,TxcSdmInitType,TxcSdmUnfm, &
-                    & PCBTxcOn,MTLTxcOn,NumTxcOutVar
+                    & PCBTxcOn,MTLTxcOn,NumTxcOutVar,TxcHotWC,TxcHotstart,TxcHotSD1,TxcHotSD2, PCBOutVrb
 
   USE MOD_CONTROL, ONLY: SERIAL, MSR, PAR
   USE MOD_PAR, Only: NGID, NHN, HN_LST, NLID
@@ -70,142 +70,142 @@ IMPLICIT NONE
 SUBROUTINE TXC_ALLOC
 
 !----------------- Toxics concentrations in each constituents--------------------------------------------------
-          ALLOCATE(PcbCon_W(MTLOC,KBM1,NTXVB))
+          ALLOCATE(PcbCon_W(0:MTLOC,KBM1,NTXVB))
           PcbCon_W = 0.0 
-          ALLOCATE(PcbCon_AlgW(MTLOC,KBM1,NTXVB))
+          ALLOCATE(PcbCon_AlgW(0:MTLOC,KBM1,NTXVB))
           PcbCon_AlgW = 0.0 
-          ALLOCATE(PcbCon_ZplW(MTLOC,KBM1,NTXVB))
+          ALLOCATE(PcbCon_ZplW(0:MTLOC,KBM1,NTXVB))
           PcbCon_ZplW = 0.0 
-          ALLOCATE(PcbCon_SldW(MTLOC,KBM1,NTXVB))
+          ALLOCATE(PcbCon_SldW(0:MTLOC,KBM1,NTXVB))
           PcbCon_SldW = 0.0 
-          ALLOCATE(PcbCon_POCW(MTLOC,KBM1,NTXVB))
+          ALLOCATE(PcbCon_POCW(0:MTLOC,KBM1,NTXVB))
           PcbCon_POCW = 0.0
-          ALLOCATE(PcbConW_GL(MGL,KBM1,NTXVB))
-          PcbConW_GL = 0.0
-          ALLOCATE(PcbConAlgW_GL(MGL,KBM1,NTXVB))
-          PcbConAlgW_GL = 0.0 
-          ALLOCATE(PcbConZplW_GL(MGL,KBM1,NTXVB))
-          PcbConZplW_GL = 0.0 
-          ALLOCATE(PcbConSldW_GL(MGL,KBM1,NTXVB))
-          PcbConSldW_GL = 0.0 
-          ALLOCATE(PcbConPOCW_GL(MGL,KBM1,NTXVB))
-          PcbConPOCW_GL = 0.0
-          ALLOCATE(PcbConW_S1(MTLOC,NTXVB))
+          !ALLOCATE(PcbConW_GL(MGL,KBM1,NTXVB))
+          !PcbConW_GL = 0.0
+          !ALLOCATE(PcbConAlgW_GL(MGL,KBM1,NTXVB))
+          !PcbConAlgW_GL = 0.0 
+          !ALLOCATE(PcbConZplW_GL(MGL,KBM1,NTXVB))
+          !PcbConZplW_GL = 0.0 
+          !ALLOCATE(PcbConSldW_GL(MGL,KBM1,NTXVB))
+          !PcbConSldW_GL = 0.0 
+          !ALLOCATE(PcbConPOCW_GL(MGL,KBM1,NTXVB))
+          !PcbConPOCW_GL = 0.0
+          ALLOCATE(PcbConW_S1(0:MTLOC,NTXVB))
           PcbConW_S1 = 0.0 
-          ALLOCATE(PcbConW_S2(MTLOC,NTXVB))
+          ALLOCATE(PcbConW_S2(0:MTLOC,NTXVB))
           PcbConW_S2 = 0.0 
-          ALLOCATE(PcbCon_POCS1(MTLOC,NTXVB))
+          ALLOCATE(PcbCon_POCS1(0:MTLOC,NTXVB))
           PcbCon_POCS1 = 0.0 
-          ALLOCATE(PcbCon_POCS2(MTLOC,NTXVB))
+          ALLOCATE(PcbCon_POCS2(0:MTLOC,NTXVB))
           PcbCon_POCS2 = 0.0 
-          ALLOCATE(PcbCon_DOCS1(MTLOC,NTXVB))
+          ALLOCATE(PcbCon_DOCS1(0:MTLOC,NTXVB))
           PcbCon_DOCS1 = 0.0 
-          ALLOCATE(PcbCon_DOCS2(MTLOC,NTXVB))
+          ALLOCATE(PcbCon_DOCS2(0:MTLOC,NTXVB))
           PcbCon_DOCS2 = 0.0 
-          ALLOCATE(PcbCon_SldS1(MTLOC,NTXVB))
+          ALLOCATE(PcbCon_SldS1(0:MTLOC,NTXVB))
           PcbCon_SldS1 = 0.0 
-          ALLOCATE(PcbCon_SldS2(MTLOC,NTXVB))
+          ALLOCATE(PcbCon_SldS2(0:MTLOC,NTXVB))
           PcbCon_SldS2 = 0.0 
-          ALLOCATE(PcbConWS1_GL(MGL,NTXVB))
-          PcbConWS1_GL = 0.0 
-          ALLOCATE(PcbConWS2_GL(MGL,NTXVB))
-          PcbConWS2_GL = 0.0 
-          ALLOCATE(PcbConPOCS1_GL(MGL,NTXVB))
-          PcbConPOCS1_GL = 0.0 
-          ALLOCATE(PcbConPOCS2_GL(MGL,NTXVB))
-          PcbConPOCS2_GL = 0.0
-          ALLOCATE(PcbConDOCS1_GL(MGL,NTXVB))
-          PcbConDOCS1_GL = 0.0 
-          ALLOCATE(PcbConDOCS2_GL(MGL,NTXVB))
-          PcbConDOCS2_GL = 0.0
-          ALLOCATE(PcbConSldS1_GL(MGL,NTXVB))
-          PcbConSldS1_GL = 0.0
-          ALLOCATE(PcbConSldS2_GL(MGL,NTXVB))
-          PcbConSldS2_GL = 0.0
-          ALLOCATE(PcbConTW(MTLOC,KBM1))
+          !ALLOCATE(PcbConWS1_GL(MGL,NTXVB))
+          !PcbConWS1_GL = 0.0 
+          !ALLOCATE(PcbConWS2_GL(MGL,NTXVB))
+          !PcbConWS2_GL = 0.0 
+          !ALLOCATE(PcbConPOCS1_GL(MGL,NTXVB))
+          !PcbConPOCS1_GL = 0.0 
+          !ALLOCATE(PcbConPOCS2_GL(MGL,NTXVB))
+          !PcbConPOCS2_GL = 0.0
+          !ALLOCATE(PcbConDOCS1_GL(MGL,NTXVB))
+          !PcbConDOCS1_GL = 0.0 
+          !ALLOCATE(PcbConDOCS2_GL(MGL,NTXVB))
+          !PcbConDOCS2_GL = 0.0
+          !ALLOCATE(PcbConSldS1_GL(MGL,NTXVB))
+          !PcbConSldS1_GL = 0.0
+          !ALLOCATE(PcbConSldS2_GL(MGL,NTXVB))
+          !PcbConSldS2_GL = 0.0
+          ALLOCATE(PcbConTW(0:MTLOC,KBM1))
           PcbConTW = 0.0 
-          ALLOCATE(PcbConTS1(MTLOC))
+          ALLOCATE(PcbConTS1(0:MTLOC))
           PcbConTS1 = 0.0 
-          ALLOCATE(PcbConTS2(MTLOC))
+          ALLOCATE(PcbConTS2(0:MTLOC))
           PcbConTS2 = 0.0
 !----------------------------------------------------------------------------------
-          ALLOCATE(SSDL(MTLOC))
+          ALLOCATE(SSDL(0:MTLOC))
           SSDL = 0.0
-          ALLOCATE(FP_SSI_W(MTLOC,KBM1,NTXVB))
+          ALLOCATE(FP_SSI_W(0:MTLOC,KBM1,NTXVB))
           FP_SSI_W = 0.0
-          ALLOCATE(FP_POC_W(MTLOC,KBM1,NTXVB))
+          ALLOCATE(FP_POC_W(0:MTLOC,KBM1,NTXVB))
           FP_POC_W = 0.0
-          ALLOCATE(FP_DOC_W(MTLOC,KBM1,NTXVB))
+          ALLOCATE(FP_DOC_W(0:MTLOC,KBM1,NTXVB))
           FP_DOC_W = 0.0
-          ALLOCATE(FP_BOC1_W(MTLOC,KBM1,NTXVB))
+          ALLOCATE(FP_BOC1_W(0:MTLOC,KBM1,NTXVB))
           FP_BOC1_W = 0.0
-          ALLOCATE(FP_BOC2_W(MTLOC,KBM1,NTXVB))
+          ALLOCATE(FP_BOC2_W(0:MTLOC,KBM1,NTXVB))
           FP_BOC2_W = 0.0
-          ALLOCATE(FP_ZOO_W(MTLOC,KBM1,NTXVB))
+          ALLOCATE(FP_ZOO_W(0:MTLOC,KBM1,NTXVB))
           FP_ZOO_W = 0.0
-          ALLOCATE(FD_W(MTLOC,KBM1,NTXVB))
+          ALLOCATE(FD_W(0:MTLOC,KBM1,NTXVB))
           FD_W = 0.0
-          ALLOCATE(KP_SSI_W(MTLOC,KBM1,NTXVB))
+          ALLOCATE(KP_SSI_W(0:MTLOC,KBM1,NTXVB))
           KP_SSI_W = 0.0
-          ALLOCATE(KP_POC_W(MTLOC,KBM1,NTXVB))
+          ALLOCATE(KP_POC_W(0:MTLOC,KBM1,NTXVB))
           KP_POC_W = 0.0
-          ALLOCATE(KP_DOC_W(MTLOC,KBM1,NTXVB))
+          ALLOCATE(KP_DOC_W(0:MTLOC,KBM1,NTXVB))
           KP_DOC_W = 0.0
-          ALLOCATE(KP_BOC1_W(MTLOC,KBM1,NTXVB))
+          ALLOCATE(KP_BOC1_W(0:MTLOC,KBM1,NTXVB))
           KP_BOC1_W = 0.0
-          ALLOCATE(KP_BOC2_W(MTLOC,KBM1,NTXVB))
+          ALLOCATE(KP_BOC2_W(0:MTLOC,KBM1,NTXVB))
           KP_BOC2_W = 0.0
-          ALLOCATE(KP_ZOO_W(MTLOC,KBM1,NTXVB))
+          ALLOCATE(KP_ZOO_W(0:MTLOC,KBM1,NTXVB))
           KP_ZOO_W = 0.0
 !----------------------------------------------------------------------------------
 
-          ALLOCATE(FP_SSI_S1(MTLOC,NTXVB))
+          ALLOCATE(FP_SSI_S1(0:MTLOC,NTXVB))
           FP_SSI_S1 = 0.0
-          ALLOCATE(FD_WS1(MTLOC,NTXVB))
+          ALLOCATE(FD_WS1(0:MTLOC,NTXVB))
           FD_WS1 = 0.0
-          ALLOCATE(KP_SSI_S1(MTLOC,NTXVB))
+          ALLOCATE(KP_SSI_S1(0:MTLOC,NTXVB))
           KP_SSI_S1 = 0.0
-          ALLOCATE(KP_POC_S1(MTLOC,NTXVB))
+          ALLOCATE(KP_POC_S1(0:MTLOC,NTXVB))
           KP_POC_S1 = 0.0
-          ALLOCATE(KP_DOC_S1(MTLOC,NTXVB))
+          ALLOCATE(KP_DOC_S1(0:MTLOC,NTXVB))
           KP_DOC_S1 = 0.0
-          ALLOCATE(FP_DOC_S1(MTLOC,NTXVB))
+          ALLOCATE(FP_DOC_S1(0:MTLOC,NTXVB))
           FP_DOC_S1 = 0.0
-          ALLOCATE(FP_POC_S1(MTLOC,NTXVB))
+          ALLOCATE(FP_POC_S1(0:MTLOC,NTXVB))
           FP_POC_S1 = 0.0
 
-          ALLOCATE(FP_SSI_S2(MTLOC,NTXVB))
+          ALLOCATE(FP_SSI_S2(0:MTLOC,NTXVB))
           FP_SSI_S2 = 0.0
-          ALLOCATE(FD_WS2(MTLOC,NTXVB))
+          ALLOCATE(FD_WS2(0:MTLOC,NTXVB))
           FD_WS2 = 0.0
-          ALLOCATE(KP_SSI_S2(MTLOC,NTXVB))
+          ALLOCATE(KP_SSI_S2(0:MTLOC,NTXVB))
           KP_SSI_S2 = 0.0
-          ALLOCATE(KP_POC_S2(MTLOC,NTXVB))
+          ALLOCATE(KP_POC_S2(0:MTLOC,NTXVB))
           KP_POC_S2 = 0.0
-          ALLOCATE(KP_DOC_S2(MTLOC,NTXVB))
+          ALLOCATE(KP_DOC_S2(0:MTLOC,NTXVB))
           KP_DOC_S2 = 0.0
-          ALLOCATE(FP_DOC_S2(MTLOC,NTXVB))
+          ALLOCATE(FP_DOC_S2(0:MTLOC,NTXVB))
           FP_DOC_S2 = 0.0
-          ALLOCATE(FP_POC_S2(MTLOC,NTXVB))
+          ALLOCATE(FP_POC_S2(0:MTLOC,NTXVB))
           FP_POC_S2 = 0.0
   !------------------ concentration of POC and DOC in sediment layers ------------------------
-          ALLOCATE(POC_CONCENS(MTLOC,2))
+          ALLOCATE(POC_CONCENS(0:MTLOC,2))
           POC_CONCENS = 0.0
-          ALLOCATE(DOC_CONCENS(MTLOC,2))
+          ALLOCATE(DOC_CONCENS(0:MTLOC,2))
           DOC_CONCENS = 0.0
-          ALLOCATE(WSSI12(MTLOC))
+          ALLOCATE(WSSI12(0:MTLOC))
           WSSI12 = 0.0
-          ALLOCATE(WPOC12(MTLOC))
+          ALLOCATE(WPOC12(0:MTLOC))
           WPOC12 = 0.0
-          ALLOCATE(DFFVS12W(MTLOC))
+          ALLOCATE(DFFVS12W(0:MTLOC))
           DFFVS12W = 0.0
-          ALLOCATE(POCCNS1(MTLOC))
+          ALLOCATE(POCCNS1(0:MTLOC))
           POCCNS1 = 0.0
-          ALLOCATE(POCCNS2(MTLOC))
+          ALLOCATE(POCCNS2(0:MTLOC))
           POCCNS2 = 0.0
-          ALLOCATE(DOCCNS1(MTLOC))
+          ALLOCATE(DOCCNS1(0:MTLOC))
           DOCCNS1 = 0.0
-          ALLOCATE(DOCCNS2(MTLOC))
+          ALLOCATE(DOCCNS2(0:MTLOC))
           DOCCNS2 = 0.0
           !ALLOCATE(SLDMS1(MTLOC))
           !SLDMS1 = 0.0
@@ -213,27 +213,27 @@ SUBROUTINE TXC_ALLOC
           !SLDMS2 = 0.0
 !---------------------------------------------------------------------------------------------
 
-          ALLOCATE(PSRT1(MTLOC))
+          ALLOCATE(PSRT1(0:MTLOC))
           PSRT1 = 0.0
-          ALLOCATE(PSRT2(MTLOC))
+          ALLOCATE(PSRT2(0:MTLOC))
           PSRT2 = 0.0
-          ALLOCATE(DSPCB(MTLOC,NTXVB,2))
+          ALLOCATE(DSPCB(0:MTLOC,NTXVB,2))
           DSPCB = 0.0
-          ALLOCATE(DWPCB(MTLOC,KBM1,NTXVB))
+          ALLOCATE(DWPCB(0:MTLOC,KBM1,NTXVB))
           DWPCB = 0.0
-          ALLOCATE(SSDL_GL(MGL))
-          SSDL_GL = 0.0
-          ALLOCATE(PSRT1_GL(MGL))
-          PSRT1_GL = 0.0
-          ALLOCATE(PSRT2_GL(MGL))
-          PSRT2_GL = 0.0
-          ALLOCATE(SSIWC_GL(MGL))
-          SSIWC_GL = 0.0
-          ALLOCATE(CONPCB_W(MTLOC,KBM1,NTXVB))
+          !ALLOCATE(SSDL_GL(MGL))
+          !SSDL_GL = 0.0
+          !ALLOCATE(PSRT1_GL(MGL))
+          !PSRT1_GL = 0.0
+          !ALLOCATE(PSRT2_GL(MGL))
+          !PSRT2_GL = 0.0
+          !ALLOCATE(SSIWC_GL(MGL))
+          !SSIWC_GL = 0.0
+          ALLOCATE(CONPCB_W(0:MTLOC,KBM1,NTXVB))
           CONPCB_W = 0.0
-          ALLOCATE(CONPCB_S1(MTLOC,NTXVB))
+          ALLOCATE(CONPCB_S1(0:MTLOC,NTXVB))
           CONPCB_S1 = 0.0
-          ALLOCATE(CONPCB_S2(MTLOC,NTXVB))
+          ALLOCATE(CONPCB_S2(0:MTLOC,NTXVB))
           CONPCB_S2 = 0.0
           !ALLOCATE(CONPCB_WGL(MGL,KBM1,NTXVB))
           !CONPCB_WGL = 0.0
@@ -244,11 +244,11 @@ SUBROUTINE TXC_ALLOC
 
           !ALLOCATE(SSI_GL(0:MGL,KBM1))
           !SSI_GL = 0.0
-          ALLOCATE(SSD_MSS(MTLOC))
+          ALLOCATE(SSD_MSS(0:MTLOC))
           SSD_MSS = 0.0
-          ALLOCATE(TXCHT1(MTLOC))
+          ALLOCATE(TXCHT1(0:MTLOC))
           TXCHT1 = 0.0
-          ALLOCATE(TXCHT2(MTLOC))
+          ALLOCATE(TXCHT2(0:MTLOC))
           TXCHT2 = 0.0
 
 END SUBROUTINE
@@ -264,7 +264,7 @@ SUBROUTINE READ_TXC_DATA()
  INTEGER, ALLOCATABLE, DIMENSION(:) :: OBC_NDS, TXGL_2_LOC_PNT
  REAL(SP), ALLOCATABLE, DIMENSION(:,:) :: RTEMP, RTEMP2
  REAL(SP), ALLOCATABLE, DIMENSION(:,:,:) :: RTEMP1
- REAL(SP), ALLOCATABLE, DIMENSION(:,:) :: TEMPTXC
+ REAL(SP), ALLOCATABLE, DIMENSION(:,:) :: TEMPTXC1,TEMPTXC2,TEMPTXC 
  CHARACTER(LEN = 64) :: FLGTXC_OUTPUT
  REAL (SP) :: TTIME, TXC_INIT_SD, UNIT_SCALE, UNIT_SCALE_SD, UNIT_SCL_LDN
  INTEGER :: NumLine
@@ -277,7 +277,7 @@ UNIT_SCALE = 1E-06      ! ng/L to g/m^3 unit conversion , data is available in n
 UNIT_SCALE_SD = 1E-09   ! ng/g to g/m^3 unit conversion, g/m^3 = ng/g *rho(g/m^3)*UNIT_SCALE_SD
 UNIT_SCL_LDN = 1E-09    ! ng/m3   to g/m3 for loading data
 
- KP_SSI_W = PTC_WC
+ KP_SSI_W = 0.0
  KP_SSI_S1 = PTC_SD
  KP_SSI_S2 = PTC_SD
  KP_SSI_W = 0.0 
@@ -292,63 +292,119 @@ UNIT_SCL_LDN = 1E-09    ! ng/m3   to g/m3 for loading data
  KP_DOC_S1 = PTC_SD
  KP_POC_S2 = PTC_SD
  KP_DOC_S2 = PTC_SD
-!------------------------------- initialization of toxics in sediment layer ----------------------------
- IF(TRIM(TxcSdmInitType) == 'UNIFORM') THEN
-   CONPCB_S1 = TxcSdmUnfm
-   CONPCB_S2 = TxcSdmUnfm
- ELSE
-   OPEN(UNIT = 211, FILE = TRIM(TXCF_INC_SD), ACTION = 'READ')
-   READ(211,*, IOSTAT = end_file)
-   IF(end_file < 0) THEN
-   	    WRITE (*,*) "Error occured - No file for initial conditions for toxics in sediments"
-   	    STOP
-   END IF
-   ALLOCATE(TEMPTXC(MGL,NTXVB))
-   DO I=1, MGL
-     READ(211,*) (TEMPTXC(I,j), j=1,NTXVB)
-   END DO
-   !TEMPTXC = TEMPTXC*UNIT_SCALE
-   TEMPTXC = TEMPTXC*UNIT_SCALE_SD*SED_DEN
-   CLOSE(211)
-   If (SERIAL) THEN
-     CONPCB_S1 = TEMPTXC
-     CONPCB_S2 = TEMPTXC
-   END IF
-# if defined(MULTIPROCESSOR)
-    IF (PAR) THEN
-          DO I = 1, MLOC
-            CONPCB_S1 (I,:) = TEMPTXC (NGID(I),:)
-            CONPCB_S2 (I,:) = TEMPTXC (NGID(I),:)
-          END DO
-          DO I = 1, NHN
-            CONPCB_S1 (I+MLOC,:) = TEMPTXC (HN_LST(I),:)
-            CONPCB_S2 (I+MLOC,:) = TEMPTXC (HN_LST(I),:)
-          END DO
-     END IF
-# endif
-    DEALLOCATE(TEMPTXC)
- END IF
+!------------------------------- initialization of toxics in sediment layer ---------------------------- 
 
- CLOSE(378)
+IF(TxcHotstart == .FALSE.) THEN
+  IF(TRIM(TxcSdmInitType) == 'UNIFORM') THEN
+    CONPCB_S1 = TxcSdmUnfm
+    CONPCB_S2 = TxcSdmUnfm
+  ELSE
+    OPEN(UNIT = 211, FILE = TRIM(TXCF_INC_SD), ACTION = 'READ')
+    READ(211,*, IOSTAT = end_file)
+    IF(end_file < 0) THEN
+          WRITE (*,*) "Error occured - No file for initial conditions for toxics in sediments"
+          STOP
+    END IF
+    ALLOCATE(TEMPTXC1(MGL,NTXVB))
+    ALLOCATE(TEMPTXC2(MGL,NTXVB))
 
-!---------------------------------------------------------------------------------
-OPEN(UNIT = 212, FILE = TRIM(TXCF_INC), ACTION = 'READ')
-READ(212,*, IOSTAT = end_file)
-!WRITE(*,*)TRIM(TXCF_INC)
-!STOP
-IF(end_file < 0) THEN
-	    WRITE (*,*) "Error occured - No file for initial conditions for toxics.dat"
-	    STOP
+    DO I=1, MGL
+      READ(211,*) (TEMPTXC1(I,j), j=1,NTXVB)
+    END DO
+    !TEMPTXC = TEMPTXC*UNIT_SCALE
+    TEMPTXC1 = TEMPTXC1*UNIT_SCALE_SD*SED_DEN
+    TEMPTXC2 = TEMPTXC1
+    CLOSE(211)
+  END IF
+
+ELSE
+    ALLOCATE(TEMPTXC1(MGL,NTXVB))
+    ALLOCATE(TEMPTXC2(MGL,NTXVB))
+
+    OPEN(UNIT = 208, FILE = TRIM(TxcHotSD1), ACTION = 'READ')
+      READ(208,*, IOSTAT = end_file)
+      IF(end_file < 0) THEN
+            WRITE (*,*) "Error occured - No file named inputs/Txc_HotstrSD1.dat"
+            STOP
+      END IF
+      DO I=1, MGL
+        READ(208,*) (TEMPTXC1(I,j), j=1,NTXVB)
+      END DO
+    CLOSE(208)
+
+    OPEN(UNIT = 207, FILE = TRIM(TxcHotSD2), ACTION = 'READ')
+      READ(207,*, IOSTAT = end_file)
+      IF(end_file < 0) THEN
+            WRITE (*,*) "Error occured - No file named inputs/Txc_HotstrSD1.dat"
+            STOP
+      END IF
+      DO I=1, MGL
+        READ(207,*) (TEMPTXC2(I,j), j=1,NTXVB)
+      END DO
+    CLOSE(207)
+
 END IF
+
+IF(TRIM(TxcSdmInitType) /= 'UNIFORM') THEN
+    If (SERIAL) THEN
+      CONPCB_S1 = TEMPTXC1
+      CONPCB_S2 = TEMPTXC2
+    END IF
+
+# if defined(MULTIPROCESSOR)
+      IF (PAR) THEN
+            DO I = 1, MLOC
+              CONPCB_S1 (I,:) = TEMPTXC1 (NGID(I),:)
+              CONPCB_S2 (I,:) = TEMPTXC2 (NGID(I),:)
+            END DO
+            DO I = 1, NHN
+              CONPCB_S1 (I+MLOC,:) = TEMPTXC1 (HN_LST(I),:)
+              CONPCB_S2 (I+MLOC,:) = TEMPTXC2 (HN_LST(I),:)
+            END DO
+      END IF
+# endif
+    DEALLOCATE(TEMPTXC1)
+    DEALLOCATE(TEMPTXC2)
+END IF
+
+!----------------------------------------------initializtion of toxic concen in water column -------------------
 TXCST = NCP - NTXVB - NBTCR + 1
 ALLOCATE (RTMPX(0:MGL, KBM1, TXCST:NCP-NBTCR))         ! NTXVB - toxics related variables for water column
-RTMPX = 0.0
-DO I = 1, MGL
-        DO K = 1, KBM1
-            READ (212,*) (RTMPX(I, K, JCON), JCON=TXCST, NCP-NBTCR)
+
+IF(TxcHotstart == .FALSE.) THEN
+        OPEN(UNIT = 212, FILE = TRIM(TXCF_INC), ACTION = 'READ')
+        READ(212,*, IOSTAT = end_file)
+        !WRITE(*,*)TRIM(TXCF_INC)
+        !STOP
+        IF(end_file < 0) THEN
+              WRITE (*,*) "Error occured - No file for initial conditions for toxics.dat"
+              STOP
+        END IF
+
+        RTMPX = 0.0
+        DO I = 1, MGL
+                DO K = 1, KBM1
+                    READ (212,*) (RTMPX(I, K, JCON), JCON=TXCST, NCP-NBTCR)
+                END DO
         END DO
-END DO
-RTMPX = RTMPX*UNIT_SCALE
+        CLOSE(212)
+        RTMPX = RTMPX*UNIT_SCALE
+ELSE 
+        OPEN(UNIT = 212, FILE = TRIM(TxcHotWC), ACTION = 'READ')
+        READ(212,*, IOSTAT = end_file)
+        IF(end_file < 0) THEN
+            WRITE (*,*) "Error occured - No file named inputs/Txc_HotstrWC.dat"
+            STOP
+        END IF
+        RTMPX = 0.0
+        DO I = 1, MGL
+          DO K = 1, KBM1
+            READ (212,*) (RTMPX(I, K, JCON), JCON=TXCST, NCP)
+          END DO
+        END DO
+        CLOSE(212)
+END IF
+
 If (SERIAL) C1(:,:,TXCST:NCP-NBTCR) = RTMPX
 
 #  if defined (MULTIPROCESSOR)
@@ -367,9 +423,7 @@ If (SERIAL) C1(:,:,TXCST:NCP-NBTCR) = RTMPX
             END DO
          END IF
 #  endif
-
- DEALLOCATE(RTMPX)
- CLOSE(212)
+DEALLOCATE(RTMPX)
 
 !---------------------------------------------------------------------------------------------
 !OPEN(UNIT = 213, FILE = TRIM(TXCF_OBC), ACTION = 'READ')
@@ -504,11 +558,15 @@ DEALLOCATE (RTEMP, RTEMP1, RTEMP2)
 CLOSE(215)
 END IF
 HSED1 = 0.1
-HSED = 0.9
+HSED = 0.1
 
 !----------------------- information for outputing toxicant concentration data ----------------  
 IF(NumTxcOutVar > 0) THEN 
-  TxcOutput = .TRUE. 
+  TxcOutput = .TRUE.
+  ALLOCATE(TxcOutVar(NumTxcOutVar))
+  DO I=1,NumTxcOutVar
+    TxcOutVar(I) = PCBOutVrb(I)
+  END DO 
 ELSE 
   TxcOutput = .FALSE.
 END IF 
@@ -534,17 +592,11 @@ SUBROUTINE SLD_KNT(TMSTEP)
 ! TXCHT1 = 0.1
 ! TXCHT2 = 0.9
 
- TTL_MASS = 0.0
- TTL_MASS2 = 0.0
- TTL_MASS3 = 0.0
  txcID = NCP - NTXVB - NBTCR + 1
  DO I=1, MLOC
    DO J=1, KBM1
      !TTL_MASS(I) = TTL_MASS(I) + C2(I,J,3)*ART1(I)*D(I)*DZ2D(I,KBM1)*0.001
       CONPCB_W(I,J,:) = C2(I,J,txcID:NCP-NBTCR)
-      DO JJ=txcID, NCP - NBTCR
-        TTL_MASS(I) = TTL_MASS(I) + C2(I,J,JJ)*ART1(I)*D(I)*DZ(J)*0.001
-      END DO
 
    END DO
       !TTL_MASS(I) = C2(I,10,3)
@@ -558,12 +610,6 @@ SUBROUTINE SLD_KNT(TMSTEP)
       DOCCNS1(I) = DOC_CONCENS(I,1)
       DOCCNS2(I) = DOC_CONCENS(I,2)
 
-      DO JJ=1,NTXVB
-        TTL_MASS2(I) = TTL_MASS2(I) + CONPCB_S1(I,JJ)*ART1(I)*TXCHT1(I)*0.001
-        TTL_MASS3(I) = TTL_MASS3(I) + CONPCB_S2(I,JJ)*ART1(I)*TXCHT2(I)*0.001
-      END DO
-      !TTL_MASS2(I) = TTL_MASS2(I) + SSD_MSS(I)*ART1(I)*TXCHT1(I)*0.001
-
  END DO
 
 END SUBROUTINE
@@ -575,7 +621,7 @@ END SUBROUTINE
 !SUBROUTINE OneDimMassAcc()
 
 !  USE MOD_WQM, ONLY : TTL_MASS, TTL_MASS_GL,M1DMass, ART1_GL, D_GL, M1SDMass, &
-                      & PCB_W, PCB_S, PORST1, PORST2
+!                      & PCB_W, PCB_S, PORST1, PORST2
 !  USE MOD_PREC, ONLY: SP
 !  IMPLICIT NONE
 
@@ -635,15 +681,21 @@ USE MOD_WQM, ONLY : TTL_MASS
    DO K=1, KBM1
      DO j=1,NTXVB
      !------------------ For the water column ------------------------------------------
-      fracDenominatorWC = 1.0 + KP_SSI_W(I,K,j)*C2(I,K,3) + KP_POC_W(I,K,j)*(C2(I,K,11) + &
-                          & C2(I,K,12)) + KP_BOC1_W(I,K,j)*C2(I,K,4) + KP_BOC2_W(I,K,j)*C2(I,K,5) + &
-                          & KP_ZOO_W(I,K,j)*(C2(I,K,7) + C2(I,K,8)) + KP_DOC_W(I,K,j)*(C2(I,K,9) + C2(I,K,10))
+      ! fracDenominatorWC = 1.0 + KP_SSI_W(I,K,j)*C2(I,K,3) + KP_POC_W(I,K,j)*(C2(I,K,11) + &
+      !                     & C2(I,K,12)) + KP_BOC1_W(I,K,j)*C2(I,K,4) + KP_BOC2_W(I,K,j)*C2(I,K,5) + &
+      !                     & KP_ZOO_W(I,K,j)*(C2(I,K,7) + C2(I,K,8)) + KP_DOC_W(I,K,j)*(C2(I,K,9) + C2(I,K,10))
 
+      fracDenominatorWC = 1.0 +  KP_POC_W(I,K,j)*(C2(I,K,11) + &
+                          & C2(I,K,12)) + KP_BOC1_W(I,K,j)*C2(I,K,4) + KP_BOC2_W(I,K,j)*C2(I,K,5) + &
+                          & KP_DOC_W(I,K,j)*(C2(I,K,9) + C2(I,K,10))
+      
       FD_W(I,K,j) = 1.0/fracDenominatorWC    ! dissolved toxicant fraction
-      FP_SSI_W(I,K,j) = (KP_SSI_W(I,K,j)*C2(I,K,3)) / fracDenominatorWC    ! toxicant fraction in SSI
+      !FP_SSI_W(I,K,j) = (KP_SSI_W(I,K,j)*C2(I,K,3)) / fracDenominatorWC    ! toxicant fraction in SSI
       FP_BOC1_W(I,K,j) = (KP_BOC1_W(I,K,j)*C2(I,K,4)) / fracDenominatorWC  ! toxicant fraction in algae 1
       FP_BOC2_W(I,K,j) = (KP_BOC2_W(I,K,j)*C2(I,K,5)) / fracDenominatorWC  ! toxicant fraction in algae 1
-      FP_ZOO_W(I,K,j) = (KP_ZOO_W(I,K,j)*(C2(I,K,7) + C2(I,K,8))) / fracDenominatorWC  ! toxicant fraction in zooplankton
+      !FP_ZOO_W(I,K,j) = (KP_ZOO_W(I,K,j)*(C2(I,K,7) + C2(I,K,8))) / fracDenominatorWC  ! toxicant fraction in zooplankton
+      FP_ZOO_W(I,K,j) = 0.0
+      FP_SSI_W(I,K,j) = 0.0
 
       FP_POC_W(I,K,j) = (KP_POC_W(I,K,j)*(C2(I,K,11) + C2(I,K,12))) / fracDenominatorWC ! toxicant fraction in POC
       FP_DOC_W(I,K,j) = (KP_DOC_W(I,K,j)*(C2(I,K,9) + C2(I,K,10))) / fracDenominatorWC  ! toxicant fraction in DOC
@@ -726,8 +778,8 @@ IMPLICIT NONE
   REAL (SP) :: DCSSI_INS2, DCPOC_INS2, DCAG1_INS2, DCAG2_INS2,KLO2
   REAL (SP) :: DCSSI_OUTS1, DCPOC_OUTS1, DCDOC_OUTS1, GRADC12, DCDOC_DFFS1, DCDOC_DFFS2
   REAL (SP) :: TOTDC_INS1, TOTDC_INS2, Rg, T_abs, VOLVEL,KRATIO, KLCFF,KGCFF
-  REAL (SP), DIMENSION(MTLOC,KBM1,NTXVB) :: DMPCB_W
-  REAL (SP), DIMENSION(MTLOC,NTXVB, 2) :: DMPCB_S
+  REAL (SP), DIMENSION(0:MTLOC,KBM1,NTXVB) :: DMPCB_W
+  REAL (SP), DIMENSION(0:MTLOC,NTXVB, 2) :: DMPCB_S
 
   DMPCB_S = 0.0
   DMPCB_W = 0.0
@@ -747,12 +799,20 @@ Rg = 8.206E-05
        DC_VOL_W = 0.0          ! Volatilization model assumes negligible PCB concen in atmosphere
      END IF
 
+     IF(WMS < 0.00001) DC_VOL_W = 0.0
+
      DC_SSI_W = (WSSHI (I,1)*CONPCB_W(I,1,j)*FP_SSI_W(I,1,j)) / (D(I)*DZ2D(I,1)) / 86400.0
      DC_POC_W = (WSL (I,1)*CONPCB_W(I,1,j)*FP_POC_W(I,1,j)) / (D(I)*DZ2D(I,1)) / 86400.0
      DC_ALG1_W = (WS1 (I,1)*CONPCB_W(I,1,j)*FP_BOC1_W(I,1,j)) / (D(I)*DZ2D(I,1)) / 86400.0
      DC_ALG2_W = (WS2 (I,1)*CONPCB_W(I,1,j)*FP_BOC2_W(I,1,j)) / (D(I)*DZ2D(I,1)) / 86400.0
 
      DMPCB_W(I,1,j) = -DC_SSI_W - DC_POC_W - DC_ALG1_W - DC_ALG2_W - DC_VOL_W
+
+     IF(ISNAN(DMPCB_W(I,1,j))) THEN 
+        WRITE(*,*)'Toxic Concen difference Values goes to NAN at top layer',DC_VOL_W,HNRCFF
+        STOP
+     END IF
+
   END DO
  END DO
 !---------------------------------------------------------------------------------------
@@ -771,7 +831,13 @@ Rg = 8.206E-05
        DC_ALG2_W = (WS2 (I,K-1)*CONPCB_W(I,K-1,j)*FP_BOC2_W(I,K-1,j) - WS2 (I,K)*CONPCB_W(I,K,j)*FP_BOC2_W(I,K,j)) &
                 & / (D(I)*DZ2D(I,K)) /86400.0
 
-       DMPCB_W(I,K,j) = DC_SSI_W + DC_POC_W + DC_ALG1_W + DC_ALG2_W
+       DMPCB_W(I,K,j) = DC_SSI_W + DC_POC_W + DC_ALG1_W + DC_ALG2_W 
+
+      IF(ISNAN(DMPCB_W(I,K,j))) THEN 
+        WRITE(*,*)'Toxic Concen difference Values goes to NAN at middle layers'
+        STOP
+      END IF
+
     END DO
    END DO
  END DO
@@ -797,7 +863,12 @@ Rg = 8.206E-05
       DC_DOC_W = 0.0
 
       DMPCB_W(I,KBM1,j) = DMPCB_W(I,KBM1,j) + DC_SSI_W + DC_POC_W + DC_ALG1_W + DC_ALG2_W &
-                          & + DC_DOC_W
+                          & + DC_DOC_W 
+
+      IF(ISNAN(DMPCB_W(I,KBM1,j))) THEN 
+        WRITE(*,*)'Toxic Concen difference Values goes to NAN at the bottom layer'
+        STOP
+      END IF
 
    END DO
  END DO

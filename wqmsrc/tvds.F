@@ -99,10 +99,7 @@ Subroutine TVDS (NXTVD)
       Do WHILE (JDAY >= NXMET)
 	 !   AN
 	 !   Read (MET, 1010, END=11) NXMET, KTNX, TENX, ITNX, FDNX, WMSNX !  Wind speed (m/s)
-     FDNX = 1.0
-     TENX = 0.0
-     WMSNX = 0.0
-
+    
          KT = KTNX				!coefficeint of heat exchange (surface)
          FD = FDNX				!fraction of day
      !

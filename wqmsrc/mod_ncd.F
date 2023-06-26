@@ -13,7 +13,9 @@ Module MOD_NCD
                      	& PcbConW_GL, PcbConAlgW_GL, PcbConZplW_GL, PcbConSldW_GL, PcbConPOCW_GL, &
                      	& PcbConWS1_GL, PcbConPOCS1_GL, PcbConDOCS1_GL, PcbConSldS1_GL, &
                      	& PcbConWS2_GL, PcbConPOCS2_GL, PcbConDOCS2_GL, PcbConSldS2_GL,TcrtConW, &
-						& TcrtConSdm, TcrKntOn, NumTcrVrb, NumTcrOutVar, TcrOutVar, TcrtOutput, C2, SPM
+						& TcrtConSdm, TcrKntOn, NumTcrVrb, NumTcrOutVar, TcrOutVar, TcrtOutput, C2, SPM, &
+						& PcbCon_W, PcbCon_AlgW, PcbCon_ZplW, PcbCon_SldW, PcbCon_POCW, &
+						& PcbConW_S1, PcbCon_POCS1, PcbCon_DOCS1, PcbConW_S2, PcbCon_POCS2, PcbCon_DOCS2
 
 	  Implicit None
 	  Save
@@ -2409,6 +2411,9 @@ END IF
 !--Write Variables to File
    if(msr) write(ipt,*)'dumping to netcdf file: ',trim(cdfname),stck_cnt
 
+!WRITE(*,*)'Went through one iteration.........ncd'
+!STOP
+   
    do i=1,nout_vars
 
 	 !if(msr) write(ipt,*) 'variable ', i, '=', trim(cdf_vdp(i)), 'nout_vars=', nout_vars
@@ -2457,7 +2462,7 @@ END IF
 			call putvar(i1,i2,MLOC,mgl,1,1,"n",el,nc_ofid,el_vid,myid,nprocs,ipt)
 		case("d") !!===============D=======================================!
 			i1 = lbound(d,1) ; i2 = ubound(d,1)
-			d(:) = SdmHT(:)
+			!d(:) = SdmHT(:)
 			call putvar(i1,i2,MLOC,mgl,1,1,"n",d,nc_ofid,d_vid,myid,nprocs,ipt)
 		case("temp") !!===============T1======================================!
 			i1 = lbound(t,1) ; i2 = ubound(t,1)
@@ -3020,7 +3025,7 @@ END IF
 			i1 = lbound(TURB,1) ; i2 = ubound(TURB,1)
 			call putvar(i1,i2,MLOC,mgl,kb-1,kb-1,"n",TURB,nc_ofid,TURB_vid,myid,nprocs,ipt)
 		case ( "SSI")
-			SSI(:,:) = SPM(:,:)
+			!SSI(:,:) = SPM(:,:)
 			i1 = lbound(SSI,1) ; i2 = ubound(SSI,1)
 			call putvar(i1,i2,MLOC,mgl,kb-1,kb-1,"n",SSI,nc_ofid,SSI_vid,myid,nprocs,ipt)
 		case ( "TSS")
@@ -3058,71 +3063,65 @@ END IF
 	 ENDIF
    ENDDO
 
+
 !-------------------------------------------------------------------------------------------------
 IF((TxcKntOn == .TRUE.) .AND. (TxcOutput == .TRUE.)) THEN 
-	IF(myid == 1) THEN
+
 		DO i=1,NumTxcOutVar 
 			SELECT CASE (TRIM(TxcOutVar(i)))
 			CASE("PcbCon_W")
-				CALL PUTSVAR_TXC4D(nc_ofid,Pcbwc_vid,MGL,KBM1,NumTxVrb,PcbConW_GL,stck_cnt)
+				CALL PUTSVAR_TXC4D(nc_ofid,Pcbwc_vid,MLOC,KBM1,NumTxVrb,PcbCon_W,stck_cnt)
 
 			CASE("PcbCon_ZplW")
-				CALL PUTSVAR_TXC4D(nc_ofid,Pcbzpl_vid,MGL,KBM1,NumTxVrb,PcbConZplW_GL,stck_cnt)
+				CALL PUTSVAR_TXC4D(nc_ofid,Pcbzpl_vid,MLOC,KBM1,NumTxVrb,PcbCon_ZplW,stck_cnt)
 
 			CASE("PcbCon_AlgW")
-				CALL PUTSVAR_TXC4D(nc_ofid,Pcbagl_vid,MGL,KBM1,NumTxVrb,PcbConAlgW_GL,stck_cnt)
+				CALL PUTSVAR_TXC4D(nc_ofid,Pcbagl_vid,MLOC,KBM1,NumTxVrb,PcbCon_AlgW,stck_cnt)
 
 			CASE("PcbCon_SldW")
-				CALL PUTSVAR_TXC4D(nc_ofid,Pcbsld_vid,MGL,KBM1,NumTxVrb,PcbConSldW_GL,stck_cnt)
+				CALL PUTSVAR_TXC4D(nc_ofid,Pcbsld_vid,MLOC,KBM1,NumTxVrb,PcbCon_SldW,stck_cnt)
 
 			CASE("PcbCon_POCW")
-				CALL PUTSVAR_TXC4D(nc_ofid,Pcbpoc_vid,MGL,KBM1,NumTxVrb,PcbConPOCW_GL,stck_cnt)
+				CALL PUTSVAR_TXC4D(nc_ofid,Pcbpoc_vid,MLOC,KBM1,NumTxVrb,PcbCon_POCW,stck_cnt)
 
 			CASE("PcbConW_S1")
-				CALL PUTSVAR_TXC3D(nc_ofid,Pcbws1_vid,MGL,NumTxVrb,PcbConWS1_GL,stck_cnt)
+				CALL PUTSVAR_TXC3D(nc_ofid,Pcbws1_vid,MLOC,NumTxVrb,PcbConW_S1,stck_cnt)
 
 			CASE("PcbCon_POCS1")
-				CALL PUTSVAR_TXC3D(nc_ofid,Pcbpocs1_vid,MGL,NumTxVrb,PcbConPOCS1_GL,stck_cnt)
+				CALL PUTSVAR_TXC3D(nc_ofid,Pcbpocs1_vid,MLOC,NumTxVrb,PcbCon_POCS1,stck_cnt)
 
 			CASE("PcbCon_DOCS1")
-				CALL PUTSVAR_TXC3D(nc_ofid,Pcbdocs1_vid,MGL,NumTxVrb,PcbConDOCS1_GL,stck_cnt)
+				CALL PUTSVAR_TXC3D(nc_ofid,Pcbdocs1_vid,MLOC,NumTxVrb,PcbCon_DOCS1,stck_cnt)
 
 			CASE("PcbConW_S2")
-				CALL PUTSVAR_TXC3D(nc_ofid,Pcbws2_vid,MGL,NumTxVrb,PcbConWS2_GL,stck_cnt)
+				CALL PUTSVAR_TXC3D(nc_ofid,Pcbws2_vid,MLOC,NumTxVrb,PcbConW_S2,stck_cnt)
 	
 			CASE("PcbCon_POCS2")
-				CALL PUTSVAR_TXC3D(nc_ofid,Pcbpocs2_vid,MGL,NumTxVrb,PcbConPOCS2_GL,stck_cnt)
+				CALL PUTSVAR_TXC3D(nc_ofid,Pcbpocs2_vid,MLOC,NumTxVrb,PcbCon_POCS2,stck_cnt)
 
 			CASE("PcbCon_DOCS2")
-				CALL PUTSVAR_TXC3D(nc_ofid,Pcbdocs2_vid,MGL,NumTxVrb,PcbConDOCS2_GL,stck_cnt)
+				CALL PUTSVAR_TXC3D(nc_ofid,Pcbdocs2_vid,MLOC,NumTxVrb,PcbCon_DOCS2,stck_cnt)
 
 			END SELECT
 		END DO 
-	END IF
+
 END IF
 !------------------------------------------------------------------------------------------------------ 
 
 !--------------------------------- Tracer/pollutant --------------------------------------------------
 IF((TcrKntOn == .TRUE.) .AND. (TcrtOutput == .TRUE.)) THEN 
-	!IF(myid == 1) THEN
 		DO i=1,NumTcrOutVar 
 			SELECT CASE (TRIM(TcrOutVar(i)))
 				CASE("TcrtConW")
 					CALL PUTSVAR_TXC4D(nc_ofid,Tcrwc_vid,MLOC,KBM1,NumTcrVrb,TcrtConW,stck_cnt)
 
 			    CASE("TcrtConSdm")
-			    	!call putvar(i1,i2,MLOC,mgl,kb-1,kb-1,"n",NH4,nc_ofid,NH4_vid,myid,nprocs,ipt)
-				    !CALL putvar(nc_ofid,Tcrsd_vid,MGL,NumTcrVrb,TcrtConSdm_GL,stck_cnt)
-					!CALL putvar(0,MTLOC,MLOC,mgl,NumTcrVrb,NumTcrVrb,"n",TcrtConSdm,nc_ofid,Tcrsd_vid,myid,nprocs,ipt)
 					CALL PUTSVAR_TXC3D(nc_ofid,Tcrsd_vid,MLOC,NumTcrVrb,TcrtConSdm,stck_cnt)
 
 			END SELECT
 		END DO 
-	!END IF
 END IF
 !---------------------------------------------------------------------------------------------------------- 
-
-
 
 !==============================================================================|
 !  CONSTANT OUTPUTS                                                            |
@@ -3157,7 +3156,7 @@ SUBROUTINE PUTSVAR_TXC4D(FID,VARID,I1,I2,I3,TEMP,STKCNT)
   INTEGER, INTENT(IN)             :: VARID
   INTEGER, INTENT(IN)             :: I1, I2, I3, STKCNT
   REAL(sp),  INTENT(IN)             :: TEMP(I1,I2,I3)
-  INTEGER                         :: IERR
+  INTEGER                         :: IERR, NumVrb
   INTEGER, DIMENSION(4)           :: DIMS
   REAL(sp), ALLOCATABLE, DIMENSION(:,:,:) :: VRBLARRY, GTEMP
 
@@ -3172,11 +3171,18 @@ SUBROUTINE PUTSVAR_TXC4D(FID,VARID,I1,I2,I3,TEMP,STKCNT)
 		ALLOCATE(VRBLARRY(I1,I2,I3)) ; VRBLARRY(1:I1,1:I2,1:I3) = TEMP(1:I1,1:I2,1:I3)
 	END IF
 
+	!IF(TxcKntOn == .TRUE.) THEN
+	!	NumVrb = NumTxVrb
+	!ELSEIF(TcrKntOn == .TRUE.) THEN 
+	!    NumVrb = NumTcrVrb 
+	!END IF
+	NumVrb = I3
+
 # if defined (MULTIPROCESSOR)
 
 	IF(NPROCS > 1) THEN	
 		ALLOCATE(GTEMP(MGL,I2,I3))
-	 	CALL GATHER_TXC(0, MTLOC, MLOC, MGL, KBM1, NumTcrVrb, MYID, NPROCS, NMAP, TEMP, GTEMP)    ! tracer/pollutant in water
+	 	CALL GATHER_TXC(0, MTLOC, MLOC, MGL, KBM1, NumVrb, MYID, NPROCS, NMAP, TEMP, GTEMP)    ! tracer/pollutant in water
 		ALLOCATE(VRBLARRY(MGL,I2,I3)); VRBLARRY(1:MGL,1:I2,1:I3) = GTEMP(1:MGL,1:I2,1:I3)
 		DEALLOCATE(GTEMP)
 	END IF
@@ -3221,7 +3227,7 @@ SUBROUTINE PUTSVAR_TXC3D(FID,VARID,I1,I2,TEMP,STKCNT)
   INTEGER, INTENT(IN)             :: VARID
   INTEGER, INTENT(IN)             :: I1, I2, STKCNT
   REAL(sp),  INTENT(IN)           :: TEMP(I1,I2)
-  INTEGER                         :: IERR
+  INTEGER                         :: IERR, NumVrb
   INTEGER, DIMENSION(3)           :: DIMS
   REAL(sp), ALLOCATABLE, DIMENSION(:,:) :: VRBLARRY, GTEMP
 
@@ -3233,11 +3239,19 @@ SUBROUTINE PUTSVAR_TXC3D(FID,VARID,I1,I2,TEMP,STKCNT)
 		ALLOCATE(VRBLARRY(I1,I2)) ; VRBLARRY(1:I1,1:I2) = TEMP(1:I1,1:I2)
 	END IF
 
+	!IF(TxcKntOn == .TRUE.) THEN
+	!	NumVrb = NumTxVrb
+	!ELSEIF(TcrKntOn == .TRUE.) THEN 
+	!    NumVrb = NumTcrVrb 
+	!END IF
+
+	NumVrb = I2
+
 # if defined (MULTIPROCESSOR)
 
 	IF(NPROCS > 1) THEN	
 		ALLOCATE(GTEMP(MGL,I2))
-	 	CALL GATHER(0, MTLOC, MLOC, MGL, NumTcrVrb, MYID, NPROCS, NMAP, TEMP, GTEMP)    ! tracer/pollutant in water
+	 	CALL GATHER(0, MTLOC, MLOC, MGL, NumVrb, MYID, NPROCS, NMAP, TEMP, GTEMP)    ! tracer/pollutant in water
 		ALLOCATE(VRBLARRY(MGL,I2)); VRBLARRY(1:MGL,1:I2) = GTEMP(1:MGL,1:I2)
 		DEALLOCATE(GTEMP)
 	END IF
