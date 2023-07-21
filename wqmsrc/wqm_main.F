@@ -2435,11 +2435,9 @@ Subroutine WQM_OUTPUT (NTHIS_OLD, NTSTN_OLD, NTHIS, NTSTN, CTR_HIS, &
 
      USE TXC_KNT, ONLY: SSD_MSS, SSIWC_GL, SSDL_GL, PSRT1, PSRT1_GL, CONPCB_S1, CONPCB_W, &
                         & CONPCB_S1GL, CONPCB_S2, CONPCB_S2GL, CONPCB_WGL, PSRT2, PSRT2_GL, &
-                        & PcbConW_GL, PcbConAlgW_GL, PcbConZplW_GL, PcbConSldW_GL, PcbConPOCW_GL, &
                         & PcbCon_W, PcbCon_AlgW, PcbCon_ZplW, PcbCon_SldW, PcbCon_POCW, &
                         & PcbConW_S1, PcbCon_POCS1, PcbCon_SldS1, PcbConW_S2, PcbCon_POCS2, &
-                        & PcbCon_SldS2, PcbConWS1_GL, PcbConPOCS1_GL, PcbConSldS1_GL, PcbConWS2_GL, &
-                        & PcbConPOCS2_GL, PcbConSldS2_GL
+                        & PcbCon_SldS2
       Implicit None
 # if defined (MULTIPROCESSOR)
       Include "mpif.h"
@@ -2547,78 +2545,8 @@ Subroutine WQM_OUTPUT (NTHIS_OLD, NTSTN_OLD, NTHIS, NTSTN, CTR_HIS, &
             Call GATHER (0, MTLOC, MLOC, MGL, KBM1, MYID, NPROCS, NMAP, &
            & C2(0, 1, 19), C2_GL(1, 1, 19))
 
-
-        !    Call GATHER (0, MTLOC, MLOC, MGL, KBM1, MYID, NPROCS, NMAP, &
-        !    & C2(0, 1, 35), C2_GL(1, 1, 35))    ! PCBW  - Laki
-
-        !   IF(TxcKntOn == .TRUE.) THEN 
-        !   !---------------- Gathering of toxics related variables ----------------------------
-        !        Call GATHER (0, MTLOC, MLOC, MGL, KBM1, MYID, NPROCS, NMAP, &
-        !         & C2(0, 1, 35), C2_GL(1, 1, 35))    ! PCBW  - Laki
-
-                !------------------- Gathering total mass of solids ---------------------------------
-        !         Call GATHER (1, MTLOC, MLOC, MGL, 1, MYID, NPROCS, NMAP, &    ! added by Laki to check the tracer mass balance (not related WQ)
-        !         & TTL_MASS(1), TTL_MASS_GL(1))
-
-        !         Call GATHER (1, MTLOC, MLOC, MGL, 1, MYID, NPROCS, NMAP, &    ! added by Laki gather SSI mass
-        !         & SSD_MSS(1), SSDL_GL(1))
-
-        !         Call GATHER (1, MTLOC, MLOC, MGL, 1, MYID, NPROCS, NMAP, &    ! added by Laki to gather porosity
-        !         & PSRT1(1), PSRT1_GL(1))
-
-        !         Call GATHER (1, MTLOC, MLOC, MGL, 1, MYID, NPROCS, NMAP, &    ! added by Laki to gather porosity
-        !         & PSRT2(1), PSRT2_GL(1))
-
           !------------------------------------------------------------------------------------
-        !    DO J=1, NTXVB
-        !         Call GATHER (1, MTLOC, MLOC, MGL, 1, MYID, NPROCS, NMAP, &    ! added by Laki to gather the toxic variables
-        !         & CONPCB_S1(1, J), CONPCB_S1GL(1, J))
 
-        !         Call GATHER (1, MTLOC, MLOC, MGL, 1, MYID, NPROCS, NMAP, &    ! added by Laki to gather the toxic variables
-        !         & CONPCB_S2(1, J), CONPCB_S2GL(1, J))
-
-        !         Call GATHER (1, MTLOC, MLOC, MGL, KBM1, MYID, NPROCS, NMAP, &
-        !         & CONPCB_W(1, 1, J), CONPCB_WGL(1, 1, J)) 
-        !
-        !         Call GATHER (1, MTLOC, MLOC, MGL, KBM1, MYID, NPROCS, NMAP, &
-        !         & PcbCon_W(1, 1, J), PcbConW_GL(1, 1, J)) 
-
-        !         Call GATHER (1, MTLOC, MLOC, MGL, KBM1, MYID, NPROCS, NMAP, &
-        !         & PcbCon_ZplW(1, 1, J), PcbConZplW_GL(1, 1, J)) 
-
-        !         Call GATHER (1, MTLOC, MLOC, MGL, KBM1, MYID, NPROCS, NMAP, &
-        !         & PcbCon_SldW(1, 1, J), PcbConSldW_GL(1, 1, J))
-
-        !         Call GATHER (1, MTLOC, MLOC, MGL, KBM1, MYID, NPROCS, NMAP, &
-        !         & PcbCon_POCW(1, 1, J), PcbConPOCW_GL(1, 1, J))
-
-        !         Call GATHER (1, MTLOC, MLOC, MGL, 1, MYID, NPROCS, NMAP, &    
-        !         & PcbConW_S1(1, J), PcbConWS1_GL(1, J)) 
-
-        !         Call GATHER (1, MTLOC, MLOC, MGL, 1, MYID, NPROCS, NMAP, &    
-        !         & PcbConW_S2(1, J), PcbConWS2_GL(1, J))
-
-        !         Call GATHER (1, MTLOC, MLOC, MGL, 1, MYID, NPROCS, NMAP, &    
-        !         & PcbCon_POCS1(1, J), PcbConPOCS1_GL(1, J))
-
-        !         Call GATHER (1, MTLOC, MLOC, MGL, 1, MYID, NPROCS, NMAP, &    
-        !         & PcbCon_POCS2(1, J), PcbConPOCS2_GL(1, J)) 
-
-        !         Call GATHER (1, MTLOC, MLOC, MGL, 1, MYID, NPROCS, NMAP, &    
-        !         & PcbCon_SldS1(1, J), PcbConSldS1_GL(1, J))  
-
-        !         Call GATHER (1, MTLOC, MLOC, MGL, 1, MYID, NPROCS, NMAP, &    
-        !         & PcbCon_SldS2(1, J), PcbConSldS2_GL(1, J))               
-
-        !    END DO
-         !---------------------------------------------------------------------------------------
-        !         Call GATHER (1, MTLOC, MLOC, MGL, 1, MYID, NPROCS, NMAP, &    ! added by Laki to check the tracer mass balance (not related WQ)
-        !         & TTL_MASS2(1), TTL_MASS2_GL(1))
-
-        !         Call GATHER (1, MTLOC, MLOC, MGL, 1, MYID, NPROCS, NMAP, &    ! added by Laki to check the tracer mass balance (not related WQ)
-        !         & TTL_MASS3(1), TTL_MASS3_GL(1))
-        !--------------------------------------------------------------------------------------
-        !END IF 
 
         ! Wen Long added the following for debugging algae
         !

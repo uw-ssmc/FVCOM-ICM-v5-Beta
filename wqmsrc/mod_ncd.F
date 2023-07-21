@@ -9,12 +9,9 @@ Module MOD_NCD
   !
       Use NETCDF
       Use MOD_PREC, Only: SP, CDF_PREC !
-	  USE MOD_WQM, ONLY : NumTxVrb, NumTxcOutVar, TxcOutVar, TxcKntOn, TxcOutput, SdmHT, &
-                     	& PcbConW_GL, PcbConAlgW_GL, PcbConZplW_GL, PcbConSldW_GL, PcbConPOCW_GL, &
-                     	& PcbConWS1_GL, PcbConPOCS1_GL, PcbConDOCS1_GL, PcbConSldS1_GL, &
-                     	& PcbConWS2_GL, PcbConPOCS2_GL, PcbConDOCS2_GL, PcbConSldS2_GL,TcrtConW, &
+	  USE MOD_WQM, ONLY : NumTxVrb, NumTxcOutVar, TxcOutVar, TxcKntOn, TxcOutput, SdmHT, TcrtConW, &
 						& TcrtConSdm, TcrKntOn, NumTcrVrb, NumTcrOutVar, TcrOutVar, TcrtOutput, C2, SPM, &
-						& PcbCon_W, PcbCon_AlgW, PcbCon_ZplW, PcbCon_SldW, PcbCon_POCW, &
+						& PcbCon_W, PcbCon_AlgW, PcbCon_ZplW, PcbCon_SldW, PcbCon_POCW, PcbCon_DOCW, &
 						& PcbConW_S1, PcbCon_POCS1, PcbCon_DOCS1, PcbConW_S2, PcbCon_POCS2, PcbCon_DOCS2
 
 	  Implicit None
@@ -85,7 +82,7 @@ Module MOD_NCD
 !   integer :: xflux_obc_vid
 !   integer :: uard_obcn_vid
 !------------------------------- netcdf ids for Toxic related variables ------------------------- 
-	INTEGER :: Pcbwc_vid, Pcbzpl_vid, Pcbagl_vid, Pcbsld_vid, Pcbws1_vid, Pcbws2_vid, Pcbpoc_vid
+	INTEGER :: Pcbwc_vid, Pcbzpl_vid, Pcbagl_vid, Pcbsld_vid, Pcbws1_vid, Pcbws2_vid, Pcbpoc_vid, Pcbdoc_vid
 	INTEGER :: Pcbpocs1_vid, Pcbpocs2_vid, Pcbdocs1_vid, Pcbdocs2_vid
 	INTEGER :: Tcrwc_vid, Tcrsd_vid
 
@@ -2105,6 +2102,13 @@ IF((TxcKntOn == .TRUE.) .AND. (TxcOutput == .TRUE.)) THEN
 			ierr = nf90_put_att(nc_ofid,Pcbpoc_vid,"units","g meters-3")
 			ierr = nf90_put_att(nc_ofid,Pcbpoc_vid,"grid","fvcom_grid")
 			ierr = nf90_put_att(nc_ofid,Pcbpoc_vid,"type","data")
+		CASE("PcbCon_DOCW")
+			ierr = nf90_def_var(nc_ofid,"PCBCONDOCW",nf90_float,dynm4txc_lay,Pcbdoc_vid)
+			ierr = nf90_put_att(nc_ofid,Pcbdoc_vid,"long_name","PCB concentration in DOC in WC")
+			ierr = nf90_put_att(nc_ofid,Pcbdoc_vid,"standard_name","PcbCon_DOCW")
+			ierr = nf90_put_att(nc_ofid,Pcbdoc_vid,"units","g meters-3")
+			ierr = nf90_put_att(nc_ofid,Pcbdoc_vid,"grid","fvcom_grid")
+			ierr = nf90_put_att(nc_ofid,Pcbdoc_vid,"type","data")
 		CASE("PcbConW_S1")
 			ierr = nf90_def_var(nc_ofid,"PCBCONWS1",nf90_float,dynm3txc_sed,Pcbws1_vid)
 			ierr = nf90_put_att(nc_ofid,Pcbws1_vid,"long_name","Dissolved PCB concentration in Sediment layer 1")
@@ -3083,6 +3087,9 @@ IF((TxcKntOn == .TRUE.) .AND. (TxcOutput == .TRUE.)) THEN
 
 			CASE("PcbCon_POCW")
 				CALL PUTSVAR_TXC4D(nc_ofid,Pcbpoc_vid,MLOC,KBM1,NumTxVrb,PcbCon_POCW,stck_cnt)
+
+			CASE("PcbCon_DOCW")
+				CALL PUTSVAR_TXC4D(nc_ofid,Pcbdoc_vid,MLOC,KBM1,NumTxVrb,PcbCon_DOCW,stck_cnt)
 
 			CASE("PcbConW_S1")
 				CALL PUTSVAR_TXC3D(nc_ofid,Pcbws1_vid,MLOC,NumTxVrb,PcbConW_S1,stck_cnt)

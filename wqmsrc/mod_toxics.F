@@ -4,13 +4,11 @@ MODULE TXC_KNT
   USE MOD_PREC, Only: SP
   USE MOD_SIZES, Only: MGL, NGL,NCP,NTXVB,NBTCR  ! NTXVB - no. of variables for toxics
   USE MOD_WQM, ONLY: SSI, C1, C2, POC_CONCENS, DOC_CONCENS, WMS, TxcOutVar, NumTxcOutVar, TxcOutput, &
-                    & PcbCon_W, PcbCon_AlgW, PcbCon_ZplW, PcbCon_SldW, PcbCon_POCW,PcbConTW, PcbConTW_GL, &
-                    & PcbConW_GL, PcbConAlgW_GL, PcbConZplW_GL, PcbConSldW_GL, PcbConPOCW_GL, &
+                    & PcbCon_W, PcbCon_AlgW, PcbCon_ZplW, PcbCon_SldW, PcbCon_POCW,PcbConTW, &
+                    & PcbConWSZ, PcbConWLZ, PcbCon_DOCW, BioAcc, &
                     & PcbConW_S1, PcbCon_POCS1, PcbCon_DOCS1, PcbCon_SldS1, &
-                    & PcbConWS1_GL, PcbConPOCS1_GL, PcbConDOCS1_GL, PcbConSldS1_GL, &
                     & PcbConW_S2, PcbCon_POCS2, PcbCon_DOCS2, PcbCon_SldS2, &
-                    & PcbConWS2_GL, PcbConPOCS2_GL, PcbConDOCS2_GL, PcbConSldS2_GL, &
-                    & PcbConTS1, PcbConTS1_GL, PcbConTS2, PcbConTS2_GL, &
+                    & PcbConTS1, PcbConTS2,  &
                     & TXCF_INC,TXCF_PNT,TXCF_OBC, TXCF_INC_SD,PTC_SD, PTC_WC,SED_DEN, & 
                     & DFFCOEFS12, BRLVEL,MolWghtCng,HNRCFF,TxcSdmInitType,TxcSdmUnfm, &
                     & PCBTxcOn,MTLTxcOn,NumTxcOutVar,TxcHotWC,TxcHotstart,TxcHotSD1,TxcHotSD2, PCBOutVrb
@@ -80,6 +78,8 @@ SUBROUTINE TXC_ALLOC
           PcbCon_SldW = 0.0 
           ALLOCATE(PcbCon_POCW(0:MTLOC,KBM1,NTXVB))
           PcbCon_POCW = 0.0
+          ALLOCATE(PcbCon_DOCW(0:MTLOC,KBM1,NTXVB))
+          PcbCon_DOCW = 0.0
           !ALLOCATE(PcbConW_GL(MGL,KBM1,NTXVB))
           !PcbConW_GL = 0.0
           !ALLOCATE(PcbConAlgW_GL(MGL,KBM1,NTXVB))
@@ -251,6 +251,16 @@ SUBROUTINE TXC_ALLOC
           ALLOCATE(TXCHT2(0:MTLOC))
           TXCHT2 = 0.0
 
+          IF(BioAcc == .TRUE.) THEN 
+            ALLOCATE(PcbConWSZ(0:MTLOC,KBM1,NTXVB))
+            PcbConWSZ = 0.0
+            ALLOCATE(PcbConWLZ(0:MTLOC,KBM1,NTXVB))
+            PcbConWLZ = 0.0
+          END IF
+
+
+
+
 END SUBROUTINE
 !--------------------------------------------------------------------------------------
 
@@ -285,7 +295,7 @@ UNIT_SCL_LDN = 1E-09    ! ng/m3   to g/m3 for loading data
  KP_SSI_S2 = 0.0
  KP_BOC1_W = PTC_WC
  KP_BOC2_W = PTC_WC
- KP_DOC_W = PTC_WC
+ KP_DOC_W = PTC_WC*0.01
  KP_POC_W = PTC_WC
  KP_ZOO_W = PTC_WC
  KP_POC_S1 = PTC_SD
@@ -687,7 +697,12 @@ USE MOD_WQM, ONLY : TTL_MASS
 
       fracDenominatorWC = 1.0 +  KP_POC_W(I,K,j)*(C2(I,K,11) + &
                           & C2(I,K,12)) + KP_BOC1_W(I,K,j)*C2(I,K,4) + KP_BOC2_W(I,K,j)*C2(I,K,5) + &
-                          & KP_DOC_W(I,K,j)*(C2(I,K,9) + C2(I,K,10))
+                          & KP_DOC_W(I,K,j)*(C2(I,K,9) + C2(I,K,10))   ! No zooplankton
+
+      !fracDenominatorWC = 1.0 +  KP_POC_W(I,K,j)*(C2(I,K,11) + &
+      !                    & C2(I,K,12)) + KP_BOC1_W(I,K,j)*C2(I,K,4) + KP_BOC2_W(I,K,j)*C2(I,K,5)   ! No DOC
+
+      
       
       FD_W(I,K,j) = 1.0/fracDenominatorWC    ! dissolved toxicant fraction
       !FP_SSI_W(I,K,j) = (KP_SSI_W(I,K,j)*C2(I,K,3)) / fracDenominatorWC    ! toxicant fraction in SSI
@@ -699,6 +714,9 @@ USE MOD_WQM, ONLY : TTL_MASS
 
       FP_POC_W(I,K,j) = (KP_POC_W(I,K,j)*(C2(I,K,11) + C2(I,K,12))) / fracDenominatorWC ! toxicant fraction in POC
       FP_DOC_W(I,K,j) = (KP_DOC_W(I,K,j)*(C2(I,K,9) + C2(I,K,10))) / fracDenominatorWC  ! toxicant fraction in DOC
+      !FP_DOC_W(I,K,j) = 0.0
+
+
 
     END DO
 
@@ -939,6 +957,7 @@ SUBROUTINE ExtractTxcData
  PcbCon_AlgW = FP_BOC1_W * CONPCB_W  +  FP_BOC2_W * CONPCB_W 
  PcbCon_SldW = FP_SSI_W * CONPCB_W 
  PcbCon_POCW = FP_POC_W * CONPCB_W
+ PcbCon_DOCW = FP_DOC_W * CONPCB_W
  
  PcbConW_S1 = FD_WS1 * CONPCB_S1 
  PcbCon_POCS1 = FP_POC_S1 * CONPCB_S1 
@@ -956,6 +975,32 @@ SUBROUTINE ExtractTxcData
  END DO
 
 END SUBROUTINE
+!--------------------------------------------------------------------------------------- 
+
+
+
+!---------------------------------------------------------------------------------------
+!SUBROUTINE BioAccum
+!USE MOD_ZOOP, ONLY: RSZ, RLZ
+
+!  IMPLICIT NONE 
+
+  !----------------- 
+!  DO K=1,KBM1
+!    DO I=1,MLOC 
+!      DO J=1,NTXVB
+!        AlgWtWg(I,K,J) = (FP_BOC1_W(I,K,J) * CONPCB_W(I,K,J)  +  FP_BOC2_W(I,K,J) * CONPCB_W(I,K,J)) / &
+!                            & (C2(I,K,4) + C2(I,K,5))  ! Need to be factored for wetbiomass weight and lipid fraction 
+!        DTxSZDT(I,K,J) = Kuptk*FD_W(I,K,J)*CONPCB_W(I,J,K) + AlphAlgToSZ*
+        
+!      END DO
+!    END DO
+!  END DO
+
+
+
+
+!END SUBROUTINE
 !---------------------------------------------------------------------------------------
 
 END MODULE

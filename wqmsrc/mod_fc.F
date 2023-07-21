@@ -322,7 +322,6 @@ FBUnitScale = 1E+04       ! FB units - cfu/100 ml ---> cfu/m3
 
 HSED1 = 0.1         ! initialization of sediment layer thickness
 HSED = 0.9          ! initialization of sediment layer thickness
-SdmHT = 0.1
 IF(RADIONUCON) THEN
     SpAct(1) = 3.560E14
     SpAct(2) = 1.657E11
@@ -339,6 +338,7 @@ IF(RADIONUCON) THEN
     DO I=1,NoRnds
       DecayConst(I) = LOG(2.0)*(1.0/(RnHalfTime(I)*3.154E7))
     END DO
+    SdmHT = 0.1
 END IF
 !------------------------------- initialization of tracer in sediment layer ----------------------------
  IF(TRIM(TcrSdmInitType) == 'UNIFORM') THEN

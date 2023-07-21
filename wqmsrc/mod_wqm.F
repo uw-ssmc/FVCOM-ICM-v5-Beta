@@ -954,9 +954,9 @@ Module MOD_WQM
  INTEGER :: NumTcrVrb                   ! added by Laki for FC-Bacteria
  LOGICAL :: TcrKntOn, TcrtOutput  ! added by Laki for FC-Bacteria   
  CHARACTER(LEN = 64), ALLOCATABLE, DIMENSION(:) :: TxcOutVar,TcrOutVar
- REAL(SP), ALLOCATABLE, DIMENSION (:, :, :) :: PcbCon_W, PcbCon_AlgW, PcbCon_ZplW, PcbCon_SldW, PcbCon_POCW
+ REAL(SP), ALLOCATABLE, DIMENSION (:, :, :) :: PcbCon_W, PcbCon_AlgW, PcbCon_ZplW, PcbCon_SldW, PcbCon_POCW, PcbCon_DOCW
  REAL(SP), ALLOCATABLE, DIMENSION (:,:) :: PcbConTW, PcbConTW_GL
- REAL(SP), ALLOCATABLE, DIMENSION (:, :, :) :: PcbConW_GL, PcbConAlgW_GL, PcbConZplW_GL, PcbConSldW_GL, PcbConPOCW_GL
+ REAL(SP), ALLOCATABLE, DIMENSION (:, :, :) :: PcbConWSZ, PcbConWLZ, AlgWtWg
  REAL(SP), ALLOCATABLE, DIMENSION (:, :, :) :: TcrtConW, TcrtConW_GL
  REAL(SP), ALLOCATABLE, DIMENSION (:, :) :: PcbConW_S1, PcbCon_POCS1, PcbCon_DOCS1, PcbCon_SldS1
  REAL(SP), ALLOCATABLE, DIMENSION (:, :) :: PcbConWS1_GL, PcbConPOCS1_GL, PcbConDOCS1_GL, PcbConSldS1_GL 
@@ -981,7 +981,7 @@ Module MOD_WQM
  REAL (SP) :: HNRCFF
  REAL(SP), ALLOCATABLE, DIMENSION (:) :: MolWghtCng
  CHARACTER(LEN = 120) :: TxcSdmInitType
- LOGICAL :: PCBTxcOn,MTLTxcOn, TxcHotstart
+ LOGICAL :: PCBTxcOn,MTLTxcOn, TxcHotstart,BioAcc
  INTEGER :: NumTxcOutVar
  CHARACTER(LEN = 30), ALLOCATABLE, DIMENSION (:) :: PCBOutVrb
  !---------------------------------- Tracer cmm parameters --------------------------------------
