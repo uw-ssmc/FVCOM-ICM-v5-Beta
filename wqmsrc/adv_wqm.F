@@ -235,7 +235,8 @@ Subroutine ADV_WQM
             End Do
          End Do
       End Do
-  !
+
+
   !
   !-Accumulate Fluxes at Boundary Nodes
   !
@@ -252,11 +253,19 @@ Subroutine ADV_WQM
             NJ1 = AC (1)
             Call NODE_MATCH (0, NBN, BN_MLT, BN_LOC, BNC, MTLOC, KB, &
            & MYID, NPROCS, XFLUX(:, :, NJ1))
+
+         !   Call NODE_MATCH (0, NBN, BN_MLT, BN_LOC, BNC, MTLOC, KB, &
+         !  & MYID, NPROCS, XFLUX_ADV(:, :, NJ1))
+
          Else If (EXTRA .Eq. 2) Then
             NJ1 = AC (1)
             NJ2 = AC (2)
             Call NODE_MATCH (0, NBN, BN_MLT, BN_LOC, BNC, MTLOC, KB, &
            & MYID, NPROCS, XFLUX(:, :, NJ1), XFLUX(:, :, NJ2))
+
+         !   Call NODE_MATCH (0, NBN, BN_MLT, BN_LOC, BNC, MTLOC, KB, &
+         !  & MYID, NPROCS, XFLUX_ADV(:, :, NJ1), XFLUX_ADV(:, :, NJ2))
+
          End If
      !
          Do JCON = EXTRA + 1, NAC - 2, 3
@@ -266,16 +275,24 @@ Subroutine ADV_WQM
             Call NODE_MATCH (0, NBN, BN_MLT, BN_LOC, BNC, MTLOC, KB, &
            & MYID, NPROCS, XFLUX(:, :, NJ1), XFLUX(:, :, NJ2), XFLUX(:, &
            & :, NJ3))
+           
+         !   Call NODE_MATCH (0, NBN, BN_MLT, BN_LOC, BNC, MTLOC, KB, &
+         !  & MYID, NPROCS, XFLUX_ADV(:, :, NJ1), XFLUX_ADV(:, :, NJ2), XFLUX_ADV(:, &
+         !  & :, NJ3))
          End Do
 #else
      !  KURT GLAESEMANN 22 SEPT 2009 - DO ALL AT ONCE
          Call NODE_MATCH_ALL (0, NBN, BN_MLT, BN_LOC, BNC, MTLOC, KB, &
         & NCP, MYID, NPROCS, XFLUX)
+
+         Call NODE_MATCH_ALL (0, NBN, BN_MLT, BN_LOC, BNC, MTLOC, KB, &
+        & NCP, MYID, NPROCS, XFLUX_ADV)
+
 #endif
       End If
 # endif
 
-  !
+
   !!Added by LB in May 17, 2016, to use this xflux_obc_wqm in bcond_wqm.F (as done in HYD)
       Do JCON = 1, NAC
          II = AC (JCON)
@@ -289,7 +306,7 @@ Subroutine ADV_WQM
          End Do
       End Do
   !!end addition LB
-!
+
 
    !NON-POINT/point SOURCE INTERPOLATION for water quality parameters
       If (NUMPNT > 0) Then
