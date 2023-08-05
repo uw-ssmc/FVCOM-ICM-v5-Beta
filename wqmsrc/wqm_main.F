@@ -111,7 +111,9 @@ Program FVCOMICM
      & VL_GL, SL_GL, TL_GL, WTSL_GL, KHL_GL, TDIC, TALK, pH, pCO2, &
      & pH_GL, pCO2_GL, ADVFLUX, ADVFLUX_GL, VDIFFLUX, VDIFFLUX_GL, &
 	 & TSS_GL, SSI_GL, TURB_GL, KESS_GL, PARAD_GL, LEAF_GL, STEM_GL, ROOT_GL, &
-	 & TUBER_GL, EP_GL, TxcKntOn, TxcOutput, NumTxVrb, TcrKntOn,WqCalcOn             !LB added ADV,VDIF FLUXES 26jan2016
+	 & TUBER_GL, EP_GL, TxcKntOn, TxcOutput, NumTxVrb, TcrKntOn,WqCalcOn, &           !LB added ADV,VDIF FLUXES 26jan2016
+     & BioAcc,PcbConWSZ,PcbConWLZ,PcbConWSZ_GL,PcbConWLZ_GL
+
 	 ! Adi-2/13/18 added TSS_GL, SSI_GL, TURB_GL, KESS_GL
   !
       Use MOD_OWQ, Only: INTKE, NXKEI, IAVG, KESS, OWQ_DEALLOC, &
@@ -149,8 +151,8 @@ Program FVCOMICM
       Use MOD_PH_PCO2
       USE TXC_KNT, ONLY: TXC_ALLOC, READ_TXC_DATA, PCB_KNT, &
                     & NOCHN_IDS, CHN_IDS, CalcPorst, UpdtTX_FRCNS,SLD_KNT,DWPCB,DSPCB, &
-                    & CONPCB_S1,CONPCB_W, CONPCB_S2, ExtractTxcData, CONPCB_WGL, &
-                    & CONPCB_S1GL, CONPCB_S2GL
+                    & CONPCB_S1,CONPCB_W, CONPCB_S2, ExtractTxcData, CONPCB_WGL, BioAccum, &
+                    & CONPCB_S1GL, CONPCB_S2GL, DTxcSZDT, DTxcLZDT
       USE SC_TCR, ONLY : BactAlloc, ReadBactData, DWTCR, DSTCR, &
                     & ConTcrSdm1, ConTcrSdm2, TcrtOutput, TcrKnt, ExtractTcrData,ConTcr, &
                     & ConTcrSdm1_GL, ConTcrSdm2_GL,TcrSldKnt
@@ -260,6 +262,7 @@ Program FVCOMICM
       Real (4) :: ELAPSED (2)
   !
       Character (Len=1024) :: TITLE_STN, TcrWCRestartFile, TcrSDRestartFile, TxcWCRestartFile, TxcSD1RestartFile, TxcSD2RestartFile
+      CHARACTER (LEN=1024) :: TxcAccmSZRstrFile, TxcAccmLZRstrFile
   !
       Character (Len=1024) :: COMMAND_STR, SLEEPTIME_STR
       Real (SP) :: SLEEPTIME
@@ -727,6 +730,12 @@ IF (TxcKntOn) THEN
      CALL UpdtTX_FRCNS
      CALL ExtractTxcData
      CALL PCB_KNT
+
+     IF(BioAcc == .TRUE.) THEN 
+        CALL BioAccum
+     END IF
+
+
      numTxvb = NCP - NTXVB - NBTCR + 1
      !C2(:,:,numTxvb:NCP) = C2(:,:,numTxvb:NCP) + DWPCB(:,:,:)*DLT
 
@@ -737,6 +746,13 @@ IF (TxcKntOn) THEN
                 kk = kk + 1
                 C2(I,J,K) = C2(I,J,K) + DWPCB(I,J,kk)*DLT
                 IF(C2(I,J,K) < 1E-32) C2(I,J,K) = 1E-28
+
+                IF(BioAcc) THEN 
+                    PcbConWSZ(I,J,kk) = PcbConWSZ(I,J,kk) + DTxcSZDT(I,J,kk)*DLT
+                    PcbConWLZ(I,J,Kk) = PcbConWLZ(I,J,kk) + DTxcLZDT(I,J,kk)*DLT 
+                    IF(PcbConWSZ(I,J,kk) < 1E-32) PcbConWSZ(I,J,kk) = 1E-28
+                    IF(PcbConWLZ(I,J,kk) < 1E-32) PcbConWLZ(I,J,kk) = 1E-28
+                END IF
             END DO 
         END DO 
      END DO
@@ -1680,6 +1696,12 @@ END IF  ! for wqm calculations
                 CONPCB_S1GL = 0.0
                 ALLOCATE(CONPCB_S2GL(MGL,NTXVB))
                 CONPCB_S2GL = 0.0
+                IF(BioAcc == .TRUE.) THEN 
+                    ALLOCATE(PcbConWSZ_GL(MGL,KBM1,NTXVB))
+                    PcbConWSZ_GL = 0.0
+                    ALLOCATE(PcbConWLZ_GL(MGL,KBM1,NTXVB))
+                    PcbConWLZ_GL = 0.0
+                END IF
             END IF
     !-----------------------------------------------------------------------------------------------------------------------
             
@@ -1701,6 +1723,15 @@ END IF  ! for wqm calculations
                         & NPROCS, NMAP, CONPCB_S1, CONPCB_S1GL)
                        Call GATHER (1, MTLOC, MLOC, MGL, NTXVB, MYID, &
                         & NPROCS, NMAP, CONPCB_S2, CONPCB_S2GL)
+
+                        IF(BioAcc == .TRUE.) THEN 
+                            DO J = 1, NTXVB
+                                CALL GATHER (0, MTLOC, MLOC, MGL, KBM1, MYID, &
+                                        & NPROCS, NMAP, PcbConWSZ(0, 1, J), PcbConWSZ_GL(1, 1, J))
+                                CALL GATHER (0, MTLOC, MLOC, MGL, KBM1, MYID, &
+                                        & NPROCS, NMAP, PcbConWLZ(0, 1, J), PcbConWLZ_GL(1, 1, J))
+                            END DO
+                        END IF
                   END IF
     !---------------------------------------------------------------------------------------------------------------------------------
 
@@ -1955,6 +1986,28 @@ END IF  ! for wqm calculations
                                 WRITE(877,'(<numTxcVrb>(e10.4,3x))')(CONPCB_S2GL(ii,jj),jj=1,NTXVB)
                         END DO
                     CLOSE(877)
+
+                    IF(BioAcc == .TRUE.) THEN
+                        TxcAccmSZRstrFile = "outputs/TxcAccSZRestart"//TRIM(FileNum)//".dat"
+                        OPEN(UNIT=900, FILE=TxcAccmSZRstrFile, ACTION = 'WRITE')
+                        WRITE(900,'(A)')'Hot start for toxics accumulation in SZ'
+                            DO ii=1,MGL
+                                DO jj=1,KBM1
+                                    WRITE(900,'(<numTxcVrb>(e10.4,3x))')(PcbConWSZ_GL(ii,jj,kk),kk=1,NTXVB)
+                                END DO
+                            END DO
+                        CLOSE(900)
+
+                        TxcAccmLZRstrFile = "outputs/TxcAccLZRestart"//TRIM(FileNum)//".dat"
+                        OPEN(UNIT=901, FILE=TxcAccmLZRstrFile, ACTION = 'WRITE')
+                        WRITE(901,'(A)')'Hot start for toxics accumulation in LZ'
+                            DO ii=1,MGL
+                                DO jj=1,KBM1
+                                    WRITE(901,'(<numTxcVrb>(e10.4,3x))')(PcbConWLZ_GL(ii,jj,kk),kk=1,NTXVB)
+                                END DO
+                            END DO
+                        CLOSE(901)
+                    END IF
                 END IF
             END IF
 
@@ -1967,7 +2020,8 @@ END IF  ! for wqm calculations
         !IF(ALLOCATED(ConTcrSdm2_GL)) DEALLOCATE(ConTcrSdm2_GL)
         IF(ALLOCATED(CONPCB_S1GL)) DEALLOCATE(CONPCB_S1GL)
         IF(ALLOCATED(CONPCB_S2GL)) DEALLOCATE(CONPCB_S2GL)
-
+        IF(ALLOCATED(PcbConWSZ_GL)) DEALLOCATE(PcbConWSZ_GL)
+        IF(ALLOCATED(PcbConWLZ_GL)) DEALLOCATE(PcbConWLZ_GL)
 !-----------------------------------------------------------------------------------------------------
          !IF(MSR) THEN
         !    IF(MOD(NIT,3600) == 0.0) THEN
@@ -3055,298 +3109,9 @@ Subroutine WQM_OUTPUT (NTHIS_OLD, NTSTN_OLD, NTHIS, NTSTN, CTR_HIS, &
 # if defined (MULTIPROCESSOR)
          End If
 # endif
-     !
-     !WLong: Instead of outputing different layers to different files, here, I write all history records
-     !       into the same file HISFN, where HISFN is input in wqm_linkage.in
-     !
-         PRINT_HIS = .False.
-     !
-     !      IF(MOD(JDAY-t_his_start,t_his_dlt).eq.0)THEN
-         If (NTHIS > NTHIS_OLD) Then
-            CTR_HIS = CTR_HIS + 1
-            PRINT_HIS = .True.
-            NTHIS_OLD = NTHIS
-         End If
-     !
-         If (MSR) Then
-            Write (*,*) 'CTR_HIS=', CTR_HIS
-            If (CTR_HIS .Eq. 1) Then !Open file if the first record
-           !
-               Select Case (HISFN_SPLIT_BYLEVEL)
-              !
-               Case (.True.)!open one file for each vertical level
-              !find file names based on layer number
-              !
-                  HISFN_PREFIX = TRIM (FNAMEPREFIX(HISFN))!obtain prefix (removing extension)
-                  HISFN_EXT = TRIM (FNAMEEXT(HISFN))!obtain extension if any
-              !
-                  Do K = 1, KBM1
-                     Write (HISFN_FILENUMBER, '(I5.5)') K
-                     HISFN_FINAL = TRIM (HISFN_PREFIX) // '_' // TRIM &
-                    & (HISFN_FILENUMBER) // TRIM (HISFN_EXT)
-                     Write (*,*) 'Opening history output file:', TRIM &
-                    & (HISFN_FINAL)
-                     Open (Unit=UNIT_HIS+K, File=TRIM(HISFN_FINAL), &
-                    & Status='UNKNOWN')
-                  End Do
-              !
-               Case (.False.)!all levels in the same file (open just one file)
-              !
-                  Open (Unit=UNIT_HIS, File=TRIM(HISFN), Status='UNKNOW&
-                 &N')
-              !
-               End Select
-           !
-               OPEN_HIS = .True. !flag that history file(s) is(are) open
-           !
-            End If
-        !
-        !make sure we output a prior step if steady state is called for setting up diagenesis initial condition
-        ! If (STEADY_STATE_SED_IC .And. (JDAY < &
-             !& TMSTRT+DLT/86400.0)) Then
-        !    JDAY_TMP = JDAY - DLT/86400.0
-        ! Else
+     !    
             JDAY_TMP = JDAY
-        !End If
- PRINT_HIS = .FALSE.      ! temporary switching off the history files ---- by Laki
-            If (PRINT_HIS) Then !output history of fields
-           !
-           !!---Finalize integration of fluxes -LB - 28jan2016
-           !!       so far, accumulated fluxes (mass/m3/d) during interval t_his_dlt ("accumFlux").
-           !!       To have the fluxes in this interval in units of mass/m3/d we need:
-           !!       (\integral Flux dt)/t_his_dlt = acummFlux * DLTindays / t_his_dlt
-               auxLBdt = DLT / 86400. / t_his_dlt
-               Do K = 1, KBM1
-                  Do I = 1, MGL
-                 !IF(MSR)write(*,*)'auxLBdt=',auxLBdt
-                 !IF(MSR)write(*,*)'DICUPT(1,1) accum=',DICUPT(1,1)
-                     DICUPT_GL (I, K) = DICUPT_GL (I, K) * auxLBdt
-                 !IF(MSR)write(*,*)'DICUPT(1,1) integ=',DICUPT(1,1)
-                     DICBMP_GL (I, K) = DICBMP_GL (I, K) * auxLBdt
-                     DICPRD_GL (I, K) = DICPRD_GL (I, K) * auxLBdt
-                     DICMNL_GL (I, K) = DICMNL_GL (I, K) * auxLBdt
-                     DICDEN_GL (I, K) = DICDEN_GL (I, K) * auxLBdt
-                 !DICNIT_GL(I,K) = DICNIT_GL(I,K) * auxLBdt
-                     DICGAS_GL (I, K) = DICGAS_GL (I, K) * auxLBdt
-                     DICSED_GL (I, K) = DICSED_GL (I, K) * auxLBdt
-                     ALKNH4_GL (I, K) = ALKNH4_GL (I, K) * auxLBdt
-                     ALKNO3_GL (I, K) = ALKNO3_GL (I, K) * auxLBdt
-                     ALKNIT_GL (I, K) = ALKNIT_GL (I, K) * auxLBdt
-                     ALKDEN_GL (I, K) = ALKDEN_GL (I, K) * auxLBdt
-                     ALKREM_GL (I, K) = ALKREM_GL (I, K) * auxLBdt
-                     ALKNH4SED_GL (I, K) = ALKNH4SED_GL (I, K) * &
-                    & auxLBdt
-                     ALKNO3SED_GL (I, K) = ALKNO3SED_GL (I, K) * &
-                    & auxLBdt
-!                     ADVFLUX_GL (I, K, 33) = ADVFLUX_GL (I, K, 33) * &
-!                    & auxLBdt
-!                     VDIFFLUX_GL (I, K, 33) = VDIFFLUX_GL (I, K, 33) * &
-!                    & auxLBdt
-!                     ADVFLUX_GL (I, K, 34) = ADVFLUX_GL (I, K, 34) * &
-!                    & auxLBdt
-!                     VDIFFLUX_GL (I, K, 34) = VDIFFLUX_GL (I, K, 34) * &
-!                    & auxLBdt
-                  End Do
-               End Do
-!
-           !
-               Do K = 1, KBM1
-                  Write (*,*) 'Writing to history outputs, JDAY= ', &
-                 & JDAY_TMP, ' K= ', K
-              !
-                  Select Case (HISFN_SPLIT_BYLEVEL)
-                  Case (.True.)
-                 !
-                 !!                        Write (UNIT_HIS+K, '(:F8.4,1x,I1,1x,I8/(:8(F12.&!
-                 !!                      &6,1x),F12.6))') JDAY_TMP, 4, MGL, (H_GL(I), &!
-                     Write (UNIT_HIS+K, '(:F8.4,1x,I1,1x,I8/(:8(E14.6e3&
-                    &,1x),E14.6e3))') JDAY_TMP, 4, MGL, (H_GL(I), I=1, &
-                    & MGL), (EL_GL(I), I=1, MGL), (D_GL(I), I=1, MGL), &
-                    & (-D_GL(I)*ZZ2D(I,K), I=1, MGL), (C2_GL(I, K, 27), &
-                    & I=1, MGL), (C2_GL(I, K, 9), I=1, MGL), (C2_GL(I, &
-                    & K, 4), I=1, MGL), (C2_GL(I, K, 5), I=1, MGL), &
-                    & (C2_GL(I, K, 13), I=1, MGL), (C2_GL(I, K, 14), &
-                    & I=1, MGL), (C2_GL(I, K, 20), I=1, MGL), &
-                    & (total_netPP_GL(I), I=1, MGL), (T_GL(I, K), I=1, &
-                    & MGL), (S_GL(I, K), I=1, MGL), (IAVG_GL(I, K), &
-                    & I=1, MGL), (C2_GL(I, K, 10), I=1, MGL), (C2_GL(I, &
-                    & K, 11), I=1, MGL), (C2_GL(I, K, 12), I=1, MGL), &
-                    & (GPP_GL(I, K), I=1, MGL), (NPP_GL(I, K), I=1, MGL), &
-                    & (C2_GL(I, K, 33), I=1, MGL), (C2_GL(I, K, &
-                    & 34), I=1, MGL), (pH_GL(I, K), I=1, MGL), &
-                    & (pCO2_GL(I, K), I=1, MGL), (DICUPT_GL(I, K), I=1, &
-                    & MGL), (DICBMP_GL(I, K), I=1, MGL), (DICPRD_GL(I, &
-                    & K), I=1, MGL), (DICMNL_GL(I, K), I=1, MGL), &
-                    & (DICDEN_GL(I, K), I=1, MGL), (DICGAS_GL(I, K), &
-                    & I=1, MGL), (DICSED_GL(I, K), I=1, MGL), &
-                    ! & (ADVFLUX_GL(I, K, 33), I=1, MGL), (VDIFFLUX_GL(I, &
-                    ! & K, 33), I=1, MGL), 
-                    & (ALKNH4_GL(I, K), I=1, MGL), &
-                    & (ALKNO3_GL(I, K), I=1, MGL), (ALKNIT_GL(I, K), &
-                    & I=1, MGL), (ALKDEN_GL(I, K), I=1, MGL), &
-                    & (ALKREM_GL(I, K), I=1, MGL), (ALKNH4SED_GL(I, K), &
-                    & I=1, MGL), (ALKNO3SED_GL(I, K), I=1, MGL)
-                    !&
-                    !& (ADVFLUX_GL(I, K, 34), I=1, MGL), (VDIFFLUX_GL(I, &
-                    !& K, 34), I=1, MGL)! TA vert diff flux
 
-					 If (SOLIDS_CALC) Then
-					    Write (UNIT_HIS+K, '(:8(E14.6e3,1x),E14.6e3)') &
-                       & (TSS_GL(I, K), I=1, MGL), &
-                       & (C2_GL(I, K, 3), I=1, MGL), (TURB_GL(I, K), I=1, MGL), &
-                       & (KESS_GL(I, K), I=1, MGL),(PARAD_GL(I, K), I=1, MGL)
-					 End If ! Adi Comment end
-					 If (ZOO_CALC) Then
-					    Write (UNIT_HIS+K, '(:8(E14.6e3,1x),E14.6e3)') &
-                       & (C2_GL(I, K, 7), I=1, MGL), (C2_GL(I, K, 8), I=1, MGL)
-					 End If ! Adi Comment end
-
-                 !write sediment diagenesis model outputs   !LBcomment
-                     If (SEDIMENT_CALC .And. K .Eq. KBM1) Then
-                    !
-                    !these are corresponding to the outputs of the excel version (Greg Pelletier)
-                    !
-                        Write (UNIT_HIS+K, '(:8(E14.6e3,1x),E14.6e3)') &
-                       & (JPOC_GL(I, 1)/1000.0*2.667, I=1, MGL), &
-                       & (JPOC_GL(I, 2)/1000.0*2.667, I=1, MGL), &
-                       & (JPOC_GL(I, 3)/1000.0*2.667, I=1, MGL), &
-                       & (JPON_GL(I, 1)/1000.0, I=1, MGL), (JPON_GL(I, &
-                       & 2)/1000.0, I=1, MGL), (JPON_GL(I, 3)/1000.0, I=&
-                       & 1, MGL), (JPOP_GL(I, 1)/1000.0, I=1, MGL), &
-                       & (JPOP_GL(I, 2)/1000.0, I=1, MGL), (JPOP_GL(I, &
-                       & 3)/1000.0, I=1, MGL), (JPOS_GL(I)/1000.0, I=1, &
-                       & MGL), (C2_GL(I, KBM1, 27), I=1, MGL), (D_GL(I),&
-                       &  I=1, MGL), (T_GL(I, KBM1), I=1, MGL), &
-                       & (C2_GL(I, KBM1, 13), I=1, MGL), (C2_GL(I, KBM1,&
-                       &  14), I=1, MGL), (C2_GL(I, KBM1, 20), I=1, &
-                       & MGL), (C2_GL(I, KBM1, 29), I=1, MGL), &
-                       & (CH40_GL(I), I=1, MGL), (S_GL(I, KBM1), I=1, &
-                       & MGL), (SODTM1S_GL(I), I=1, MGL), (JNH4_GL(I)/&
-                       & 1000.0, I=1, MGL), (JNO3_GL(I)/1000.0, I=1, &
-                       & MGL), (BENDEN_GL(I), I=1, MGL), (JCH4_GL(I), I=&
-                       & 1, MGL), (JCH4G_GL(I), I=1, MGL), (JHS_GL(I), &
-                       & I=1, MGL), (JPO4_GL(I)/1000.0, I=1, MGL), &
-                       & (JSI_GL(I)/1000.0, I=1, MGL), (NH41_GL(I)/&
-                       & 1000.0, I=1, MGL), (NH42_GL(I)/1000.0, I=1, &
-                       & MGL), (NO31_GL(I)/1000.0, I=1, MGL), &
-                       & (NO32_GL(I)/1000.0, I=1, MGL), (PO41_GL(I)/&
-                       & 1000.0, I=1, MGL), (PO42_GL(I)/1000.0, I=1, &
-                       & MGL), (SI1_GL(I)/1000.0, I=1, MGL), (SI2_GL(I)/&
-                       & 1000.0, I=1, MGL), (CH41TM1S_GL(I), I=1, MGL), &
-                       & (CH42_GL(I), I=1, MGL), (HS1_GL(I), I=1, MGL), &
-                       & (HS2_GL(I), I=1, MGL), (CPOC_GL(I, 1)/1000.0*&
-                       & 2.667, I=1, MGL), (CPOC_GL(I, 2)/1000.0*2.667, &
-                       & I=1, MGL), (CPOC_GL(I, 3)/1000.0*2.667, I=1, &
-                       & MGL), (CPON_GL(I, 1)/1000.0, I=1, MGL), &
-                       & (CPON_GL(I, 2)/1000.0, I=1, MGL), (CPON_GL(I, &
-                       & 3)/1000.0, I=1, MGL), (CPOP_GL(I, 1)/1000.0, I=&
-                       & 1, MGL), (CPOP_GL(I, 2)/1000.0, I=1, MGL), &
-                       & (CPOP_GL(I, 3)/1000.0, I=1, MGL), (CPOS_GL(I)/&
-                       & 1000.0, I=1, MGL), (HSED1_GL(I)*1000.0, I=1, &
-                       & MGL), (BENSTRTM1S_GL(I), I=1, MGL)!'BEN_STR'             dimensionless        dimensionless
- 
-                     End If !end LBcomment
-                 !
-					 If (SAV_CALC .And. K .Eq. KBM1) Then
-					    Write (UNIT_HIS+K, '(:8(E14.6e3,1x),E14.6e3)') &
-                       & ((LEAF_GL(I, J), I=1, MGL), J=1, NSAVM), &
-                       & ((STEM_GL(I, J), I=1, MGL), J=1, NSAVM), &
-                       & ((ROOT_GL(I, J), I=1, MGL), J=1, NSAVM), &
-					   & ((TUBER_GL(I, J), I=1, MGL), J=1, NSAVM), &
-					   & ((EP_GL(I, J), I=1, MGL), J=1, NSAVM)
-					 End If ! Adi Comment end
-				 !
-                     FLUSH (UNIT_HIS+K)
-                  Case (.False.)
-                 !
-                     Write (UNIT_HIS, '(:F8.4,1x,I1,1x,I8/(:8(F12.6,1x)&
-                    &,F12.6))') JDAY_TMP, 4, MGL, (H_GL(I), I=1, MGL), &
-                    & (EL_GL(I), I=1, MGL), (D_GL(I), I=1, MGL), &
-                    & (-D_GL(I)*ZZ2D(I,K), I=1, MGL), (C2_GL(I, K, 27), &
-                    & I=1, MGL), (C2_GL(I, K, 9), I=1, MGL), (C2_GL(I, &
-                    & K, 4), I=1, MGL), (C2_GL(I, K, 5), I=1, MGL), &
-                    & (C2_GL(I, K, 13), I=1, MGL), (C2_GL(I, K, 14), &
-                    & I=1, MGL), (C2_GL(I, K, 20), I=1, MGL), &
-                    & (total_netPP_GL(I), I=1, MGL), (T_GL(I, K), I=1, &
-                    & MGL), (S_GL(I, K), I=1, MGL), (IAVG_GL(I, K), &
-                    & I=1, MGL), (C2_GL(I, K, 10), I=1, MGL), (C2_GL(I, &
-                    & K, 11), I=1, MGL), (C2_GL(I, K, 12), I=1, MGL), &
-                    & (GPP_GL(I, K), I=1, MGL), (NPP_GL(I, K), I=1, MGL), & 
-                    & (C2_GL(I, K, 33), I=1, MGL), (C2_GL(I, K, &
-                    & 34), I=1, MGL), (pH_GL(I, K), I=1, MGL), &
-                    & (pCO2_GL(I, K), I=1, MGL)!pCO2		!LB
-                 !
-					 If (SOLIDS_CALC) Then
-					    Write (UNIT_HIS, '(:8(F12.6,1x),F12.6)') &
-					   & (TSS_GL(I, K), I=1, MGL), &
-                       & (C2_GL(I, K, 3), I=1, MGL), (TURB_GL(I, K), I=1, MGL), &
-                       & (KESS_GL(I, K), I=1, MGL), (PARAD_GL(I, K), I=1, MGL)
-					 End If ! Adi Comment end
-
-					 If (ZOO_CALC) Then
-					    Write (UNIT_HIS, '(:8(F12.6,1x),F12.6)') &
-                       & (C2_GL(I, K, 7), I=1, MGL),  (C2_GL(I, K, 8), I=1, MGL)
-					 End If ! Adi Comment end
-
-                     If (SEDIMENT_CALC .And. K .Eq. KBM1) Then
-                    !these are corresponding to the outputs of the excel version (Greg Pelletier)
-                    !
-                        Write (UNIT_HIS+K, '(:8(E14.6e3,1x),E14.6e3)') &
-                       & (JPOC_GL(I, 1)/1000.0*2.667, I=1, MGL), &
-                       & (JPOC_GL(I, 2)/1000.0*2.667, I=1, MGL), &
-                       & (JPOC_GL(I, 3)/1000.0*2.667, I=1, MGL), &
-                       & (JPON_GL(I, 1)/1000.0, I=1, MGL), (JPON_GL(I, &
-                       & 2)/1000.0, I=1, MGL), (JPON_GL(I, 3)/1000.0, I=&
-                       & 1, MGL), (JPOP_GL(I, 1)/1000.0, I=1, MGL), &
-                       & (JPOP_GL(I, 2)/1000.0, I=1, MGL), (JPOP_GL(I, &
-                       & 3)/1000.0, I=1, MGL), (JPOS_GL(I)/1000.0, I=1, &
-                       & MGL), (C2_GL(I, KBM1, 27), I=1, MGL), (D_GL(I),&
-                       &  I=1, MGL), (T_GL(I, KBM1), I=1, MGL), &
-                       & (C2_GL(I, KBM1, 13), I=1, MGL), (C2_GL(I, KBM1,&
-                       &  14), I=1, MGL), (C2_GL(I, KBM1, 20), I=1, &
-                       & MGL), (C2_GL(I, KBM1, 29), I=1, MGL), &
-                       & (CH40_GL(I), I=1, MGL), (S_GL(I, KBM1), I=1, &
-                       & MGL), (SODTM1S_GL(I), I=1, MGL), (JNH4_GL(I)/&
-                       & 1000.0, I=1, MGL), (JNO3_GL(I)/1000.0, I=1, &
-                       & MGL), (BENDEN_GL(I), I=1, MGL), (JCH4_GL(I), I=&
-                       & 1, MGL), (JCH4G_GL(I), I=1, MGL), (JHS_GL(I), &
-                       & I=1, MGL), (JPO4_GL(I)/1000.0, I=1, MGL), &
-                       & (JSI_GL(I)/1000.0, I=1, MGL), (NH41_GL(I)/&
-                       & 1000.0, I=1, MGL), (NH42_GL(I)/1000.0, I=1, &
-                       & MGL), (NO31_GL(I)/1000.0, I=1, MGL), &
-                       & (NO32_GL(I)/1000.0, I=1, MGL), (PO41_GL(I)/&
-                       & 1000.0, I=1, MGL), (PO42_GL(I)/1000.0, I=1, &
-                       & MGL), (SI1_GL(I)/1000.0, I=1, MGL), (SI2_GL(I)/&
-                       & 1000.0, I=1, MGL), (CH41TM1S_GL(I), I=1, MGL), &
-                       & (CH42_GL(I), I=1, MGL), (HS1_GL(I), I=1, MGL), &
-                       & (HS2_GL(I), I=1, MGL), (CPOC_GL(I, 1)/1000.0*&
-                       & 2.667, I=1, MGL), (CPOC_GL(I, 2)/1000.0*2.667, &
-                       & I=1, MGL), (CPOC_GL(I, 3)/1000.0*2.667, I=1, &
-                       & MGL), (CPON_GL(I, 1)/1000.0, I=1, MGL), &
-                       & (CPON_GL(I, 2)/1000.0, I=1, MGL), (CPON_GL(I, &
-                       & 3)/1000.0, I=1, MGL), (CPOP_GL(I, 1)/1000.0, I=&
-                       & 1, MGL), (CPOP_GL(I, 2)/1000.0, I=1, MGL), &
-                       & (CPOP_GL(I, 3)/1000.0, I=1, MGL), (CPOS_GL(I)/&
-                       & 1000.0, I=1, MGL), (HSED1_GL(I)*1000.0, I=1, &
-                       & MGL), (BENSTRTM1S_GL(I), I=1, MGL)!'BEN_STR'             dimensionless        dimensionless
-                    !
-                     End If
-				!
-					 If (SAV_CALC .And. K .Eq. KBM1) Then
-					    Write (UNIT_HIS+K, '(:8(E14.6e3,1x),E14.6e3)') &
-                       & ((LEAF_GL(I, J), I=1, MGL), J=1, NSAVM), &
-                       & ((STEM_GL(I, J), I=1, MGL), J=1, NSAVM), &
-                       & ((ROOT_GL(I, J), I=1, MGL), J=1, NSAVM), &
-					   & ((TUBER_GL(I, J), I=1, MGL), J=1, NSAVM), &
-					   & ((EP_GL(I, J), I=1, MGL), J=1, NSAVM)
-					 End If ! Adi Comment end
-                 !
-                     FLUSH (UNIT_HIS)
-                  End Select
-               End Do
-            End If !END PRINT_HIS SWITCH
-         End If !END MSR SWITCH
-     !
          PRINT_STN = .False.
          If (NTSTN > NTSTN_OLD) Then
             CTR_STN = CTR_STN + 1 !Counter of steps in station output file
@@ -3632,13 +3397,14 @@ SUBROUTINE MainSetup
                      & DFFCOEFS12,BRLVEL,MolWghtCng,HNRCFF,TcrSdmInitType,TcrSdmUnfm,BACTERIAON, &
                      & RADIONUCON,NOTCRKNTS,NumTcrOutVar,KnBact,C0SalBact,AlphaBact,ThetaBact, &
                      & RnHalfTime,RnKd,VonKrmn,Rgfh,PtcDensity,ErsnCoeff,CrtShear,SdmPrst,WqCalcOn, PCBOutVrb, &
-                     & TCROutVrb, TxcHotstart, TxcHotWC,TxcHotSD1,TxcHotSD2
+                     & TCROutVrb, TxcHotstart, TxcHotWC,TxcHotSD1,TxcHotSD2, BioAcc,KuptkSZ, KuptkLZ, KowPCB, & 
+                     & GrwthSZ,GrwthLZ,CnbToDWSZ,LipidFracSZ,CnbToDWLZ, LipidFracLZ,TxcAccSZ,TxcAccLZ
   USE MOD_SIZES, ONLY: NCP, NTXVB, NBTCR, HydVersionNum
   USE MOD_CONTROL, ONLY: MSR
   IMPLICIT NONE
 
   CHARACTER(LEN = 64) :: FLAG_TXC, FLAG_TCR
-  INTEGER :: end_file
+  INTEGER :: end_file,i
   
 !------------------------- Reading Main setup file ------------------------------ 
   !INQUIRE(FILE='inputs/WQM_welcome.nml', IOSTAT = end_file)
@@ -3660,7 +3426,7 @@ SUBROUTINE MainSetup
   !------------------------------------------------------------------------------ 
   IF(TxcKntOn == .TRUE.) THEN
     NAMELIST /TXC_SETUP/ TXCF_INC,TXCF_PNT,TXCF_OBC,TXCF_INC_SD,TxcSdmInitType, &
-                        & TxcSdmUnfm,PCBTxcOn,MTLTxcOn,NumTxcOutVar,TxcHotstart, &
+                        & TxcSdmUnfm,PCBTxcOn,MTLTxcOn,BioAcc,NumTxcOutVar,TxcHotstart, &
                         & TxcHotWC,TxcHotSD1,TxcHotSD2
     READ(377,NML = TXC_SETUP, IOSTAT = end_file)
     IF(end_file /= 0) THEN
@@ -3674,11 +3440,17 @@ SUBROUTINE MainSetup
     IF(PCBTxcOn) THEN
         ALLOCATE(MolWghtCng(NumTxVrb))
         NAMELIST /TXC_PARAMETER_PCB/ PTC_WC,PTC_SD,SED_DEN,DFFCOEFS12,BRLVEL,MolWghtCng, &
-                            & HNRCFF
+                            & HNRCFF,KowPCB
         READ(377,NML = TXC_PARAMETER_PCB, IOSTAT = end_file)
         ALLOCATE(PCBOutVrb(NumTxcOutVar))
         NAMELIST /TXC_OUT_PCB/PCBOutVrb
         READ(377,NML = TXC_OUT_PCB, IOSTAT = end_file)
+    END IF
+
+    IF(BioAcc) THEN 
+        NAMELIST /TXC_BIOACCM/TxcAccSZ,TxcAccLZ,KuptkSZ,KuptkLZ,GrwthSZ,GrwthLZ,CnbToDWSZ,CnbToDWLZ, &
+                    & LipidFracSZ, LipidFracLZ
+        READ(377,NML = TXC_BIOACCM, IOSTAT = end_file)
     END IF
 
   END IF

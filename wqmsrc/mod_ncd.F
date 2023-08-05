@@ -12,7 +12,8 @@ Module MOD_NCD
 	  USE MOD_WQM, ONLY : NumTxVrb, NumTxcOutVar, TxcOutVar, TxcKntOn, TxcOutput, SdmHT, TcrtConW, &
 						& TcrtConSdm, TcrKntOn, NumTcrVrb, NumTcrOutVar, TcrOutVar, TcrtOutput, C2, SPM, &
 						& PcbCon_W, PcbCon_AlgW, PcbCon_ZplW, PcbCon_SldW, PcbCon_POCW, PcbCon_DOCW, &
-						& PcbConW_S1, PcbCon_POCS1, PcbCon_DOCS1, PcbConW_S2, PcbCon_POCS2, PcbCon_DOCS2
+						& PcbConW_S1, PcbCon_POCS1, PcbCon_DOCS1, PcbConW_S2, PcbCon_POCS2, PcbCon_DOCS2, BioAcc, &
+						& PcbConWSZ, PcbConWLZ
 
 	  Implicit None
 	  Save
@@ -83,7 +84,7 @@ Module MOD_NCD
 !   integer :: uard_obcn_vid
 !------------------------------- netcdf ids for Toxic related variables ------------------------- 
 	INTEGER :: Pcbwc_vid, Pcbzpl_vid, Pcbagl_vid, Pcbsld_vid, Pcbws1_vid, Pcbws2_vid, Pcbpoc_vid, Pcbdoc_vid
-	INTEGER :: Pcbpocs1_vid, Pcbpocs2_vid, Pcbdocs1_vid, Pcbdocs2_vid
+	INTEGER :: Pcbpocs1_vid, Pcbpocs2_vid, Pcbdocs1_vid, Pcbdocs2_vid, PcbConsz_vid, PcbConlz_vid
 	INTEGER :: Tcrwc_vid, Tcrsd_vid
 
 	Integer ::	 T_vid 			&!(1:MGL, 1:KBM1)			! Wen Long, correction to assign values for all layers
@@ -2151,11 +2152,36 @@ IF((TxcKntOn == .TRUE.) .AND. (TxcOutput == .TRUE.)) THEN
 			ierr = nf90_put_att(nc_ofid,Pcbdocs2_vid,"units","g meters-3")
 			ierr = nf90_put_att(nc_ofid,Pcbdocs2_vid,"grid","fvcom_grid")
 			ierr = nf90_put_att(nc_ofid,Pcbdocs2_vid,"type","data")
-		
+		END SELECT
+	END DO
+
+END IF
+!---------------------------------------------------------------------------------------------------- 
+
+
+!----------------------------------------------------------------------------------------------------
+IF((TxcKntOn == .TRUE.) .AND. (TxcOutput == .TRUE.) .AND. (BioAcc == .TRUE.)) THEN 
+	DO i=1,NumTxcOutVar
+		SELECT CASE (TRIM(TxcOutVar(i)))
+			CASE("PcbConWSZ")
+				ierr = nf90_def_var(nc_ofid,"PCBACCSZ",nf90_float,dynm4txc_lay,PcbConsz_vid)
+				ierr = nf90_put_att(nc_ofid,PcbConsz_vid,"long_name","Accumulated PCB concentration in SZ")
+				ierr = nf90_put_att(nc_ofid,PcbConsz_vid,"standard_name","PCBACCSZ")
+				ierr = nf90_put_att(nc_ofid,PcbConsz_vid,"units","g/g OC")
+				ierr = nf90_put_att(nc_ofid,PcbConsz_vid,"grid","fvcom_grid")
+				ierr = nf90_put_att(nc_ofid,PcbConsz_vid,"type","data") 
+			CASE("PcbConWLZ")
+				ierr = nf90_def_var(nc_ofid,"PCBACCLZ",nf90_float,dynm4txc_lay,PcbConlz_vid)
+				ierr = nf90_put_att(nc_ofid,PcbConlz_vid,"long_name","Accumulated PCB concentration in LZ")
+				ierr = nf90_put_att(nc_ofid,PcbConlz_vid,"standard_name","PCBACCLZ")
+				ierr = nf90_put_att(nc_ofid,PcbConlz_vid,"units","g/g OC")
+				ierr = nf90_put_att(nc_ofid,PcbConlz_vid,"grid","fvcom_grid")
+				ierr = nf90_put_att(nc_ofid,PcbConlz_vid,"type","data") 
 		END SELECT
 	END DO
 END IF
-!---------------------------------------------------------------------------------------------------- 
+!-----------------------------------------------------------------------------------------------
+
 
 !----------------------------- tracer/pollutant related variables --------------------------------
 IF((TcrKntOn == .TRUE.) .AND. (TcrtOutput== .TRUE.)) THEN 
@@ -3110,10 +3136,23 @@ IF((TxcKntOn == .TRUE.) .AND. (TxcOutput == .TRUE.)) THEN
 				CALL PUTSVAR_TXC3D(nc_ofid,Pcbdocs2_vid,MLOC,NumTxVrb,PcbCon_DOCS2,stck_cnt)
 
 			END SELECT
-		END DO 
+		END DO
 
 END IF
 !------------------------------------------------------------------------------------------------------ 
+
+!------------------------------------------------------------------------------------------------------
+IF((TxcKntOn == .TRUE.) .AND. (TxcOutput == .TRUE.) .AND. (BioAcc == .TRUE.)) THEN 
+		DO i=1,NumTxcOutVar 
+			SELECT CASE (TRIM(TxcOutVar(i)))
+				CASE("PcbConWSZ")
+					CALL PUTSVAR_TXC4D(nc_ofid,PcbConsz_vid,MLOC,KBM1,NumTxVrb,PcbConWSZ,stck_cnt)
+				CASE("PcbConWLZ")
+					CALL PUTSVAR_TXC4D(nc_ofid,PcbConlz_vid,MLOC,KBM1,NumTxVrb,PcbConWLZ,stck_cnt)
+			END SELECT
+		END DO	
+END IF
+!----------------------------------------------------------------------------------------------------
 
 !--------------------------------- Tracer/pollutant --------------------------------------------------
 IF((TcrKntOn == .TRUE.) .AND. (TcrtOutput == .TRUE.)) THEN 

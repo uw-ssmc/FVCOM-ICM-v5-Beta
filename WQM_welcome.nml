@@ -19,7 +19,8 @@
     TxcSdmUnfm = 0.00       ! tracer concentration for sediment layer if the distribution is uniform constant value
     PCBTxcOn = .TRUE.       ! PCB kinetics on
     MTLTxcOn = .FALSE.      ! Toxic metal kinetics on
-    NumTxcOutVar = 3        ! No. of Toxic output variables (PCB ot MTL)
+    BioAcc = .TRUE.        ! Bioaccumulation of toxics on
+    NumTxcOutVar = 6        ! No. of Toxic output variables (PCB or MTL)
     TxcHotstart = .TRUE.   ! initial condition with hot start
     TxcHotWC = 'inputs/TxcWCRestart364.dat'     ! hot start file for water column
     TxcHotSD1 = 'inputs/TxcSD1Restart364.dat'   ! hot start file for sediment layer 1
@@ -35,22 +36,37 @@
     BRLVEL = 0.0        ! burial velocity of solid sediments from sdLy2 (m/yr)
     MolWghtCng = 326.0   ! molecular weight arrays (g/mol)
     HNRCFF = 0.004385     ! non-dimensional Henry's coefficient
+    KowPCB = 3.16     ! (m^3/g) K_ow values for PCB-118
 /
 
 &TXC_OUT_PCB
     !------------- PCB related output variables for netcdf outputs -----------------
-    PCBOutVrb = 'PcbCon_W','PcbCon_AlgW','PcbCon_POCW'
-    !PcbCon_W = PCBs in dissolved phase
-    !PcbCon_ZplW = PCBs in zooplankton (both micro and messo)
-    !PcbCon_AlgW = PCBs in algae (both in diatom and dinoflagellates) 
-    !PcbCon_SldW = PCBs in inorganic soilds
-    !PcbCon_POCW = PCBs in POC
-    !PcbConW_S1 = PCBs in dissolved phase of sediment layer 1
-    !PcbCon_POCS1 = PCBs in POC of sediment layer 1
-    !PcbCon_DOCS1 = PCBs in DOC of sediment layer 1
-    !PcbConW_S2 = PCBs in dissolved phase of sediment layer 2
-    !PcbCon_POCS2 = PCBs in POC of sediment layer 2
-    !PcbCon_DOCS2 = PCBs in DOC of sediment layer 2
+    PCBOutVrb = 'PcbCon_W','PcbCon_AlgW','PcbCon_POCW','PcbCon_DOCW','PcbConWSZ','PcbConWLZ'
+    !PcbCon_W - PCBs in dissolved phase
+    !PcbCon_ZplW - PCBs in zooplankton (both micro and messo)
+    !PcbCon_AlgW - PCBs in algae (both in diatom and dinoflagellates) 
+    !PcbCon_SldW - PCBs in inorganic solids
+    !PcbCon_POCW - PCBs in POC
+    !PcbCon_DOCW - PCBs in DOC
+    !PcbConW_S1 - PCBs in dissolved phase of sediment layer 1
+    !PcbCon_POCS1 - PCBs in POC of sediment layer 1
+    !PcbCon_DOCS1 - PCBs in DOC of sediment layer 1
+    !PcbConW_S2 - PCBs in dissolved phase of sediment layer 2
+    !PcbCon_POCS2 - PCBs in POC of sediment layer 2
+    !PcbCon_DOCS2 - PCBs in DOC of sediment layer 2
+/
+
+&TXC_BIOACCM
+    TxcAccSZ = 'inputs/PCBAccmSZ.dat'    ! initially aacumulated PCBs in microzooplankton
+    TxcAccLZ = 'inputs/PCBAccmLZ.dat'    ! initially accumulated PCBs in mesozooplankton
+    KuptkSZ = 1.1      ! (m^3/g OC) direct uptake of toxics by microzooplankton
+    KuptkLZ = 1.1     ! (m^3/g OC) direct uptake of toxics by mesozooplankton
+    GrwthSZ = 0.15     ! (per day) average growth rate of microzooplankton
+    GrwthLZ = 0.12     ! (per day) average growth rate of mesozooplankton
+    CnbToDWSZ = 0.48   ! Carbon to Dry Weight SZ ratio 
+    CnbToDWLZ = 0.48   ! Carbon to Dry Weight LZ ratio
+    LipidFracSZ = 0.15  ! Lipid content to Dry Weight SZ ratio 
+    LipidFracLZ = 0.15  ! Lipid content to Dry Weight LZ ratio 
 /
 
 &TCR_SETUP

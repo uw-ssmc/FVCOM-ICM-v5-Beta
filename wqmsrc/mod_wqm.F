@@ -956,8 +956,8 @@ Module MOD_WQM
  CHARACTER(LEN = 64), ALLOCATABLE, DIMENSION(:) :: TxcOutVar,TcrOutVar
  REAL(SP), ALLOCATABLE, DIMENSION (:, :, :) :: PcbCon_W, PcbCon_AlgW, PcbCon_ZplW, PcbCon_SldW, PcbCon_POCW, PcbCon_DOCW
  REAL(SP), ALLOCATABLE, DIMENSION (:,:) :: PcbConTW, PcbConTW_GL
- REAL(SP), ALLOCATABLE, DIMENSION (:, :, :) :: PcbConWSZ, PcbConWLZ, AlgWtWg
- REAL(SP), ALLOCATABLE, DIMENSION (:, :, :) :: TcrtConW, TcrtConW_GL
+ REAL(SP), ALLOCATABLE, DIMENSION (:, :, :) :: PcbConWSZ, PcbConWLZ, PCBInOC, PCBInSZ, PcbConWSZ_GL, PcbConWLZ_GL 
+ REAL(SP), ALLOCATABLE, DIMENSION (:, :, :) :: TcrtConW, TcrtConW_GL, TxSZUptk, TxLZUptk, TxSZLoss, TxLZLoss
  REAL(SP), ALLOCATABLE, DIMENSION (:, :) :: PcbConW_S1, PcbCon_POCS1, PcbCon_DOCS1, PcbCon_SldS1
  REAL(SP), ALLOCATABLE, DIMENSION (:, :) :: PcbConWS1_GL, PcbConPOCS1_GL, PcbConDOCS1_GL, PcbConSldS1_GL 
  REAL(SP), ALLOCATABLE, DIMENSION (:, :) :: PcbConW_S2, PcbCon_POCS2, PcbCon_DOCS2, PcbCon_SldS2
@@ -976,9 +976,9 @@ Module MOD_WQM
  REAL(SP), ALLOCATABLE, DIMENSION (:) :: ULND,VLND,WWLND,SdmHT,SdmBRL
  LOGICAL :: WqCalcOn
  !---------------------------------- Toxics cmm parameters --------------------------------------
- CHARACTER(LEN = 1024) :: TXCF_INC,TXCF_PNT,TXCF_OBC,TXCF_INC_SD,TxcHotWC,TxcHotSD1,TxcHotSD2
- REAL (SP) :: PTC_SD, PTC_WC,SED_DEN,DFFCOEFS12,BRLVEL,TxcSdmUnfm
- REAL (SP) :: HNRCFF
+ CHARACTER(LEN = 1024) :: TXCF_INC,TXCF_PNT,TXCF_OBC,TXCF_INC_SD,TxcHotWC,TxcHotSD1,TxcHotSD2,TxcAccSZ,TxcAccLZ
+ REAL (SP) :: PTC_SD, PTC_WC,SED_DEN,DFFCOEFS12,BRLVEL,TxcSdmUnfm,CnbToDWLZ, LipidFracLZ
+ REAL (SP) :: HNRCFF, KuptkSZ, KuptkLZ, KowPCB, GrwthSZ, GrwthLZ,CnbToDWSZ, LipidFracSZ
  REAL(SP), ALLOCATABLE, DIMENSION (:) :: MolWghtCng
  CHARACTER(LEN = 120) :: TxcSdmInitType
  LOGICAL :: PCBTxcOn,MTLTxcOn, TxcHotstart,BioAcc

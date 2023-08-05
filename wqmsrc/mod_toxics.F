@@ -5,12 +5,12 @@ MODULE TXC_KNT
   USE MOD_SIZES, Only: MGL, NGL,NCP,NTXVB,NBTCR  ! NTXVB - no. of variables for toxics
   USE MOD_WQM, ONLY: SSI, C1, C2, POC_CONCENS, DOC_CONCENS, WMS, TxcOutVar, NumTxcOutVar, TxcOutput, &
                     & PcbCon_W, PcbCon_AlgW, PcbCon_ZplW, PcbCon_SldW, PcbCon_POCW,PcbConTW, &
-                    & PcbConWSZ, PcbConWLZ, PcbCon_DOCW, BioAcc, &
-                    & PcbConW_S1, PcbCon_POCS1, PcbCon_DOCS1, PcbCon_SldS1, &
-                    & PcbConW_S2, PcbCon_POCS2, PcbCon_DOCS2, PcbCon_SldS2, &
-                    & PcbConTS1, PcbConTS2,  &
+                    & PcbConWSZ, PcbConWLZ, PcbCon_DOCW, BioAcc,KuptkSZ, KuptkLZ, KowPCB, GrwthSZ, GrwthLZ, &
+                    & PcbConW_S1, PcbCon_POCS1, PcbCon_DOCS1, PcbCon_SldS1,CnbToDWSZ, LipidFracSZ, &
+                    & PcbConW_S2, PcbCon_POCS2, PcbCon_DOCS2, PcbCon_SldS2,CnbToDWLZ, LipidFracLZ, &
+                    & PcbConTS1, PcbConTS2,PCBInOC,TxSZUptk,TxLZUptk, TxSZLoss, TxLZLoss, PCBInSZ, &
                     & TXCF_INC,TXCF_PNT,TXCF_OBC, TXCF_INC_SD,PTC_SD, PTC_WC,SED_DEN, & 
-                    & DFFCOEFS12, BRLVEL,MolWghtCng,HNRCFF,TxcSdmInitType,TxcSdmUnfm, &
+                    & DFFCOEFS12, BRLVEL,MolWghtCng,HNRCFF,TxcSdmInitType,TxcSdmUnfm, TxcAccSZ,TxcAccLZ, &
                     & PCBTxcOn,MTLTxcOn,NumTxcOutVar,TxcHotWC,TxcHotstart,TxcHotSD1,TxcHotSD2, PCBOutVrb
 
   USE MOD_CONTROL, ONLY: SERIAL, MSR, PAR
@@ -29,12 +29,13 @@ IMPLICIT NONE
 !----------------- Auxiliary varibales need for Toxics kinetics ---------------------
  REAL(SP), ALLOCATABLE, DIMENSION (:, :, :) :: KP_SSI_W, CONPCB_W, CONPCB_WGL
  REAL(SP), ALLOCATABLE, DIMENSION (:, :, :) :: KP_POC_W, KP_BOC1_W, KP_DOC_W, KP_ZOO_W, KP_BOC2_W
+ REAL(SP), ALLOCATABLE, DIMENSION (:, :, :) :: KupSZ, KupLZ
  REAL(SP), ALLOCATABLE, DIMENSION (:, :) :: CONPCB_S1, CONPCB_S1GL, CONPCB_S2, CONPCB_S2GL
 ! KP_SSI_W - Partition coefficient for the SSI in water column
 ! KP_BOC_W - Partition coefficient for BOC in water column
 ! KP_POC_W - Partition coefficient for POC in water column
 ! KP_DOC_W - Partition coefficient for DOC in water column
- REAL(SP), ALLOCATABLE, DIMENSION (:, :, :) :: FP_SSI_W, FD_W, DWPCB
+ REAL(SP), ALLOCATABLE, DIMENSION (:, :, :) :: FP_SSI_W, FD_W, DWPCB, DTxcSZDT, DTxcLZDT
  REAL(SP), ALLOCATABLE, DIMENSION (:, :, :) :: FP_POC_W, FP_BOC1_W, FP_DOC_W, FP_ZOO_W, FP_BOC2_W
  REAL(SP), ALLOCATABLE, DIMENSION (:, :, :) :: DSPCB
 ! FP_SSI_W - particulate fraction in the water column
@@ -256,11 +257,27 @@ SUBROUTINE TXC_ALLOC
             PcbConWSZ = 0.0
             ALLOCATE(PcbConWLZ(0:MTLOC,KBM1,NTXVB))
             PcbConWLZ = 0.0
+            ALLOCATE(DTxcSZDT(0:MTLOC,KBM1,NTXVB))
+            DTxcSZDT = 0.0
+            ALLOCATE(DTxcLZDT(0:MTLOC,KBM1,NTXVB))
+            DTxcLZDT = 0.0
+            ALLOCATE(KupSZ(0:MTLOC,KBM1,NTXVB))
+            KupSZ = 0.0
+            ALLOCATE(KupLZ(0:MTLOC,KBM1,NTXVB))
+            KupLZ = 0.0
+            ALLOCATE(PCBInSZ(0:MTLOC,KBM1,NTXVB))
+            PCBInSZ = 0.0
+            ALLOCATE(TxSZUptk(0:MTLOC,KBM1,NTXVB))
+            TxSZUptk = 0.0
+            ALLOCATE(TxLZUptk(0:MTLOC,KBM1,NTXVB))
+            TxLZUptk = 0.0
+            ALLOCATE(TxSZLoss(0:MTLOC,KBM1,NTXVB))
+            TxSZLoss = 0.0
+            ALLOCATE(TxLZLoss(0:MTLOC,KBM1,NTXVB))
+            TxLZLoss = 0.0
+            ALLOCATE(PCBInOC(0:MTLOC,KBM1,NTXVB))
+            PCBInOC = 0.0
           END IF
-
-
-
-
 END SUBROUTINE
 !--------------------------------------------------------------------------------------
 
@@ -302,6 +319,10 @@ UNIT_SCL_LDN = 1E-09    ! ng/m3   to g/m3 for loading data
  KP_DOC_S1 = PTC_SD
  KP_POC_S2 = PTC_SD
  KP_DOC_S2 = PTC_SD
+ IF(BioAcc) THEN 
+    KupSZ = KuptkSZ
+    KupLZ = KuptkLZ
+ END IF
 !------------------------------- initialization of toxics in sediment layer ---------------------------- 
 
 IF(TxcHotstart == .FALSE.) THEN
@@ -409,7 +430,7 @@ ELSE
         RTMPX = 0.0
         DO I = 1, MGL
           DO K = 1, KBM1
-            READ (212,*) (RTMPX(I, K, JCON), JCON=TXCST, NCP)
+            READ (212,*) (RTMPX(I, K, JCON), JCON=TXCST, NCP-NBTCR)
           END DO
         END DO
         CLOSE(212)
@@ -434,6 +455,77 @@ If (SERIAL) C1(:,:,TXCST:NCP-NBTCR) = RTMPX
          END IF
 #  endif
 DEALLOCATE(RTMPX)
+!-----------------------------------------------------------------------------------------------------
+
+
+!--------------------------------------------initialization of toxics accumulation in species --------------------------- 
+IF(BioAcc == .TRUE.) THEN
+        ALLOCATE (RTMPX(0:MGL, KBM1, NTXVB))         ! NTXVB - toxics related variables for water column
+        OPEN(UNIT = 300, FILE = TRIM(TxcAccSZ), ACTION = 'READ')
+        READ(300,*, IOSTAT = end_file)
+        IF(end_file < 0) THEN
+            WRITE (*,*) "Error occured - No file named :",TRIM(TxcAccSZ)
+            STOP
+        END IF
+        RTMPX = 0.0
+        DO I = 1, MGL
+          DO K = 1, KBM1
+            READ (300,*) (RTMPX(I, K, JCON), JCON=1, NTXVB)
+          END DO
+        END DO
+        CLOSE(300)
+
+        If (SERIAL) PcbConWSZ = RTMPX
+#  if defined (MULTIPROCESSOR)
+         IF (PAR) THEN
+            DO JCON = 1, NTXVB
+               DO K = 1, KBM1
+                  DO I = 1, MLOC
+                     PcbConWSZ (I, K, JCON) = RTMPX (NGID(I), K, JCON)
+                     PcbConWSZ (I, K, JCON) = RTMPX (NGID(I), K, JCON)
+                  END DO
+                  DO I = 1, NHN
+                     PcbConWSZ (I+MLOC, K, JCON) = RTMPX (HN_LST(I), K, JCON)
+                     PcbConWSZ (I+MLOC, K, JCON) = RTMPX (HN_LST(I), K, JCON)
+                  END DO
+               END DO
+            END DO
+         END IF
+#  endif
+
+        OPEN(UNIT = 301, FILE = TRIM(TxcAccLZ), ACTION = 'READ')
+        READ(301,*, IOSTAT = end_file)
+        IF(end_file < 0) THEN
+            WRITE (*,*) "Error occured - No file named :",TRIM(TxcAccLZ)
+            STOP
+        END IF
+        RTMPX = 0.0
+        DO I = 1, MGL
+          DO K = 1, KBM1
+            READ (301,*) (RTMPX(I, K, JCON), JCON=1, NTXVB)
+          END DO
+        END DO
+        CLOSE(301)
+
+        If (SERIAL) PcbConWLZ = RTMPX
+#  if defined (MULTIPROCESSOR)
+         IF (PAR) THEN
+            DO JCON = 1, NTXVB
+               DO K = 1, KBM1
+                  DO I = 1, MLOC
+                     PcbConWLZ (I, K, JCON) = RTMPX (NGID(I), K, JCON)
+                     PcbConWLZ (I, K, JCON) = RTMPX (NGID(I), K, JCON)
+                  END DO
+                  DO I = 1, NHN
+                     PcbConWLZ (I+MLOC, K, JCON) = RTMPX (HN_LST(I), K, JCON)
+                     PcbConWLZ (I+MLOC, K, JCON) = RTMPX (HN_LST(I), K, JCON)
+                  END DO
+               END DO
+            END DO
+         END IF
+#  endif
+DEALLOCATE(RTMPX)
+END IF
 
 !---------------------------------------------------------------------------------------------
 !OPEN(UNIT = 213, FILE = TRIM(TXCF_OBC), ACTION = 'READ')
@@ -980,27 +1072,52 @@ END SUBROUTINE
 
 
 !---------------------------------------------------------------------------------------
-!SUBROUTINE BioAccum
-!USE MOD_ZOOP, ONLY: RSZ, RLZ
+SUBROUTINE BioAccum
+USE MOD_ZOOP, ONLY: RSZ, RLZ, MSZ, MLZ, SZ, LZ
 
-!  IMPLICIT NONE 
+  IMPLICIT NONE 
 
-  !----------------- 
-!  DO K=1,KBM1
-!    DO I=1,MLOC 
-!      DO J=1,NTXVB
-!        AlgWtWg(I,K,J) = (FP_BOC1_W(I,K,J) * CONPCB_W(I,K,J)  +  FP_BOC2_W(I,K,J) * CONPCB_W(I,K,J)) / &
-!                            & (C2(I,K,4) + C2(I,K,5))  ! Need to be factored for wetbiomass weight and lipid fraction 
-!        DTxSZDT(I,K,J) = Kuptk*FD_W(I,K,J)*CONPCB_W(I,J,K) + AlphAlgToSZ*
-        
-!      END DO
-!    END DO
-!  END DO
+  REAL (SP) :: AlphaSZ, TxcBdyAccmSZ, TxcUptkLossSZ, TxcGrwthLossSZ,PCBInSZPrey,PCBInLZPrey
+  REAL (SP) :: AlphaLZ, TxcBdyAccmLZ, TxcUptkLossLZ, TxcGrwthLossLZ
 
+  !---------------------------------------------------------------------------------
+  AlphaSZ = 1.0
+  AlphaLZ = 1.0
+  DTxcSZDT = 0.0
+  DTxcLZDT = 0.0
+  DO K=1,KBM1
+    DO I=1,MLOC 
+      DO J=1,NTXVB
+        !------------------------ Accumulation in Microzooplankton-----------------------------------------------
+        PCBInOC(I,K,J) = (FP_BOC1_W(I,K,J) * CONPCB_W(I,K,J)  +  FP_BOC2_W(I,K,J) * CONPCB_W(I,K,J) + &
+                          & FP_POC_W(I,K,J) * CONPCB_W(I,K,J))
+        PCBInSZPrey = PCBInOC(I,K,J) / (C2(I,K,4) + C2(I,K,5) + C2(I,K,11) + C2(I,K,12)) !(g Txc/g OC)
 
+        TxSZUptk(I,K,J) = KupSZ(I,K,J)*FD_W(I,K,J)*CONPCB_W(I,K,J) !(g Txc/g OC . day)
+        TxcBdyAccmSZ = AlphaSZ*RSZ(I,K)*((1.0*CnbToDWSZ)/LipidFracSZ)*PCBInSZPrey
+        TxSZLoss(I,K,J) = MSZ(I,K)*PcbConWSZ(I,K,J)
+        TxcUptkLossSZ = (KupSZ(I,K,J)/KowPCB)*PcbConWSZ(I,K,J)
+        TxcGrwthLossSZ = GrwthSZ*PcbConWSZ(I,K,J)
 
+        DTxcSZDT(I,K,J) = (TxSZUptk(I,K,J) + TxcBdyAccmSZ - (TxSZLoss(I,K,J) + TxcUptkLossSZ + TxcGrwthLossSZ)) / 86400.0
 
-!END SUBROUTINE
+        !--------------------------- Accumulation in Mesozooplankton ---------------------------------------------
+        PCBInSZ(I,K,J) = PcbConWSZ(I,K,J) ! (g Txc/g OC)
+        PCBInLZPrey = PCBInSZ(I,K,J) + (PCBInOC(I,K,J) / (C2(I,K,4) + C2(I,K,5) + C2(I,K,11) + C2(I,K,12)))  ! (g Txc/g OC)
+
+        TxLZUptk(I,K,J) = KupLZ(I,K,J)*FD_W(I,K,J)*CONPCB_W(I,K,J) !(g Txc/g OC . day)
+        TxcBdyAccmLZ = AlphaLZ*RLZ(I,K)*((1.0*CnbToDWLZ)/LipidFracLZ)*PCBInLZPrey
+        TxLZLoss(I,K,J) = MLZ(I,K)*PcbConWLZ(I,K,J)
+        TxcUptkLossLZ = (KupLZ(I,K,J)/KowPCB)*PcbConWLZ(I,K,J)
+        TxcGrwthLossLZ =  GrwthLZ*PcbConWLZ(I,K,J) 
+
+        DTxcLZDT(I,K,J) = (TxLZUptk(I,K,J) + TxcBdyAccmLZ - (TxSZLoss(I,K,J) + TxcUptkLossLZ + TxcGrwthLossLZ)) / 86400.0
+      END DO
+    END DO
+  END DO
+
+  !--------------------------------------------------------------------------------- 
+END SUBROUTINE
 !---------------------------------------------------------------------------------------
 
 END MODULE
