@@ -977,11 +977,12 @@ Module MOD_WQM
  LOGICAL :: WqCalcOn
  !---------------------------------- Toxics cmm parameters --------------------------------------
  CHARACTER(LEN = 1024) :: TXCF_INC,TXCF_PNT,TXCF_OBC,TXCF_INC_SD,TxcHotWC,TxcHotSD1,TxcHotSD2,TxcAccSZ,TxcAccLZ
- REAL (SP) :: PTC_SD, PTC_WC,SED_DEN,DFFCOEFS12,BRLVEL,TxcSdmUnfm,CnbToDWLZ, LipidFracLZ
- REAL (SP) :: HNRCFF, KuptkSZ, KuptkLZ, KowPCB, GrwthSZ, GrwthLZ,CnbToDWSZ, LipidFracSZ
+ REAL (SP) :: PTC_SD, PTC_WC,SED_DEN,DFFCOEFS12,BRLVEL,TxcSdmUnfm,CnbToDWLZ, LipidFracLZ,AlphaSZ,AlphaLZ,ExcLossSZ
+ REAL (SP) :: HNRCFF, KuptkSZ, KuptkLZ, KowPCB, GrwthSZ, GrwthLZ,CnbToDWSZ, LipidFracSZ, VDiffCoff, KDecay,ExcLossLZ
+ REAL (SP) :: OxgToCbnSZ,OxgToCbnLZ,OxgRspRateSZ,OxgRspRateLZ,WetToDryRtSZ, WetToDryRtLZ, EchToEoxSZ, EchToEoxLZ 
  REAL(SP), ALLOCATABLE, DIMENSION (:) :: MolWghtCng
  CHARACTER(LEN = 120) :: TxcSdmInitType
- LOGICAL :: PCBTxcOn,MTLTxcOn, TxcHotstart,BioAcc
+ LOGICAL :: PCBTxcOn,MTLTxcOn, TxcHotstart,BioAcc,DynUptkON
  INTEGER :: NumTxcOutVar
  CHARACTER(LEN = 30), ALLOCATABLE, DIMENSION (:) :: PCBOutVrb
  !---------------------------------- Tracer cmm parameters --------------------------------------

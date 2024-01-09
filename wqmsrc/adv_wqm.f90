@@ -28,7 +28,7 @@ Subroutine ADV_WQM
       Use MOD_BCMAP, Only: IOBCN, I_OBC_N !Added by LB 17may2016
 		USE MOD_SIZES, ONLY : NTXVB, NBTCR
 
-      Use MOD_PAR, Only: NBN, BN_LOC, BN_MLT, BNC, NODE_MATCH_ALL !, & !
+      Use MOD_PAR, Only: NBN, BN_LOC, BN_MLT, BNC, NODE_MATCH_ALL,NGID !, & !
 !
       Implicit None
       Real (SP), Allocatable, Dimension (:, :, :) :: XFLUX, XFLUX_ADV
@@ -373,11 +373,16 @@ Subroutine ADV_WQM
 						 JJ = TCRPNT_ID (J)
 						 DO K = 1, KBM1
 								STPOINT = BCTCFQDIS (J, II)
-
+                     !IF(NGID(JJ) == 13874 .AND. K == 1) THEN
+                     !   WRITE(*,*)'debugging1..............',NGID(JJ),STPOINT,TCRQDIST (J, K),XFLUX (JJ, K, II)
+                     !END IF
 								XFLUX (JJ, K, II) = XFLUX (JJ, K, II) - BCTFQDIS (J) * &
 							 & TCRQDIST (J, K) * STPOINT / DZ2D (JJ,K)
-							 !WRITE(*,*)J,XFLUX (JJ, K, II),TXFQDIS (J),TXQDIST (J, K),STPOINT
-							 !WRITE(*,*)'---------------------------------'
+                      !IF(NGID(JJ) == 13874 .AND. K == 1) THEN
+							 !     WRITE(*,*)'debugging2..............',NGID(JJ),STPOINT,TCRQDIST (J, K),XFLUX (JJ, K, II)
+                       !    WRITE(*,*)'---------------------------------'
+                      !END IF
+							 
 
 						 END DO
 					END DO

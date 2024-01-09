@@ -10,7 +10,7 @@ Module MOD_NCD
       Use NETCDF
       Use MOD_PREC, Only: SP, CDF_PREC !
 	  USE MOD_WQM, ONLY : NumTxVrb, NumTxcOutVar, TxcOutVar, TxcKntOn, TxcOutput, SdmHT, TcrtConW, &
-						& TcrtConSdm, TcrKntOn, NumTcrVrb, NumTcrOutVar, TcrOutVar, TcrtOutput, C2, SPM, &
+						& TcrtConSdm, TcrKntOn, NumTcrVrb, NumTcrOutVar, TcrOutVrb, TcrtOutput, C2, SPM, &
 						& PcbCon_W, PcbCon_AlgW, PcbCon_ZplW, PcbCon_SldW, PcbCon_POCW, PcbCon_DOCW, &
 						& PcbConW_S1, PcbCon_POCS1, PcbCon_DOCS1, PcbConW_S2, PcbCon_POCS2, PcbCon_DOCS2, BioAcc, &
 						& PcbConWSZ, PcbConWLZ
@@ -2186,7 +2186,7 @@ END IF
 !----------------------------- tracer/pollutant related variables --------------------------------
 IF((TcrKntOn == .TRUE.) .AND. (TcrtOutput== .TRUE.)) THEN 
 	DO i=1,NumTcrOutVar
-		SELECT CASE (TRIM(TcrOutVar(i)))
+		SELECT CASE (TRIM(TcrOutVrb(i)))
 		CASE("TcrtConW")
 			ierr = nf90_def_var(nc_ofid,"TcrtConW",nf90_float,dynm4tcr_lay,Tcrwc_vid)
 			ierr = nf90_put_att(nc_ofid,Tcrwc_vid,"long_name","Tracer concentration in the water column")
@@ -3157,7 +3157,7 @@ END IF
 !--------------------------------- Tracer/pollutant --------------------------------------------------
 IF((TcrKntOn == .TRUE.) .AND. (TcrtOutput == .TRUE.)) THEN 
 		DO i=1,NumTcrOutVar 
-			SELECT CASE (TRIM(TcrOutVar(i)))
+			SELECT CASE (TRIM(TcrOutVrb(i)))
 				CASE("TcrtConW")
 					CALL PUTSVAR_TXC4D(nc_ofid,Tcrwc_vid,MLOC,KBM1,NumTcrVrb,TcrtConW,stck_cnt)
 

@@ -662,7 +662,7 @@ Contains
        !
 #if(0) /*skip debugging and testing */
        !
-       !Test : master gather's the same data that was scattered to child processes
+       !Test : master gathers the same data that was scattered to child processes
        !       and check if the gathered data is the same as what was sent out
        !
        !Master prints the global data

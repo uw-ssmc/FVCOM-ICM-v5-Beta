@@ -3397,8 +3397,10 @@ SUBROUTINE MainSetup
                      & DFFCOEFS12,BRLVEL,MolWghtCng,HNRCFF,TcrSdmInitType,TcrSdmUnfm,BACTERIAON, &
                      & RADIONUCON,NOTCRKNTS,NumTcrOutVar,KnBact,C0SalBact,AlphaBact,ThetaBact, &
                      & RnHalfTime,RnKd,VonKrmn,Rgfh,PtcDensity,ErsnCoeff,CrtShear,SdmPrst,WqCalcOn, PCBOutVrb, &
-                     & TCROutVrb, TxcHotstart, TxcHotWC,TxcHotSD1,TxcHotSD2, BioAcc,KuptkSZ, KuptkLZ, KowPCB, & 
-                     & GrwthSZ,GrwthLZ,CnbToDWSZ,LipidFracSZ,CnbToDWLZ, LipidFracLZ,TxcAccSZ,TxcAccLZ
+                     & TcrOutVrb, TxcHotstart, TxcHotWC,TxcHotSD1,TxcHotSD2, BioAcc,KuptkSZ, KuptkLZ, KowPCB, & 
+                     & GrwthSZ,GrwthLZ,CnbToDWSZ,LipidFracSZ,CnbToDWLZ, LipidFracLZ,TxcAccSZ,TxcAccLZ,DynUptkON, &
+                     & OxgToCbnSZ,OxgToCbnLZ,OxgRspRateSZ,OxgRspRateLZ,WetToDryRtSZ, WetToDryRtLZ, EchToEoxSZ, & 
+                     & EchToEoxLZ,AlphaSZ,AlphaLZ, VDiffCoff, KDecay,ExcLossSZ,ExcLossLZ
   USE MOD_SIZES, ONLY: NCP, NTXVB, NBTCR, HydVersionNum
   USE MOD_CONTROL, ONLY: MSR
   IMPLICIT NONE
@@ -3440,7 +3442,7 @@ SUBROUTINE MainSetup
     IF(PCBTxcOn) THEN
         ALLOCATE(MolWghtCng(NumTxVrb))
         NAMELIST /TXC_PARAMETER_PCB/ PTC_WC,PTC_SD,SED_DEN,DFFCOEFS12,BRLVEL,MolWghtCng, &
-                            & HNRCFF,KowPCB
+                            & HNRCFF,KowPCB,VDiffCoff,KDecay
         READ(377,NML = TXC_PARAMETER_PCB, IOSTAT = end_file)
         ALLOCATE(PCBOutVrb(NumTxcOutVar))
         NAMELIST /TXC_OUT_PCB/PCBOutVrb
@@ -3449,8 +3451,14 @@ SUBROUTINE MainSetup
 
     IF(BioAcc) THEN 
         NAMELIST /TXC_BIOACCM/TxcAccSZ,TxcAccLZ,KuptkSZ,KuptkLZ,GrwthSZ,GrwthLZ,CnbToDWSZ,CnbToDWLZ, &
-                    & LipidFracSZ, LipidFracLZ
+                    & LipidFracSZ, LipidFracLZ, AlphaSZ, AlphaLZ, ExcLossSZ, ExcLossLZ, DynUptkON
         READ(377,NML = TXC_BIOACCM, IOSTAT = end_file)
+    END IF
+
+    IF((BioAcc == .TRUE.) .AND. (DynUptkON == .TRUE.)) THEN 
+        NAMELIST /TXC_BIOACCM_UPTAKE/OxgToCbnSZ,OxgToCbnLZ,OxgRspRateSZ,OxgRspRateLZ,WetToDryRtSZ, &
+                    & WetToDryRtLZ, EchToEoxSZ, EchToEoxLZ 
+        READ(377,NML = TXC_BIOACCM_UPTAKE, IOSTAT = end_file)
     END IF
 
   END IF
@@ -3483,8 +3491,8 @@ SUBROUTINE MainSetup
         READ(377,NML = SEDIMENT_PARA, IOSTAT = end_file)
     END IF
 
-    ALLOCATE(TCROutVrb(NumTcrOutVar))
-    NAMELIST /TCR_OUT/TCROutVrb
+    ALLOCATE(TcrOutVrb(NumTcrOutVar))
+    NAMELIST /TCR_OUT/TcrOutVrb
     READ(377,NML = TCR_OUT, IOSTAT = end_file) 
 
   END IF

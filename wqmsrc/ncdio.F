@@ -457,10 +457,16 @@ Subroutine NCD_READ (INFILE, UL, VL, WTSL, UARD_OBCNL, XFLUX_OBCL, &
      !
          Do K = 1, KBM1
             Do I = 1, MLOC
+                IF(SL_GL (NGID(I), K) < 0.00000001) THEN 
+                    SL_GL (NGID(I), K) = 0.0
+                END IF
                SL (I, K) = SL_GL (NGID(I), K)
             End Do
         !
             Do I = 1, NHN
+                IF(SL_GL (HN_LST(I), K) < 0.00000001) THEN 
+                    SL_GL (HN_LST(I), K) = 0.0
+                END IF
                SL (I+MLOC, K) = SL_GL (HN_LST(I), K)
             End Do
          End Do

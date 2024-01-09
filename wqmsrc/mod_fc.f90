@@ -878,6 +878,7 @@ INTEGER :: I,K,JJ
     ELSE 
         TcrtConW(:,:,:) = ConTcr(:,:,:)
     END IF
+    SdmDryDen = 1.0
     TcrtConSdm(:,:) = ConTcrSdm1(:,:)/SdmDryDen
 
 END SUBROUTINE

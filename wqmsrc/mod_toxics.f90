@@ -11,7 +11,8 @@ MODULE TXC_KNT
                     & PcbConTS1, PcbConTS2,PCBInOC,TxSZUptk,TxLZUptk, TxSZLoss, TxLZLoss, PCBInSZ, &
                     & TXCF_INC,TXCF_PNT,TXCF_OBC, TXCF_INC_SD,PTC_SD, PTC_WC,SED_DEN, & 
                     & DFFCOEFS12, BRLVEL,MolWghtCng,HNRCFF,TxcSdmInitType,TxcSdmUnfm, TxcAccSZ,TxcAccLZ, &
-                    & PCBTxcOn,MTLTxcOn,NumTxcOutVar,TxcHotWC,TxcHotstart,TxcHotSD1,TxcHotSD2, PCBOutVrb
+                    & PCBTxcOn,MTLTxcOn,NumTxcOutVar,TxcHotWC,TxcHotstart,TxcHotSD1,TxcHotSD2, PCBOutVrb, &
+                    & VDiffCoff, KDecay,ExcLossSZ,ExcLossLZ
 
   USE MOD_CONTROL, ONLY: SERIAL, MSR, PAR
   USE MOD_PAR, Only: NGID, NHN, HN_LST, NLID
@@ -868,8 +869,8 @@ SUBROUTINE PCB_KNT()
 IMPLICIT NONE
 
   REAL (SP) :: DC_SSI_W, DC_POC_W, DC_ALG1_W, DC_ALG2_W, DC_ZOO_W, DC_DOC_W, DC_VOL_W
-  REAL (SP) :: DCSSI_INS1, DCPOC_INS1, DCAG1_INS1, DCAG2_INS1
-  REAL (SP) :: DCSSI_INS2, DCPOC_INS2, DCAG1_INS2, DCAG2_INS2,KLO2
+  REAL (SP) :: DCSSI_INS1, DCPOC_INS1, DCAG1_INS1, DCAG2_INS1, DCDecay, DCMixWater
+  REAL (SP) :: DCSSI_INS2, DCPOC_INS2, DCAG1_INS2, DCAG2_INS2,KLO2, DCPOC_OUTS2
   REAL (SP) :: DCSSI_OUTS1, DCPOC_OUTS1, DCDOC_OUTS1, GRADC12, DCDOC_DFFS1, DCDOC_DFFS2
   REAL (SP) :: TOTDC_INS1, TOTDC_INS2, Rg, T_abs, VOLVEL,KRATIO, KLCFF,KGCFF
   REAL (SP), DIMENSION(0:MTLOC,KBM1,NTXVB) :: DMPCB_W
@@ -888,7 +889,7 @@ Rg = 8.206E-05
      KGCFF = 61320.0*((18/MolWghtCng(j))**0.25)*WMS   ! m/yr
      KRATIO = KLCFF/KGCFF
      VOLVEL = KLCFF*(HNRCFF/(HNRCFF + Rg*T_abs*KRATIO))   ! m/yr
-     DC_VOL_W = VOLVEL*CONPCB_W(I,1,j) / (D(I)*DZ2D(I,1)) / (86400.0*365.0)
+     DC_VOL_W = (VOLVEL*CONPCB_W(I,1,j)*FD_W(I,1,j)) / (D(I)*DZ2D(I,1)) / (86400.0*365.0)
      IF(DC_VOL_W < 0.0) THEN
        DC_VOL_W = 0.0          ! Volatilization model assumes negligible PCB concen in atmosphere
      END IF
@@ -899,11 +900,12 @@ Rg = 8.206E-05
      DC_POC_W = (WSL (I,1)*CONPCB_W(I,1,j)*FP_POC_W(I,1,j)) / (D(I)*DZ2D(I,1)) / 86400.0
      DC_ALG1_W = (WS1 (I,1)*CONPCB_W(I,1,j)*FP_BOC1_W(I,1,j)) / (D(I)*DZ2D(I,1)) / 86400.0
      DC_ALG2_W = (WS2 (I,1)*CONPCB_W(I,1,j)*FP_BOC2_W(I,1,j)) / (D(I)*DZ2D(I,1)) / 86400.0
+     DCDecay = KDecay*CONPCB_W(I,1,j)/86400.0
 
-     DMPCB_W(I,1,j) = -DC_SSI_W - DC_POC_W - DC_ALG1_W - DC_ALG2_W - DC_VOL_W
+     DMPCB_W(I,1,j) = -DC_SSI_W - DC_POC_W - DC_ALG1_W - DC_ALG2_W - DC_VOL_W - DCDecay
 
      IF(ISNAN(DMPCB_W(I,1,j))) THEN 
-        WRITE(*,*)'Toxic Concen difference Values goes to NAN at top layer',DC_VOL_W,HNRCFF
+        WRITE(*,*)'Toxic Concen difference Values goes to NAN at top layer',DC_VOL_W,HNRCFF,VOLVEL,KLCFF,WMS,CONPCB_W(I,1,j),FD_W(I,1,j)
         STOP
      END IF
 
@@ -924,8 +926,9 @@ Rg = 8.206E-05
                 & / (D(I)*DZ2D(I,K)) /86400.0
        DC_ALG2_W = (WS2 (I,K-1)*CONPCB_W(I,K-1,j)*FP_BOC2_W(I,K-1,j) - WS2 (I,K)*CONPCB_W(I,K,j)*FP_BOC2_W(I,K,j)) &
                 & / (D(I)*DZ2D(I,K)) /86400.0
+       DCDecay = KDecay*CONPCB_W(I,K,j) / 86400.0
 
-       DMPCB_W(I,K,j) = DC_SSI_W + DC_POC_W + DC_ALG1_W + DC_ALG2_W 
+       DMPCB_W(I,K,j) = DC_SSI_W + DC_POC_W + DC_ALG1_W + DC_ALG2_W - DCDecay
 
       IF(ISNAN(DMPCB_W(I,K,j))) THEN 
         WRITE(*,*)'Toxic Concen difference Values goes to NAN at middle layers'
@@ -943,7 +946,7 @@ Rg = 8.206E-05
 !----------------------------------------------------------------------------------------
  DO I=1,MLOC
    DO j=1,NTXVB
-      DFFVS12W(I) = (69.35*PSRT1(I)*(MolWghtCng(j)**(-2.0/3.0)))/365.0   ! Diffusive mixing velocity (Chapra, 1997) (m/d)
+      DFFVS12W(I) = (VDiffCoff*PSRT1(I)*(MolWghtCng(j)**(-2.0/3.0)))/365.0   ! Diffusive mixing velocity (Chapra, 1997) (m/d)
       DC_SSI_W = ((WSSHI (I,KBM1) - WSSNET(I))*CONPCB_W(I,KBM1,j)*FP_SSI_W(I,KBM1,j)) &
               & / (D(I)*DZ2D(I,KBM1)) / 86400.0   ! similar to resuspension
       DC_POC_W = ((WSL (I,KBM1) - WSLNET(I))*CONPCB_W(I,KBM1,j)*FP_POC_W(I,KBM1,j)) &
@@ -953,11 +956,14 @@ Rg = 8.206E-05
       DC_ALG2_W = ((WS2 (I,KBM1) - WS2NET(I))*CONPCB_W(I,KBM1,j)*FP_BOC2_W(I,KBM1,j)) &
               & / (D(I)*DZ2D(I,KBM1)) / 86400.0
       DC_DOC_W = DFFVS12W(I)*(CONPCB_S1(I,j)*FP_DOC_S1(I,j) - CONPCB_W(I,KBM1,j)*FP_DOC_W(I,KBM1,j)) / &
-                  & TXCHT1(I) / 86400.0      ! Diffusive mixing with sediment layer
-      DC_DOC_W = 0.0
+                  & TXCHT1(I) / 86400.0      ! Diffusive mixing with sediment layer  - DOC
+      DCMixWater = DFFVS12W(I)*(CONPCB_S1(I,j)*FD_WS1(I,j) - CONPCB_W(I,KBM1,j)*FD_W(I,KBM1,j)) / &
+                  & TXCHT1(I) / 86400.0      ! Diffusive mixing with sediment layer  - Water
+      DCDecay = KDecay*CONPCB_W(I,KBM1,j) / 86400.0
+      !DC_DOC_W = 0.0
 
       DMPCB_W(I,KBM1,j) = DMPCB_W(I,KBM1,j) + DC_SSI_W + DC_POC_W + DC_ALG1_W + DC_ALG2_W &
-                          & + DC_DOC_W 
+                          & + DC_DOC_W + DCMixWater - DCDecay
 
       IF(ISNAN(DMPCB_W(I,KBM1,j))) THEN 
         WRITE(*,*)'Toxic Concen difference Values goes to NAN at the bottom layer'
@@ -981,13 +987,15 @@ DO I=1, MLOC
     !DCPOC_OUTS1 = WPOC12(I)*CONPCB_S1(I,j)*FP_POC_S1(I,J) / TXCHT1(I) / 86400.0
     DCDOC_OUTS1 = DFFVS12W(I)*(CONPCB_S1(I,j)*FP_DOC_S1(I,j) - CONPCB_W(I,KBM1,j)*FP_DOC_W(I,KBM1,j)) / &
                               & TXCHT1(I) / 86400.0   ! Diffusive mixing with water column
+    DCMixWater = DFFVS12W(I)*(CONPCB_S1(I,j)*FD_WS1(I,j) - CONPCB_W(I,KBM1,j)*FD_W(I,KBM1,j)) / &
+                  & TXCHT1(I) / 86400.0 
     GRADC12 = (CONPCB_S1(I,j)*FP_DOC_S1(I,j) - CONPCB_S2(I,j)*FP_DOC_S2(I,j))/(0.5*(TXCHT1(I)+TXCHT2(I)))
     DCDOC_DFFS1 = DFFCOEFS12*GRADC12/TXCHT1(I)    ! Molecular diffusion into sdlyr 2
 
     !DCDOC_OUTS1 = 0.0
     !DCDOC_DFFS1 = 0.0
 
-    DMPCB_S(I,j,1) = TOTDC_INS1 - DCDOC_OUTS1 - DCDOC_DFFS1
+    DMPCB_S(I,j,1) = TOTDC_INS1 - DCDOC_OUTS1 - DCDOC_DFFS1 - DCMixWater
 
 
   END DO
@@ -1009,9 +1017,10 @@ DO I=1, MLOC
 
     GRADC12 = (CONPCB_S1(I,j)*FP_DOC_S1(I,j) - CONPCB_S2(I,j)*FP_DOC_S2(I,j))/(0.5*(TXCHT1(I)+TXCHT2(I)))
     DCDOC_DFFS2 = DFFCOEFS12*GRADC12/TXCHT2(I)
+    DCPOC_OUTS2 = (BRLVEL*CONPCB_S2(I,j)*FP_POC_S2(I,j))/TXCHT2(I)/365.0/86400.0
     !DCDOC_DFFS2 = 0.0
 
-    DMPCB_S(I,j,2) = TOTDC_INS2 + DCDOC_DFFS2
+    DMPCB_S(I,j,2) = TOTDC_INS2 + DCDOC_DFFS2 - DCPOC_OUTS2
 
   END DO
 END DO
@@ -1058,21 +1067,28 @@ END SUBROUTINE
 !---------------------------------------------------------------------------------------
 SUBROUTINE BioAccum
 USE MOD_ZOOP, ONLY: RSZ, RLZ, MSZ, MLZ, SZ, LZ
+USE MOD_WQM, ONLY: DynUptkON, OxgToCbnSZ,OxgToCbnLZ,OxgRspRateSZ,OxgRspRateLZ,WetToDryRtSZ, &
+                  & WetToDryRtLZ, EchToEoxSZ, EchToEoxLZ, DOXG, AlphaLZ, AlphaSZ
 
   IMPLICIT NONE 
 
-  REAL (SP) :: AlphaSZ, TxcBdyAccmSZ, TxcUptkLossSZ, TxcGrwthLossSZ,PCBInSZPrey,PCBInLZPrey
-  REAL (SP) :: AlphaLZ, TxcBdyAccmLZ, TxcUptkLossLZ, TxcGrwthLossLZ
+  REAL (SP) :: TxcBdyAccmSZ, TxcUptkLossSZ, TxcGrwthLossSZ,PCBInSZPrey,PCBInLZPrey
+  REAL (SP) :: TxcBdyAccmLZ, TxcUptkLossLZ, TxcGrwthLossLZ, DelConPCBWUptk, DelConPCBWLoss
+  REAL (SP) :: TxcExcrSZ, TxcExcrLZ
 
   !---------------------------------------------------------------------------------
-  AlphaSZ = 1.0
-  AlphaLZ = 1.0
   DTxcSZDT = 0.0
   DTxcLZDT = 0.0
+
   DO K=1,KBM1
     DO I=1,MLOC 
       DO J=1,NTXVB
-        !------------------------ Accumulation in Microzooplankton-----------------------------------------------
+        !------------------------ Accumulation in Microzooplankton----------------------------------------------- 
+        IF (DynUptkON == .TRUE.) THEN
+            KupSZ(I,K,J) = ((OxgToCbnSZ*CnbToDWSZ*OxgRspRateSZ)/(WetToDryRtSZ*LipidFracSZ*DOXG(I,K)))*EchToEoxSZ
+            KupLZ(I,K,J) = ((OxgToCbnLZ*CnbToDWLZ*OxgRspRateLZ)/(WetToDryRtLZ*LipidFracLZ*DOXG(I,K)))*EchToEoxLZ
+        END IF
+
         PCBInOC(I,K,J) = (FP_BOC1_W(I,K,J) * CONPCB_W(I,K,J)  +  FP_BOC2_W(I,K,J) * CONPCB_W(I,K,J) + &
                           & FP_POC_W(I,K,J) * CONPCB_W(I,K,J))
         PCBInSZPrey = PCBInOC(I,K,J) / (C2(I,K,4) + C2(I,K,5) + C2(I,K,11) + C2(I,K,12)) !(g Txc/g OC)
@@ -1080,10 +1096,11 @@ USE MOD_ZOOP, ONLY: RSZ, RLZ, MSZ, MLZ, SZ, LZ
         TxSZUptk(I,K,J) = KupSZ(I,K,J)*FD_W(I,K,J)*CONPCB_W(I,K,J) !(g Txc/g OC . day)
         TxcBdyAccmSZ = AlphaSZ*RSZ(I,K)*((1.0*CnbToDWSZ)/LipidFracSZ)*PCBInSZPrey
         TxSZLoss(I,K,J) = MSZ(I,K)*PcbConWSZ(I,K,J)
+        TxcExcrSZ = ExcLossSZ*PcbConWSZ(I,K,J)
         TxcUptkLossSZ = (KupSZ(I,K,J)/KowPCB)*PcbConWSZ(I,K,J)
         TxcGrwthLossSZ = GrwthSZ*PcbConWSZ(I,K,J)
 
-        DTxcSZDT(I,K,J) = (TxSZUptk(I,K,J) + TxcBdyAccmSZ - (TxSZLoss(I,K,J) + TxcUptkLossSZ + TxcGrwthLossSZ)) / 86400.0
+        DTxcSZDT(I,K,J) = (TxSZUptk(I,K,J) + TxcBdyAccmSZ - (TxSZLoss(I,K,J) + TxcUptkLossSZ + TxcGrwthLossSZ + TxcExcrSZ)) / 86400.0
 
         !--------------------------- Accumulation in Mesozooplankton ---------------------------------------------
         PCBInSZ(I,K,J) = PcbConWSZ(I,K,J) ! (g Txc/g OC)
@@ -1092,10 +1109,15 @@ USE MOD_ZOOP, ONLY: RSZ, RLZ, MSZ, MLZ, SZ, LZ
         TxLZUptk(I,K,J) = KupLZ(I,K,J)*FD_W(I,K,J)*CONPCB_W(I,K,J) !(g Txc/g OC . day)
         TxcBdyAccmLZ = AlphaLZ*RLZ(I,K)*((1.0*CnbToDWLZ)/LipidFracLZ)*PCBInLZPrey
         TxLZLoss(I,K,J) = MLZ(I,K)*PcbConWLZ(I,K,J)
+        TxcExcrLZ = ExcLossLZ*PcbConWLZ(I,K,J)
         TxcUptkLossLZ = (KupLZ(I,K,J)/KowPCB)*PcbConWLZ(I,K,J)
         TxcGrwthLossLZ =  GrwthLZ*PcbConWLZ(I,K,J) 
 
-        DTxcLZDT(I,K,J) = (TxLZUptk(I,K,J) + TxcBdyAccmLZ - (TxSZLoss(I,K,J) + TxcUptkLossLZ + TxcGrwthLossLZ)) / 86400.0
+        DTxcLZDT(I,K,J) = (TxLZUptk(I,K,J) + TxcBdyAccmLZ - (TxLZLoss(I,K,J) + TxcUptkLossLZ + TxcGrwthLossLZ + TxcExcrLZ)) / 86400.0 
+
+        !--------------------------------------------------------------------------------------------------------- 
+
+        
       END DO
     END DO
   END DO

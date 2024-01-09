@@ -29,21 +29,23 @@
 
 &TXC_PARAMETER_PCB
     !--------------- parameters  for PCB kinetcs ------------------ 
-    PTC_WC = 3.16     !K_PW (m^3/g) - partition coefficient
-    PTC_SD = 3.16     !K_PS (m^3/g) 
+    PTC_WC = 3.893     !K_PW (m^3/g) - partition coefficient
+    PTC_SD = 3.893     !K_PS (m^3/g) 
     SED_DEN = 1.7E+06    !density (g/m^3)
     DFFCOEFS12 = 0.05       ! diffusion coefficient for PCB transfer between sdLy1 and sdLy2 (m^2/s)
-    BRLVEL = 0.0        ! burial velocity of solid sediments from sdLy2 (m/yr)
+    BRLVEL = 0.01        ! burial velocity of solid sediments from sdLy2 (m/yr)
     MolWghtCng = 326.0   ! molecular weight arrays (g/mol)
     HNRCFF = 0.004385     ! non-dimensional Henry's coefficient
-    KowPCB = 3.16     ! (m^3/g) K_ow values for PCB-118
+    KowPCB = 6.3095   ! (m^3/g) K_ow values for PCB-118
+    VDiffCoff = 69.35     ! diffusive mixing velocity (m/yr)
+    KDecay = 0.001        ! decay constant (1/day)
 /
 
 &TXC_OUT_PCB
     !------------- PCB related output variables for netcdf outputs -----------------
     PCBOutVrb = 'PcbCon_W','PcbCon_AlgW','PcbCon_POCW','PcbCon_DOCW','PcbConWSZ','PcbConWLZ'
     !PcbCon_W - PCBs in dissolved phase
-    !PcbCon_ZplW - PCBs in zooplankton (both micro and messo)
+    !PcbCon_ZplW - PCBs in zooplankton (both micro and meso)
     !PcbCon_AlgW - PCBs in algae (both in diatom and dinoflagellates) 
     !PcbCon_SldW - PCBs in inorganic solids
     !PcbCon_POCW - PCBs in POC
@@ -57,17 +59,36 @@
 /
 
 &TXC_BIOACCM
-    TxcAccSZ = 'inputs/PCBAccmSZ.dat'    ! initially aacumulated PCBs in microzooplankton
-    TxcAccLZ = 'inputs/PCBAccmLZ.dat'    ! initially accumulated PCBs in mesozooplankton
+    !------------- Settings for Bioaccumulation of toxicants --------------------------
+    TxcAccSZ = 'inputs/TxcAccSZRestart364.dat'    ! initially aacumulated PCBs in microzooplankton
+    TxcAccLZ = 'inputs/TxcAccLZRestart364.dat'    ! initially accumulated PCBs in mesozooplankton
     KuptkSZ = 1.1      ! (m^3/g OC) direct uptake of toxics by microzooplankton
     KuptkLZ = 1.1     ! (m^3/g OC) direct uptake of toxics by mesozooplankton
-    GrwthSZ = 0.15     ! (per day) average growth rate of microzooplankton
-    GrwthLZ = 0.12     ! (per day) average growth rate of mesozooplankton
-    CnbToDWSZ = 0.48   ! Carbon to Dry Weight SZ ratio 
-    CnbToDWLZ = 0.48   ! Carbon to Dry Weight LZ ratio
-    LipidFracSZ = 0.15  ! Lipid content to Dry Weight SZ ratio 
-    LipidFracLZ = 0.15  ! Lipid content to Dry Weight LZ ratio 
+    GrwthSZ = 0.21     ! (per day) average growth rate of microzooplankton
+    GrwthLZ = 0.013     ! (per day) average growth rate of mesozooplankton
+    CnbToDWSZ = 0.4   ! Carbon to Dry Weight SZ ratio 
+    CnbToDWLZ = 0.4   ! Carbon to Dry Weight LZ ratio
+    LipidFracSZ = 0.4  ! Lipid/OC content to Dry Weight SZ ratio 
+    LipidFracLZ = 0.4  ! Lipid/OC content to Dry Weight LZ ratio
+    AlphaSZ = 0.7      ! chemical transfer efficiency (microzoo)
+    AlphaLZ = 0.7      ! chemical transfer efficiency (mesozoo)
+    ExcLossSZ = 0.32      ! loss rate due to excretion for microzooplankton (1/day)
+    ExcLossLZ = 0.32      ! loss rate due to excretion for mesozooplankton (1/day)
+    DynUptkON = .TRUE.  ! dynamic toxicant uptake by the organism
 /
+
+&TXC_BIOACCM_UPTAKE
+    !--------------- Variable direct uptake of toxicant for bioaccumulation -------------
+    OxgToCbnSZ = 2.67    ! oxygen to carbon ratio of organism (microzoo)
+    OxgToCbnLZ = 2.67    ! oxygen to carbon ratio of organism (mesozoo)
+    OxgRspRateSZ = 0.1  ! (microzoo respiration rate (per day))
+    OxgRspRateLZ = 0.1  ! (mesozoo respiration rate (per day))
+    WetToDryRtSZ = 4.5   ! Wet to Dry weight ratio of organism (microzoo)
+    WetToDryRtLZ = 4.5   ! Wet to Dry weight ratio of organism (mesozoo)
+    EchToEoxSZ = 0.7     ! Ratio of chemical transfer efficieny to Oxg transfer efficiency (microzoo)
+    EchToEoxLZ = 0.7     ! Ratio of chemical transfer efficieny to Oxg transfer efficiency (mesozoo)
+/
+
 
 &TCR_SETUP
     !--------------- input data files for tracer module ---------------
