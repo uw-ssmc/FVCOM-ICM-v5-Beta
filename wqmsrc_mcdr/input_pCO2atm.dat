@@ -1,0 +1,15 @@
+!pCO2 or fCO2 in the atmosphere (microatm or ppmv).  First line: option for air-sea exchange parameterization
+! Second line: UNIFORM or SPATIAL. Third line: fCO2 or pCO2. If pCO2 provided instead of fCO2, a fugacity factor will be used to turn pCO2 into fCO2 in the code.
+! Fourth+ line(s): If UNIFORM, fourth line has pCO2air value. If SPATIAL, each line has pCO2air per node. 
+2           !1=reareation,  2=Wanninkhof (1992), 3=Nightingale (2000), 4=Ho (2006),  5=Wanninkhof (2012)
+UNIFORM 
+fCO2
+400
+
+
+
+!pCO2 or fCO2 in the atmosphere (microatm or ppmv). First line: UNIFORM or SPATIAL. Second line: fCO2 or pCO2. If pCO2 provided instead of fCO2, a fugacity factor will be used to turn pCO2 into fCO2 in the code.
+!Third+ line(s): If UNIFORM, third line has pCO2air value. If SPATIAL, each line has pCO2air per node. 
+UNIFORM 
+fCO2
+400

@@ -1,3 +1,44 @@
+!mod_sav.F
+!************************************************************************
+!**                                                                    **
+!**                           FVCOM-ICM_4.0                            **
+!**                                                                    **
+!**               A Finite Volume Based Integrated Compartment         **
+!**                         Water Quality Model                        **      
+!**        The original unstructured-grid ICM code was developed by    ** 
+!**    the FVCOM development team at the University of Massachusetts   ** 
+!**         through a contract with U.S. Army Corps of Engineers       ** 
+!**         [Dr. Changsheng Chen (PI), Dr. Jianhua Qi and              ** 
+!**                      Dr. Geoffrey W. Cowles]                       **
+!**                                                                    **
+!**                Subsequent Development and Maintenance by           ** 
+!**                   PNNL/UW Salish Sea Modeling Center               **
+!**                                                                    **
+!**                 Tarang Khangaonkar    :  PNNL (2008 - Present)     **
+!**                 Lakshitha Premathilake:  PNNL (2019 - Present)     **
+!**                 Adi Nugraha           :  PNNL/UW (2018 - Present)  **
+!**                 Kurt Glaesmann        :  PNNL (2008 - Present)     **
+!**                 Laura Bianucci        :  PNNL/DFO(2015 - Present)  **
+!**                 Wen Long              :  PNNL (2012-2016)          **
+!**                 Taeyum Kim            :  PNNL (2008-2011)          **
+!**                 Rochelle G Labiosa    :  PNNL (2009-2010)          **
+!**                                                                    **
+!**                                                                    **
+!**                     Adopted from CE-QUAL-ICM  Model                **
+!**                           Developed by:                            **
+!**                                                                    **
+!**             Carl F. Cerco      : Water quality scheme              **
+!**             Raymond S. Chapman : Numerical solution scheme         **
+!**             Thomas M. Cole     : Computer algorithms & coding      **
+!**             Hydroqual          : Sediment compartment              **
+!**                                                                    **
+!**                    Water Quality Modeling Group                    **
+!**                    U.S. Army Corps of Engineers                    **
+!**                    Waterways Experiment Station                    **
+!**                    Vicksburg, Mississippi 39180                    **
+!**                                                                    **
+!************************************************************************
+!
 Module MOD_SAV
   !
   !************************************************************************
@@ -18,7 +59,7 @@ Module MOD_SAV
   !
       Character (Len=8) SPNAM, EPINAM !name of the epiphyte
   !
-  !   Integer :: NSAVM !global maximum number of SAV species in all of tracer control elements (TCE's) - polygon
+  !   Integer :: NSAVM !global maximum number of SAV species in all of tracer control elements (TCEs) - polygon
   !surrounding a given node ! Move to MOD_SIZES.F - AN
   !
       Real (SP) :: KHSTOX, KESAV, KEEPI, KHEP, NLIMEPI !Never used ???
@@ -40,7 +81,7 @@ Module MOD_SAV
   !ALPHSAV,     &   !Initial slope of P-I curve for SAV [ (gC/gDW)/(E/m^2) ]
   !ALAC,        &   !m^2-leaf-area/gC-leaf (leaf area to leaf carbon ratio)
   !Note in 2002 version, it is the inverse ACLA: gC-leaf/m^2-leaf-area
-  !SLSAV,       &   !???? Never used !Sloughing rate of SAV ?  1/day
+  !SLSAV,       &   !  1/day
   !ACDWSAV,     &   !Carbon to Dry Weight ratio of SAV (gC/gDW)
   !ANDWSAV,     &   !Nitrogen to Dry Weight ratio of SAV (gN/gDW)
   !APDWSAV,     &   !Phosphorus to Dry Weight ratio of Sav (gP/gDW)
@@ -56,7 +97,7 @@ Module MOD_SAV
      & FPLDSAV, FPRDSAV, FPLPSAV, FPRPSAV, FCLDSAV, FCRDSAV, FCLPSAV, &
      & FCRPSAV, FDOSAV !Fraction of Carbon routed to CO2 (oxygen consumption) in water column due to SAV mortality
   !Note FDOSAV + FCLDSAV+ FCRDSAV + FCLPSAV + FCRPSAV = 1
-  !Wen Long: we really need to rename FDOSAV to FCO2SAV and make it equivalent to FDOSAV!
+ 
   !
       Real (SP) :: WSSSAV, WSLSAV, WSRSAV, WS1SAV, WS2SAV, WS3SAV, &
      & WSUSAV !Increase of particulate biogenic silica settling rate by SAV leaf and stem, m^3/gC/day
@@ -71,8 +112,8 @@ Module MOD_SAV
      & FNRPEPI, FPIEPI, FPLDEPI, FPRDEPI, FPLPEPI, FPRPEPI
   !FCLDEPI        !Fraction of C routed to LDOC due to basal metabolism of epiphyte
   !FCRDEPI	   !Fraction of C routed to RDOC due to basal metabolism of epiphyte
-  !				WLong: missing FCLPEPI and FCRPEPI to routt to LPOC and RPOC ??? (seems not coded)
-  !				FCLPEPI and FCRPEPI should be added (Wen Long)
+  !				
+  !				FCLPEPI and FCRPEPI should be added
   !				also missing FDOEPI compared to FDOSAV for SAV
   !				code assumes that no carbon will be routed to LPOP and RPOP due to metabolism
   !				and also FDOEPI=1-FCLDEPI-FCRDEPI, and FDOEPI is only implicitly used in calculating DOEPIW
@@ -103,8 +144,7 @@ Module MOD_SAV
   !FPSTEM, & !fraction of production assigned to stem growth
   !FPTUBER,& !fraction of production assigned to tuber growth
   !			Wen LONG:  FPLEAF +FPROOT+FPSTEM+FPTUBER = 1
-  !all growth is based on photosynthesis by leaf
-  !(so stem and tuber have no photosynthesis?? I thought they look green )
+
   !TRTBRLF   !transfer rate from tuber to leaf (gC-Leaf/day/gC-Tuber)
   !
   !Look up table of temperature control in a year on growth and mortality rates of SAV and epiphytes
@@ -117,7 +157,7 @@ Module MOD_SAV
   !State variables of SAV model
       Real (SP), Allocatable, Dimension (:, :) :: LEAF, ROOT, STEM, &
      & TUBER, EP !Epiphytes biomass (gC-epiphytes/gm^2-leaf)
-  !Note in 2002 version of ICM, EP's unit was (gC-epiphytes/gC-leaf)
+  !Note in 2002 version of ICM, EP unit was (gC-epiphytes/gC-leaf)
       REAL (SP), ALLOCATABLE, DIMENSION(:) :: BM_LEAF
   !
       Real (SP), Allocatable, Dimension (:) :: SAVAREA !area of SAV coverage for each surface cell (m^2) --> needs to be changed for FVCOM grid
@@ -134,7 +174,7 @@ Module MOD_SAV
   !i.e. coverage is function of grid cell and SAV species
   !
   !Growth and mortality rates of SAV
-      Real (SP), Allocatable, Dimension (:, :) :: PLEAF !Leaf growth rate (1/day), P (SAV shoots growth) in C-M 2001 paper's SH equation
+      Real (SP), Allocatable, Dimension (:, :) :: PLEAF !Leaf growth rate (1/day), P (SAV shoots growth) in C-M 2001 papers SH equation
       Real (SP), Allocatable, Dimension (:) :: BMLEAF, BMSTEM, BMROOT, &
      & BMTUBER !respiration rate of tuber of SAV (1/day) with temperature control
   !
@@ -150,8 +190,7 @@ Module MOD_SAV
   !NLSAV,    &  !Nitrogen limiation on SAV growth (non-dimensional)
   !PLSAV,    &  !Phosphorus limitation on SAV growth (non-dimensional)
   !FNSEDSAV, &  !fraction of nitrogen uptake by SAV due to nitrogen in sediment pore water
-  !				Wen Long: I think we should further split into NH4 and NO3
-  !          uptake by SAV from sediments
+
   !FPSEDSAV, &  !fraction of phosphorus uptake by SAV due to P in sediment pore water
   !NLEPI,    &  !Nitrogen limitation on epiphytes growth (non-dimensional)
   !PLEPI,    &  !Phosphorus limitation on epiphytes growth (non-dimensional)
@@ -183,7 +222,7 @@ Module MOD_SAV
      & RPONEPIW, PO4EPIW, LDOPEPIW, RDOPEPIW, LPOPEPIW, RPOPEPIW
   !DOSAVW, &  !DO source (flux) due to SAV (source-sink) (gO2/m^2/day )
   !DOSAVW --> DTDO (gO2/m^3/sec)--> DTC (gO2/m^3/sec)
-  !-->DTM(gO2/m^3/sec)-->DTM*DLT-->C1(:,:,27)(gO2/m^3) !27'th constituents is DO
+  !-->DTM(gO2/m^3/sec)-->DTM*DLT-->C1(:,:,27)(gO2/m^3) !27th constituents is DO
   !LDOCSAVW, &  !LDOC flux due to SAV (gC/m^2/day)
   !WL                                              !***ALSO used by TVDS.F ****
   !LDOCSAVW --> DTDOC (gC/m^3/sec) -> DTC --> DTM --> DTM*DLT --> C1(:,:,9)
@@ -231,10 +270,7 @@ Module MOD_SAV
   !SEDPOPSAV, &  !POP flux to sedimetns (positive into sediments) due to SAV (gP/m^2/day)
   !SEDPOPSAV (gP/m^2/day) --> JPON (mgP/m^2/day) -> POP1, POP2, POP3 (source of particulate organic phosphorus in sediments)
   !SEDDOSAV,  &  !DO flux to water column (positive into water) due to SAV growth in sediments (source) and mortality of SAV in sedi
-  !(gO2/m^2/day) (WLong: does this have to be to water ?? I thought the sinks should be in sediments directly for root metabolism)
-  !WLong : we might need to split into DO production in water column
-  !due to leaf growht
-  !and Sediment Oxygen Demand due to root respiration
+  !(gO2/m^2/day) 
   !SEDNH4SAV, &  !NH4 flux to sediment (positive leaving sediment) due to SAV photosynthetic uptake of NH4 in sediments
   !(gN/m^2/day), SEDNH4SAV --> NH4T2TM1 (mg/N/m^3) decerase in sediments
   !SEDNO3SAV, &  !NO3 flux to sediment (positive leaving sediment) due to SAV photosynthetic uptake of NH4 in sediments
@@ -900,8 +936,7 @@ Contains
          Character (Len=72) :: TITLE (6)
          Character (Len=8) :: TIMVAR, PRINTIT
          ! Real (SP) :: KTPS1, KTPS2, KTBMSAV, KTPE1, KTPE2, KTBME, KTPRE !temperature control coefficient for epiphyte predation loss rate [1/degC]
-    !
-    ! vjp 8/23/05   added these declarations
+
          Integer :: I, J, N, K ! Wen Long: N is never used here
     !
          Integer :: NSAV !Number of SAV species
@@ -976,11 +1011,7 @@ Contains
     !
     !number of data entries for FPLEAF, FPSTEM, FPROOT, FPTUBER, TRTBRLF
     !if these change over time of the year (temperature). It is specified every 1/10 of DGRDAYS
-    !where DGRDAYS is caluclated as TDIFF*DLTDY, and TDIFF = max(T-3.0,0)  !Wen Long: I don't like this
-    !                                                    !            conversion of temperature to days
-    !                                                    !      spring and autumn have same temperature
-    !                                                    !but may not have same entries for FPLEAF etc here
-    !
+
          Read (SVI, 1042) NDDI, PRINTIT
     !1042 FORMAT(//8X,I8,A8)                   !go down two lines and read the third
          Read (SVI, 1032) (FPLEAF(J), FPSTEM(J), FPROOT(J), FPTUBER(J), &
@@ -1055,7 +1086,7 @@ Contains
     !
     !Carbon distribution to LDOC, RDOC up on basal metabolism
          Read (SVI, 1030) FCLDEPI, FCRDEPI !go down two lines and read the third
-    !WLong: missing FCLPEPI and FCRPEPI to routt to LPOC and RPOC ??? (seems not coded)
+    
     !FCLPEPI and FCRPEPI should be added (Wen Long),as these are coded for nitrogen
     !and there is no reason not to do the same for carbon. Also below LPOP and RPOP
     !have their share of carbon from predation loss. No reason that metabolism should be
@@ -1159,10 +1190,7 @@ Contains
                End If
             End Do
        !
-       !Wen Long:
-       !Should we deal with halo nodes using NGLD_X ?
-       !I guess not
-       !
+
          End If
 # endif
     !
@@ -1557,39 +1585,14 @@ Contains
        !Here DGRDAYS mean integration of tempreature in time
        ! i.e. the accumulative history of temperature that the
        ! plant has experienced and endured/enjoyed, which units [degC day]
-       !Wen Long: I do not like the hard-wired 1/10 here.
-       !
+
        !The look up table FPLEAF, FPSTEM, FPROOT, FPTUBER, TRTBRLF
        !has to be large enough to contain the whole life history
        !in [degC*day] units of the plant
        !when DGRDAYS --> infinity as time increases, the look up table
        !should asymptotically approach a set of limiting values corresponding
        !to the dying phase of the plant.
-       !
-       !Wen Long: what about the regeneration (newly born) of plants?
-       ! When should we introduce new generations ? and how to keep
-       ! different SAV's with in different aging phase simutaneously existing
-       ! in the model?
-       !
-       !Wen Long: We ought to keep a profile distribution of plants that are in different
-       !life stages at the same time, some of them really yong, some of them
-       !being adult and reproductive, some of them being very old and not as
-       !energetic and active.  We also ought to keep track of
-       !several species. And then we have to keep track of their height of above
-       !ground part, and their volume of occupancty of their roots (below ground).
-       !And we ought to sort the height of all classes(species, life stage)
-       !to determine the amount of light that each class is receiving.
-       !The amount of nutrients being uptaken by each class is
-       !determined by its height or biomass of leaves (photosynthesis)
-       !and its root biomass and root volume occupancy
-       !when root density exceeds certain value, we shall assume roots grow
-       !horizontally (rhizome growth) into neighboring territory. The above ground height is composed
-       !by leaf, stem and tuber. Reference: Keiko Aioi, Seasonal Change in the
-       !Standing Crop of Eelgrass (Zostera Marina L. ) in Odawa Bay, Central Japan,
-       !Aquatic Botany, Vol. 8, pp 343-354, 1980. Orth and Moore, Seasonal and
-       !year to year variations in the growth of zosteria marina L. in the lower
-       !Chesapeake Bay, Aquatic Botany, 24, pp. 335-341, 1986.
-       !
+ 
        !Laugier T. et. al., Seasonal dynamics in mixed eelgrass beds,
        !Zostera marina L. and Z. noltii Hornem.,in a Mediterranean coastal lagoon
        !(Thau lagoon, France) Aquatic Botany, 63, pp 51-69, 1999 gives log distribution
@@ -1710,10 +1713,7 @@ Contains
           !     ZTOCNPY = ZMEAN - HCAN !depth level of canopy top (m from surface), always positive
                ZTOCNPY = Max(ZMEAN - HCAN, 0.0_SP) !depth level of canopy top (m from surface), always positive
           !     WATATN(B,N) = EXP(-KESS(B,1)*ZTOCNPY)       !attenuation due to water column
-          !Wen Long: KESS(B) should now be KESS(B,k), where k is
-          !layer index, and B is bottom layer
-          !also we should do it from surface of water
-          !repeatdly until reaching ZTOCNPY depth to get IATCNPY below
+
           !
           !     WATATN (B, N) = Exp (-KESS(B, KBM1)*ZTOCNPY)!attenuation due to water column
                WATATN (B, N) = Exp (-KESS(B, 1)*ZTOCNPY)!attenuation due to water column
@@ -1791,12 +1791,11 @@ Contains
 
 
             NSED = Max (0., NH4T2TM1S_SHARE(B)/1000.)!NH4 in sediment anaerobic (2nd) layer  mgN/m^3 --> gN/m^3  ==  mgN/L
-       !WL: why not also take NO3 in sediemnt top layer ?
+
        !     NWAT = Max (0., NH4(B, KWC)+NO3(B, KWC))!NH4+NO3 in bottom layer of water column (gN/m^3)  (WAT means water)
 			NWAT = Max (0., AveNH4+AveNO3)!NH4+NO3 in bottom layer of water column (gN/m^3)  (WAT means water)
             PSED = Max (0., PO4T2TM1S_SHARE(B)/1000.)!PO4 in pore water of sediment anaerobic layer (gP/m^3)
-       !WL: why not use pore water, the upper calculation is total concentration
-       !
+
        !     DF = 1. / (1.+KADPO4*SSI(B, KWC))!fraction of dissolved PO4 in water column
 			DF = 1. / (1.+KADPO4*AveSSI)!fraction of dissolved PO4 in water column
        ! where KADPO4 is PO4 partitioning coefficient m^3/gSolids, as SSI has unit gSolids/m^3
@@ -2149,9 +2148,7 @@ Contains
           !FDOSAV is the portion of carbon loss
           !assocatied with oxydation of Organic Carbon
           !to CO2 (TDIC)
-          !
-          !WLong : we might need to split the above into DO production in water column
-          !due to leaf growth and Sediment Oxygen Demand due to root respiration
+
           !
           !SEDDOSAV should be added to SOD directly and let it affect sediment
           !structure (such as first layer thickness)
@@ -2162,13 +2159,7 @@ Contains
               & (1.-FDOSAV)!Root and Tuber mortality
           !
           ! NITROGEN AND PHOSPHORUS
-          !
-          !WL       SEDNH4SAV(B) = SEDNH4SAV(B)+SAVFRAC(B,N)*                    &
-          !WL                      FNSEDSAV(B)*PLEAF(B,N)*ANCSAV*LEAF(B,N)
-          !
-          !
-          !Wen Long: what about NO3 flux with sediments due to SAV uptake?
-          ! Here I split it using NPRSAV(B) (preference on NH4 over NO3)
+
           !
                SEDNH4SAV (B) = SEDNH4SAV (B) + SAVFRAC (B, N) * &
               & FNSEDSAV (B) * NPRSAV (B) * PLEAF (B, N) * ANCSAV * &
@@ -2279,13 +2270,7 @@ Contains
 				   EP(I,N)        = EPI(N)
                ENDDO
 
-       !
-       !WLong: may also need to do the following to initialize 2nd layer dissolved concentrations
-       !these are not needed for equation solver to march to next time step, but they might be
-       !written to output files at the beginning of the model (before first time step finished)
-       !Answer: actually in wqm_main.F these is written to outputs after call to SED_CALC is done
-       !       hence it is not a problem.
-       !
+
        !PIE1=PIENH4
        !PIE2=PIENH4
        !FD1=1/(1.0+m1*PIE1)

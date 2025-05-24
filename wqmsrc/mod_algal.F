@@ -1,3 +1,44 @@
+!mod_algal.F
+!************************************************************************
+!**                                                                    **
+!**                           FVCOM-ICM_4.0                            **
+!**                                                                    **
+!**               A Finite Volume Based Integrated Compartment         **
+!**                         Water Quality Model                        **      
+!**        The original unstructured-grid ICM code was developed by    ** 
+!**    the FVCOM development team at the University of Massachusetts   ** 
+!**         through a contract with U.S. Army Corps of Engineers       ** 
+!**         [Dr. Changsheng Chen (PI), Dr. Jianhua Qi and              ** 
+!**                      Dr. Geoffrey W. Cowles]                       **
+!**                                                                    **
+!**                Subsequent Development and Maintenance by           ** 
+!**                   PNNL/UW Salish Sea Modeling Center               **
+!**                                                                    **
+!**                 Tarang Khangaonkar    :  PNNL (2008 - Present)     **
+!**                 Lakshitha Premathilake:  PNNL (2019 - Present)     **
+!**                 Adi Nugraha           :  PNNL/UW (2018 - Present)  **
+!**                 Kurt Glaesmann        :  PNNL (2008 - Present)     **
+!**                 Laura Bianucci        :  PNNL/DFO(2015 - Present)  **
+!**                 Wen Long              :  PNNL (2012-2016)          **
+!**                 Taeyum Kim            :  PNNL (2008-2011)          **
+!**                 Rochelle G Labiosa    :  PNNL (2009-2010)          **
+!**                                                                    **
+!**                                                                    **
+!**                     Adopted from CE-QUAL-ICM  Model                **
+!**                           Developed by:                            **
+!**                                                                    **
+!**             Carl F. Cerco      : Water quality scheme              **
+!**             Raymond S. Chapman : Numerical solution scheme         **
+!**             Thomas M. Cole     : Computer algorithms & coding      **
+!**             Hydroqual          : Sediment compartment              **
+!**                                                                    **
+!**                    Water Quality Modeling Group                    **
+!**                    U.S. Army Corps of Engineers                    **
+!**                    Waterways Experiment Station                    **
+!**                    Vicksburg, Mississippi 39180                    **
+!**                                                                    **
+!************************************************************************
+!
 !************************************************************************
 !** This is a new version of algal input and kinetics.  Created for    **
 !** The Tributary Refinements portion of the Chesapeake Bay study.     **
@@ -48,7 +89,6 @@ Module MOD_ALGAL
       Use MOD_FILEINFO, Only: AGR, ALO
   !
       Use MOD_HYDROVARS, Only: DZ, DZ2D, D
-  !Wen Long took MOD_CONTROL out of MOD_HYDROVARS and put the used variables here
       Use MOD_CONTROL, Only: SERIAL, MSR, PAR
   !
       Use MOD_OWQ, Only: IAVG, KESS
@@ -82,27 +122,21 @@ Contains
 #  endif
          Implicit None
     !
-         Integer :: I, J, K !, F !LBcleanup
+         Integer :: I, J, K
          Real (SP), Allocatable :: RTMP21 (:, :), RTMP22 (:, :), RTMP23 &
         & (:, :)
          Character (Len=72) :: ALG_TITLE (6)
          Character (Len=8) :: SPVAR1, SPVAR2, SPVAR3
          Character (Len=8) :: PRINT1, PRINT2, PRINT3
          Character (Len=8) :: TPVAR, TPRINT, TB2GR, PRINTB2
-    !REAL(SP) :: KTG11, KTG12, KTB1, KTG21, KTG22, KTB2, KTG31               !LB moved these 3 rows to the MOD_ALGAL definitions
-    !REAL(SP) :: KTG32, KTB3,  KTPR
-    !REAL(SP) :: TRPR, TMP1, TR1, TMP2, TR2, TMP3, TR3  !, TLOOK  !LB: TLOOK not needed anymore
 
-    !
-    ! TITLE CARDS
-    !
          Read (AGR, 1010) (ALG_TITLE(J), J=1, 6)
     !
     ! READ PARAMETERS WHICH ARE IDENTICAL FOR ALL GROUPS
     !
          Read (AGR, 1040) MINPROD
          Read (AGR, 1030) TRPR, KTPR
-         Read (AGR, 1030) FNIP, FNUP, FNLDP, FNRDP, FNLPP, FNRPP !need to add up to 1, FNUP not used at all
+         Read (AGR, 1030) FNIP, FNUP, FNLDP, FNRDP, FNLPP, FNRPP 
          Read (AGR, 1030) FPIP, FPLDP, FPRDP, FPLPP, FPRPP
          Read (AGR, 1030) FDOP, FCLDP, FCRDP, FCLPP, FCRPP
          Read (AGR, 1030) FSAP
@@ -114,7 +148,7 @@ Contains
          Read (AGR, 1030) ALPHMIN1, ALPHRAT1, PRSP1, VMAX1
          Read (AGR, 1030) TMP1, TR1 !TR is temperature reference, TMP1 is optimal temperature for grwoth
          Read (AGR, 1030) KTG11, KTG12, KTB1
-         Read (AGR, 1030) FNI1, FNLD1, FNRD1, FNLP1, FNRP1 !WLong: should check if they add up to 1 after reading
+         Read (AGR, 1030) FNI1, FNLD1, FNRD1, FNLP1, FNRP1 
     !for FNLD1, FNRD1, FNLP1 , FNRP1
          Read (AGR, 1030) FPI1, FPLD1, FPRD1, FPLP1, FPRP1
          Read (AGR, 1030) FCLD1, FCRD1, FCLP1, FCRP1
@@ -733,7 +767,7 @@ Contains
     !
     ! PHOSPHORUS
     !! DROOP FORMULA FOR P LIMIT
-    !! RGL need to check
+
          Do K = 1, KBM1
             Do I = 1, MLOC
           !below is Droop - RGL converted to Michaelis-Menten b/c Droop issues
@@ -764,17 +798,14 @@ Contains
          Do K = 1, KBM1
             Do I = 1, MLOC
                ALPHA = ALPHMIN1 + ALPHRAT1 * P1 (I, K)
-          ! RGL why are they using lowered Pmax instead of true Pmax?
-          ! try this with true pmax and redo with Ek instead of alpha/Pmax
+
           !       IK = P1(I,K)*AMIN1(NL1(I,K),PL1(I,K),SL1(I,K))/(ALPHA+1.0E-10)
           !below without SiLim
           !       IK = P1(I,K)*AMIN1(NL1(I,K),PL1(I,K))/(ALPHA+1.0E-10)
           !
           !       IK = P1(I,K)*NL1(I,K)/(ALPHA+1.0E-10)
-          !RGL changed IK to reflect Pmax/alpha - not modified P
-               IK = P1 (I, K) / (ALPHA+1.0E-10)!Wen Long, I believe this is correct
-          !I agree with RGL that IK calculation should not have
-          !nitrogen limitation in it
+
+               IK = P1 (I, K) / (ALPHA+1.0E-10)!
                IK1 (I, K) = IK
           !
           !
@@ -787,7 +818,7 @@ Contains
           !       IK = P2(I,K)*AMIN1(NL2(I,K),PL2(I,K),SL2(I,K))/(ALPHA+1.0E-10)
           !RGL below without P, Si limitation
           !       IK = P2(I,K)*NL2(I,K)/(ALPHA+1.0E-10)
-               IK = P2 (I, K) / (ALPHA+1.0E-10)!Wen Long, I believe this is correct
+               IK = P2 (I, K) / (ALPHA+1.0E-10)!
           !
                IK2 (I, K) = IK
           !
@@ -954,12 +985,10 @@ Contains
           !       GPP(I,K) = (GPP1+GPP2+GPP3)*D(I)*DZ2D(I,K)
           !       NPP(I,K) = (NETP1+NETP2+NETP3)*D(I)*DZ2D(I,K)
           !
-          !not integrating it over total depth? looks like just calc ea depth
-          !We should intergrate over all layers here for GPP and NPP --Wen Long, now it is for each layer
-          !
+ 
                GPP (I, K) = (GPP1+GPP2) * D (I) * DZ2D (I,K)   ! gC/m^3/day * m ==> gC/m^2/day
                NPP (I, K) = (NETP1+NETP2) * D (I) * DZ2D (I,K)
-          ! is this a rate or a total? looks like a rate. when added back to B1?
+          
                DTB1 (I, K) = (NETP1-PR1(I, K)-B1SZ(I, K)-B1LZ(I, K)) / &
               & 86400.
           !
@@ -1043,7 +1072,7 @@ Contains
          If (SEDIMENT_CALC) Then
        ! 14 SEPT 2009 - KURT GLAESEMANN MAKE THIS SIMPLER LOOP
        !
-       !WLong and Laura Bianucci comments:
+       !WLong and Laura Bianucci
        !     resuspension rate should be (WS1-WS1NET ) in m/d
        !  and resuspension is counter-acting on the sinking of WS1
        ! so the net sinking is WS1NET = WS1 - (WS1-WS1NET) , i.e. sinking - resuspension

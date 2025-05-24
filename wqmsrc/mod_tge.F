@@ -1,3 +1,44 @@
+!mod_tge.F
+!************************************************************************
+!**                                                                    **
+!**                           FVCOM-ICM_4.0                            **
+!**                                                                    **
+!**               A Finite Volume Based Integrated Compartment         **
+!**                         Water Quality Model                        **      
+!**        The original unstructured-grid ICM code was developed by    ** 
+!**    the FVCOM development team at the University of Massachusetts   ** 
+!**         through a contract with U.S. Army Corps of Engineers       ** 
+!**         [Dr. Changsheng Chen (PI), Dr. Jianhua Qi and              ** 
+!**                      Dr. Geoffrey W. Cowles]                       **
+!**                                                                    **
+!**                Subsequent Development and Maintenance by           ** 
+!**                   PNNL/UW Salish Sea Modeling Center               **
+!**                                                                    **
+!**                 Tarang Khangaonkar    :  PNNL (2008 - Present)     **
+!**                 Lakshitha Premathilake:  PNNL (2019 - Present)     **
+!**                 Adi Nugraha           :  PNNL/UW (2018 - Present)  **
+!**                 Kurt Glaesmann        :  PNNL (2008 - Present)     **
+!**                 Laura Bianucci        :  PNNL/DFO(2015 - Present)  **
+!**                 Wen Long              :  PNNL (2012-2016)          **
+!**                 Taeyum Kim            :  PNNL (2008-2011)          **
+!**                 Rochelle G Labiosa    :  PNNL (2009-2010)          **
+!**                                                                    **
+!**                                                                    **
+!**                     Adopted from CE-QUAL-ICM  Model                **
+!**                           Developed by:                            **
+!**                                                                    **
+!**             Carl F. Cerco      : Water quality scheme              **
+!**             Raymond S. Chapman : Numerical solution scheme         **
+!**             Thomas M. Cole     : Computer algorithms & coding      **
+!**             Hydroqual          : Sediment compartment              **
+!**                                                                    **
+!**                    Water Quality Modeling Group                    **
+!**                    U.S. Army Corps of Engineers                    **
+!**                    Waterways Experiment Station                    **
+!**                    Vicksburg, Mississippi 39180                    **
+!**                                                                    **
+!************************************************************************
+!
 Module MOD_TGE
   !
       Use MOD_LIMS, Only: MX_NBR_ELEM, MTLOC, NTLOC, MYID, MLOC, NLOC, &
@@ -135,7 +176,7 @@ Contains
          Integer, Allocatable, Dimension (:, :) :: TEMP, TEMP2, NB_TMP, &
         & ISET
          Integer I, J, II, JJ, NTMP, NCNT, INEY, NFLAG
-    !DIF1,DIF2,DIF3, !LBcleanup
+    !DIF1,DIF2,DIF3, 
          Integer ITMP1, ITMP2, ITMP3, JN, JJB, IBCETMP, NCTMP, NCETMP, &
         & NPT
          Integer, Allocatable :: CELLS (:, :), CELLCNT (:), NBET (:, :)

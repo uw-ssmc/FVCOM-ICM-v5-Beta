@@ -1,3 +1,45 @@
+!adv_wqm.F
+!************************************************************************
+!**                                                                    **
+!**                           FVCOM-ICM_4.0                            **
+!**                                                                    **
+!**               A Finite Volume Based Integrated Compartment         **
+!**                         Water Quality Model                        **      
+!**        The original unstructured-grid ICM code was developed by    ** 
+!**    the FVCOM development team at the University of Massachusetts   ** 
+!**         through a contract with U.S. Army Corps of Engineers       ** 
+!**         [Dr. Changsheng Chen (PI), Dr. Jianhua Qi and              ** 
+!**                      Dr. Geoffrey W. Cowles]                       **
+!**                                                                    **
+!**                Subsequent Development and Maintenance by           ** 
+!**                   PNNL/UW Salish Sea Modeling Center               **
+!**                                                                    **
+!**                 Tarang Khangaonkar    :  PNNL (2008 - Present)     **
+!**                 Lakshitha Premathilake:  PNNL (2019 - Present)     **
+!**                 Adi Nugraha           :  PNNL/UW (2018 - Present)  **
+!**                 Kurt Glaesmann        :  PNNL (2008 - Present)     **
+!**                 Laura Bianucci        :  PNNL/DFO(2015 - Present)  **
+!**                 Wen Long              :  PNNL (2012-2016)          **
+!**                 Taeyum Kim            :  PNNL (2008-2011)          **
+!**                 Rochelle G Labiosa    :  PNNL (2009-2010)          **
+!**                                                                    **
+!**                                                                    **
+!**                     Adopted from CE-QUAL-ICM  Model                **
+!**                           Developed by:                            **
+!**                                                                    **
+!**             Carl F. Cerco      : Water quality scheme              **
+!**             Raymond S. Chapman : Numerical solution scheme         **
+!**             Thomas M. Cole     : Computer algorithms & coding      **
+!**             Hydroqual          : Sediment compartment              **
+!**                                                                    **
+!**                    Water Quality Modeling Group                    **
+!**                    U.S. Army Corps of Engineers                    **
+!**                    Waterways Experiment Station                    **
+!**                    Vicksburg, Mississippi 39180                    **
+!**                                                                    **
+!************************************************************************
+!
+
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
 !
 !=============================================================================!
@@ -60,10 +102,10 @@ Subroutine ADV_WQM
   !!ADVFLUX = 0.0  !LB initialize
   !------------------------------------------------------------------------------
   !
-  !  KURT GLAESEMANN 17 SEPT 2009, make XFLUX allocated
+  ! Make XFLUX allocated
       Allocate (XFLUX(0:MTLOC, KB, NCP))
       Allocate (XFLUX_ADV(0:MTLOC, KB, NCP))
-  !  KURT GLAESEMANN 10 SEPT 2009 - convert this to logic below
+  ! Convert this to logic below
   !   FACT = 0.0
   !   FM1  = 1.0
   !   IF(XYDFU == ' ON')THEN
@@ -73,14 +115,13 @@ Subroutine ADV_WQM
       XYDFUISON = .False.
       If (XYDFU == ' ON') XYDFUISON = .True.
   !
-  ! KURT GLAESEMANN 10 SEPT 2009 - precalculate stuff
+  ! Precalculate stuff
       Do I = 1, MLOC
          TMP1 (I) = DLT / DT (I) / ART1 (I)
          TMP2 (I) = DT (I) / DTFA (I)
-     !TMP2 (I) = 1.0  !test LB 6/6/2016
       End Do
   !
-  ! KURT GLAESEMANN 17 SEPT 2009 precalculate more stuff
+  ! Precalculate more stuff
       Do I = 1, NCV_I
          IA = NIEC (I, 1)
          IB = NIEC (I, 2)
@@ -151,7 +192,7 @@ Subroutine ADV_WQM
 !
                UN = UVN (I, K)
            !
-           !  KURT GLAESEMANN 10 SEPT 2009 - convert FACT and FM1 to logic
+           !Convert FACT and FM1 to logic
                If (XYDFUISON) Then
                   VISCOF = XYDF * ((VISCOFF(IA)+VISCOFF(IB))*0.5)
                Else
@@ -165,10 +206,7 @@ Subroutine ADV_WQM
                FXX = - DTIJ (I) * TXX * DLTYE (I)
                FYY = DTIJ (I) * TYY * DLTXE (I)
 
-           !!LB added commented above and added below to have DTIJ as in HYD code -04/29/2016
-           !FXX = - DTIJ (I,K) * TXX * DLTYE (I)
-           !FYY = DTIJ (I,K) * TYY * DLTXE (I)
-           !
+
                If (UN .Ge. 0) Then
                   IC = IB
                   DYB = DYB_B (I)
@@ -266,10 +304,6 @@ Subroutine ADV_WQM
 								TXCFQDIS (:, :) = UFACT * TXCQDIS (:, :, L1) + DFACT * TXCQDIS (:, :, L2)
 								TXFQDIS (:) = UFACT * TXQDIS (:, L1) + DFACT * TXQDIS (:, L2)
 								TXFQDIS (:) = TXFQDIS (:) * Tanh (ELTMS/FLOAT(86400))
-								!WRITE(*,*)ELTMS,TXSRT,UFACT,DFACT,TXFQDIS (:)
-								!WRITE(*,*)'---------------------------------'
-								!WRITE(*,*)TXSRT,UFACT,DFACT,TXCQDIS (:, :, L1)
-								!WRITE(*,*)'*********************************'
 						END IF
 			END IF
 !-------------------------------------------------------------------------------- 
@@ -285,10 +319,7 @@ Subroutine ADV_WQM
 								BCTCFQDIS (:, :) = UFACT * TCRCQDIS (:, :, L1) + DFACT * TCRCQDIS (:, :, L2)
 								BCTFQDIS (:) = UFACT * TCRQDIS (:, L1) + DFACT * TCRQDIS (:, L2)
 								BCTFQDIS (:) = BCTFQDIS (:) * Tanh (ELTMS/FLOAT(86400))
-								!WRITE(*,*)ELTMS,TXSRT,UFACT,DFACT,TXFQDIS (:)
-								!WRITE(*,*)'---------------------------------'
-								!WRITE(*,*)TXSRT,UFACT,DFACT,TXCQDIS (:, :, L1)
-								!WRITE(*,*)'*********************************'
+
 						END IF
 			END IF
 !-------------------------------------------------------------------------------- 
@@ -356,8 +387,7 @@ Subroutine ADV_WQM
 
 								XFLUX (JJ, K, II) = XFLUX (JJ, K, II) - TXFQDIS (J) * &
 							 & TXQDIST (J, K) * STPOINT / DZ2D (JJ,K)
-							 !WRITE(*,*)J,XFLUX (JJ, K, II),TXFQDIS (J),TXQDIST (J, K),STPOINT
-							 !WRITE(*,*)'---------------------------------'
+
 
 						 END DO
 					END DO
@@ -373,16 +403,9 @@ Subroutine ADV_WQM
 						 JJ = TCRPNT_ID (J)
 						 DO K = 1, KBM1
 								STPOINT = BCTCFQDIS (J, II)
-                     !IF(NGID(JJ) == 13874 .AND. K == 1) THEN
-                     !   WRITE(*,*)'debugging1..............',NGID(JJ),STPOINT,TCRQDIST (J, K),XFLUX (JJ, K, II)
-                     !END IF
+
 								XFLUX (JJ, K, II) = XFLUX (JJ, K, II) - BCTFQDIS (J) * &
 							 & TCRQDIST (J, K) * STPOINT / DZ2D (JJ,K)
-                      !IF(NGID(JJ) == 13874 .AND. K == 1) THEN
-							 !     WRITE(*,*)'debugging2..............',NGID(JJ),STPOINT,TCRQDIST (J, K),XFLUX (JJ, K, II)
-                       !    WRITE(*,*)'---------------------------------'
-                      !END IF
-							 
 
 						 END DO
 					END DO
@@ -396,32 +419,11 @@ Subroutine ADV_WQM
      !
          Do I = 1, MLOC
 				Do K = 1, KBM1
-				! KURT GLAESEMANN 10 SEPT 2009 PRECALCULATE A BUNCH OF STUFF
-				!           C1(I,K,II)=(C2(I,K,II)-XFLUX(I,K,II)/ART1(I)*(DLT/DT(I)))*   &
-				!                         (DT(I)/DTFA(I))+DTM(I,K,II)*DLT
-				!Here was where wq variables updated! Hooray - Now in wqm_main
-!
-				!      IF(AMOD(ELTMS,DLT).eq.0) THEN
+
 !
 					C1 (I, K, II) = (C2(I, K, II)-XFLUX(I, K, II)*TMP1(I)) * &
               & TMP2 (I)!+ DTM (I, K, II) * DLT
-!
 
-			     !Wen Long: here TMP1 (I) = DLT / DT (I) / ART1 (I)
-			 	 !Wen Long: here TMP2 (I) = DT (I) / DTFA (I)
-
-				!wen long:
-				!DTM should have unit of concentration/sec
-				!DLT should have unit of sec, which is the time step
-				!cocnentration for each constituent is different,in general g/m^3
-				!
-				!
-				!      ELSE
-				!          	C1(I,K,II)=(C2(I,K,II)-XFLUX(I,K,II)*TMP1(I))*TMP2(I)
-				!      ENDIF
-!
-				!ORI        C1(I,K,II)=(C2(I,K,II)-XFLUX(I,K,II)/ART1(I)*(DLT/DT(I)))*   &
-				!                         (DT(I)/DTFA(I))+DTM(I,K,II)*DLT
 				C2F (I, K, II) = Max (C1(I, K, II), 0.0)
 !
 				If (II .Eq. 4 .Or. II .Eq. 5 .Or. II .Eq. 6) C2F (I, K, &
@@ -436,26 +438,7 @@ Subroutine ADV_WQM
          End Do !End of I loop
       End Do !End of JCON  loop (i.e. II)
 
-  !!Test for snapshot fluxes
-  !IF(MSR)WRITE(*,*)'LBnote: DICADV(1,1)=',ADVFLUX(1, 1, 33)
-  !IF(MSR)WRITE(*,*)'LBnote: should be=',-XFLUX(1,1,33)*TMP1(1)*TMP2(1)/DLT*86400.0
-  !
-!
-!
-  !   !LB: the following DO loop is analogous to Salinity adjustment in HYD code (adjust_ts.F)
-  !   !    to keep S at mouth of rivers from being too low. Done for TALK to test in case where TALK resembles S
-  !If (NUMPNT > 0) THEN
-  !  II = 34
-  !   DO I=1,NUMPNT
-  !      J = INOPNT(I)
-  !      DO K=1,KBM1
-  !             C2F(J,K,II) = MAX(C2F(J,K,II),PWQDIS(I, II))
-  !              !!S1(J,K) = MAX(S1(J,K),SDIS(I))
-  !      END DO
-  !   END DO
-  !End If
-!
-!
+
     If (NUMPNT > 0) DEALLOCATE (PQDIS, PWQDIS)
     IF(NBTX_PNT > 0) DEALLOCATE (TXCFQDIS, TXFQDIS)
     IF(TCR_PNT > 0) DEALLOCATE (BCTCFQDIS, BCTFQDIS)

@@ -1,3 +1,44 @@
+!tvds.F
+!************************************************************************
+!**                                                                    **
+!**                           FVCOM-ICM_4.0                            **
+!**                                                                    **
+!**               A Finite Volume Based Integrated Compartment         **
+!**                         Water Quality Model                        **      
+!**        The original unstructured-grid ICM code was developed by    ** 
+!**    the FVCOM development team at the University of Massachusetts   ** 
+!**         through a contract with U.S. Army Corps of Engineers       ** 
+!**         [Dr. Changsheng Chen (PI), Dr. Jianhua Qi and              ** 
+!**                      Dr. Geoffrey W. Cowles]                       **
+!**                                                                    **
+!**                Subsequent Development and Maintenance by           ** 
+!**                   PNNL/UW Salish Sea Modeling Center               **
+!**                                                                    **
+!**                 Tarang Khangaonkar    :  PNNL (2008 - Present)     **
+!**                 Lakshitha Premathilake:  PNNL (2019 - Present)     **
+!**                 Adi Nugraha           :  PNNL/UW (2018 - Present)  **
+!**                 Kurt Glaesmann        :  PNNL (2008 - Present)     **
+!**                 Laura Bianucci        :  PNNL/DFO(2015 - Present)  **
+!**                 Wen Long              :  PNNL (2012-2016)          **
+!**                 Taeyum Kim            :  PNNL (2008-2011)          **
+!**                 Rochelle G Labiosa    :  PNNL (2009-2010)          **
+!**                                                                    **
+!**                                                                    **
+!**                     Adopted from CE-QUAL-ICM  Model                 **
+!**                           Developed by:                            **
+!**                                                                    **
+!**             Carl F. Cerco      : Water quality scheme              **
+!**             Raymond S. Chapman : Numerical solution scheme         **
+!**             Thomas M. Cole     : Computer algorithms & coding      **
+!**             Hydroqual          : Sediment compartment              **
+!**                                                                    **
+!**                    Water Quality Modeling Group                    **
+!**                    U.S. Army Corps of Engineers                    **
+!**                    Waterways Experiment Station                    **
+!**                    Vicksburg, Mississippi 39180                    **
+!**                                                                    **
+!************************************************************************
+!
 !Subroutine TVDS()  !Time varying data series
 !
 !************************************************************************
@@ -65,7 +106,7 @@ Subroutine TVDS (NXTVD)
 #   endif
 !
       Use MOD_CO2SYS, Only: MAPCO2ATM, pco2atmNX, NXPCO2, pCO2atm !LB added to read time-varying pCO2atm 12feb2016
-      Use MOD_CONTROL, Only: MSR !to write pco2 to screen - test. Can remove later
+      Use MOD_CONTROL, Only: MSR 
 !
       Implicit None
       Save
@@ -107,8 +148,7 @@ Subroutine TVDS (NXTVD)
      ! Commented conversion out since SJRWMD data already in einsteins/m**2
      !         IT = 0.093*ITNX
      ! convert w/m**2 to PAR w/m**2 - need to convert to Ein? - states PAR (E/m2/day)
-     ! in input files...truly
-     ! RGL
+
      !     IT = ITNX*0.143  !If not in E/m2/day, then divide by 0.143 to convert from watt/m^2 to E/m^2/day
          IT = ITNX          !THIS is already in E/m2/day in input file
      ! RGL this all assumes that the met data are read in on a daily basis (not hourly)
@@ -148,7 +188,7 @@ Subroutine TVDS (NXTVD)
   ! INITIALIZE DEGREE DAYS TO ZERO
   !WLong: this is now initialized by ALLOC_SAV() in wqm_sav.F
   !    DO I=1,MLOC
-  !      DGRDAYS(I)=0  !Wen Long, this should be moved to wqm_sav.F
+  !      DGRDAYS(I)=0  
   !    ENDDO
   !
       Read (MET, 1010) NXMET, KTNX, TENX, ITNX, FDNX, WMSNX
@@ -158,273 +198,7 @@ Subroutine TVDS (NXTVD)
       NXTVD = Min (NXTVD, NXMET)
 	  !If(MSR) Write (*,*) 'NXTVD in TVDS= ', NXTVD, 'NXMET= ', NXMET !AN
   !
-  !******* Boundary inflow concentrations
-  !
-  !JQI    IF (BOUNDARY_CONC) THEN
-  !JQI      DO WHILE(JDAY >= NXCBC)THEN
-  !JQI        OLDNXCBC = NXCBC
-  !
-  !*********** Reduce/increase concentrations
-  !
-  !JQI        DO JCON=4,12
-  !JQI          DO JCB=1,NCB(JCON)
-  !JQI            CBNX(JCB,JCON) = CBNX(JCB,JCON)*REDCBC
-  !JQI          ENDDO
-  !JQI        ENDDO
-  !
-  !JQI        DO JCON=JCON,19
-  !JQI          DO JCB=1,NCB(JCON)
-  !JQI            CBNX(JCB,JCON) = CBNX(JCB,JCON)*REDCBN
-  !JQI          ENDDO
-  !JQI        ENDDO
-  !JQI
-  !JQI        DO JCON=20,25
-  !JQI          DO JCB=1,NCB(JCON)
-  !JQI            CBNX(JCB,JCON) = CBNX(JCB,JCON)*REDCBP
-  !JQI          ENDDO
-  !JQI        ENDDO
-  !
-  !JQI        DO JCON=30,32
-  !JQI          DO JCB=1,NCB(JCON)
-  !JQI            CBNX(JCB,JCON) = CBNX(JCB,JCON)*REDCBP
-  !JQI          ENDDO
-  !JQI        ENDDO
-  !JQI
-  !JQI        DO JCON=1,NCP
-  !JQI          DO JCB=1,NCB(JCON)
-  !JQI            CBOLD(JCB,JCON) = CBNX(JCB,JCON)
-  !JQI            CB(JCB,JCON)    = CBNX(JCB,JCON)
-  !JQI          ENDDO
-  !JQI        ENDDO
-  !
-  !******* Read in next set of boundary conditions
-  !JQI
-  !JQI        DO JCON=1,NCP
-  !JQI          READ (CBC,1020,END=16) NXCBC,(CBNX(JCB,JCON),JCB=1,NCB(JCON))
-  !JQI        ENDDO
-  !JQI        NXCBC = (CBCPTR-1)*FILGTH+NXCBC
-  !JQI      ENDDO
-  !JQI      GO TO 18
-  !
-  !********* Open next data file
-  !
-  !JQI16    CONTINUE
-  !JQI      CBCPTR = CBCPTR+1
-  !JQI      IF (DIAGNOSTICS) WRITE (DIA,*) 'Opening boundary concentra',   &
-  !JQI                                     'tion file ',CBCPTR,' at ',     &
-  !JQI                                     'day ',JDAY
-  !JQI      CLOSE (CBC)
-  !JQI      OPEN  (CBC,FILE=CBCFN(CBCPTR),STATUS='OLD')
-  !JQI      READ  (CBC,1080)
-  !JQI      READ  (CBC,1030) (NCB(JCON),JCON=1,NCP)
-  !JQI      READ  (CBC,1080)
-  !JQI      IF(NXCBC >= OLDNXCBC) THEN
-  !JQI        OLDNXCBC = NXCBC
-  !JQI      ENDIF
-  !JQI      DO JCON=1,NCP
-  !JQI        READ  (CBC,1020) NXCBC,(CBNX(JCB,JCON),JCB=1,NCB(JCON))
-  !JQI      ENDDO
-  !JQI      NXCBC = (CBCPTR-1)*FILGTH+NXCBC
-  !JQI18    CONTINUE
-  !JQI      NXTVD = MIN(NXTVD,NXCBC)
-  !
-  !JQI    ENDIF
-  !
-  !******* Source One loads              !MNOEL   1-25-93
-  !
-  !JQI    IF (SOURCE_ONE) THEN
-  !JQI      DO WHILE(JDAY >= NXS1)
-  !JQI        DO JCON=1,NCP
-  !JQI          DO JS1=1,S1LN(JCON)
-  !JQI            S1L(JS1,JCON) = S1LNX(JS1,JCON)/86.4
-  !JQI          ENDDO
-  !JQI        ENDDO
-  !
-  !*********** Reduce/increase concentrations
-  !
-  !JQI        DO JCON=4,12
-  !JQI          DO JS1=1,S1LN(JCON)
-  !JQI            S1L(JS1,JCON) = S1L(JS1,JCON)*REDS1C
-  !JQI          ENDDO
-  !JQI        ENDDO
-  !JQI        DO JCON=13,19
-  !JQI          DO JS1=1,S1LN(JCON)
-  !JQI            S1L(JS1,JCON) = S1L(JS1,JCON)*REDS1N
-  !JQI          ENDDO
-  !JQI        ENDDO
-  !JQI        DO JCON=20,25
-  !JQI          DO JS1=1,S1LN(JCON)
-  !JQI            S1L(JS1,JCON) = S1L(JS1,JCON)*REDS1P
-  !JQI          ENDDO
-  !JQI        ENDDO
-  !JQI        DO JCON=30,32
-  !JQI          DO JS1=1,S1LN(JCON)
-  !JQI            S1L(JS1,JCON) = S1L(JS1,JCON)*REDS1P
-  !JQI          ENDDO
-  !JQI        ENDDO
-  !
-  !*********** Read in next set of loads
-  !
-  !JQI        DO JCON=1,NCP
-  !JQI          READ (S1,1020,END=112) NXS1,(S1LNX(JS1,JCON),JS1=1,S1LN(JCON))
-  !JQI        ENDDO
-  !JQI        NXS1 = (S1PTR-1)*FILGTH+NXS1
-  !JQI      ENDDO
-  !JQI      GO TO 115
-  !
-  !********* Open next data file
-  !
-  !JQI112   CONTINUE
-  !JQI      S1PTR = S1PTR+1
-  !JQI      IF (DIAGNOSTICS) WRITE (DIA,*) 'Opening Source One file ',    &
-  !JQI                                      S1PTR,' at day ',JDAY
-  !JQI      CLOSE (S1)
-  !JQI      OPEN  (S1,FILE=S1FN(S1PTR),STATUS='OLD')
-  !JQI      READ  (S1,1080)
-  !JQI      READ  (S1,1030) (S1LN(JCON),JCON=1,NCP)
-  !JQI      DO JCON=1,NCP
-  !JQI        READ (S1,1030) (S1LB(JP,JCON),JP=1,S1LN(JCON))
-  !JQI      ENDDO
-  !JQI      READ (S1,1080)
-  !JQI      DO JCON=1,NCP
-  !JQI        READ (S1,1020) NXS1,(S1LNX(JS1,JCON),JS1=1,S1LN(JCON))
-  !JQI      ENDDO
-  !JQI      NXS1 = (S1PTR-1)*FILGTH+NXS1
-  !JQI115   CONTINUE
-  !JQI      NXTVD = MIN(NXTVD,NXS1)
-  !JQI    ENDIF
-  !
-  !******* Source Two loads              !MNOEL   1-25-93
-  !
-  !JQI    IF (SOURCE_TWO) THEN
-  !JQI      DO WHILE(JDAY >= NXS2)
-  !JQI        DO JCON=1,NCP
-  !JQI          DO JS2=1,S2LN(JCON)
-  !JQI            S2L(JS2,JCON) = S2LNX(JS2,JCON)/86.4
-  !JQI          ENDDO
-  !JQI        ENDDO
-  !
-  !*********** Reduce/increase concentrations
-  !
-  !JQI        DO JCON=4,12
-  !JQI          DO JS2=1,S2LN(JCON)
-  !JQI            S2L(JS2,JCON) = S2L(JS2,JCON)*REDS2C
-  !JQI          ENDDO
-  !JQI        ENDDO
-  !JQI        DO JCON=13,19
-  !JQI          DO JS2=1,S2LN(JCON)
-  !JQI            S2L(JS2,JCON) = S2L(JS2,JCON)*REDS2N
-  !JQI          ENDDO
-  !JQI        ENDDO
-  !JQI        DO JCON=20,25
-  !JQI          DO JS2=1,S2LN(JCON)
-  !JQI            S2L(JS2,JCON) = S2L(JS2,JCON)*REDS2P
-  !JQI          ENDDO
-  !JQI        ENDDO
-  !JQI        DO JCON=30,32
-  !JQI          DO JS2=1,S2LN(JCON)
-  !JQI            S2L(JS2,JCON) = S2L(JS2,JCON)*REDS2P
-  !JQI          ENDDO
-  !JQI        ENDDO
-  !
-  !*********** Read in next set of loads
-  !
-  !JQI        DO JCON=1,NCP
-  !JQI          READ (S2,1020,END=119) NXS2,(S2LNX(JS2,JCON),JS2=1,S2LN(JCON))
-  !JQI        ENDDO
-  !JQI        NXS2 = (S2PTR-1)*FILGTH+NXS2
-  !JQI      ENDDO
-  !JQI      GO TO 122
-  !
-  !********* Open next data file
-  !
-  !JQI119   CONTINUE
-  !JQI      S2PTR = S2PTR+1
-  !JQI      IF (DIAGNOSTICS) WRITE (DIA,*) 'Opening Source Two ',        &
-  !JQI                                     'file ',S2PTR,' at day ',     &
-  !JQI                                      JDAY
-  !JQI      CLOSE (S2)
-  !JQI      OPEN  (S2,FILE=S2FN(S2PTR),STATUS='OLD')
-  !JQI      READ  (S2,1080)
-  !JQI      READ  (S2,1030) (S2LN(JCON),JCON=1,NCP)
-  !JQI      DO JCON=1,NCP
-  !JQI        READ (S2,1030) (S2LB(JNP,JCON),JNP=1,S2LN(JCON))
-  !JQI      ENDDO
-  !JQI      READ (S2,1080)
-  !JQI      DO JCON=1,NCP
-  !JQI        READ (S2,1020) NXS2,(S2LNX(JS2,JCON),JS2=1,S2LN(JCON))
-  !JQI      ENDDO
-  !JQI      NXS2 = (S2PTR-1)*FILGTH+NXS2
-  !JQI122   CONTINUE
-  !JQI      NXTVD = MIN(NXTVD,NXS2)
-  !JQI    ENDIF
-  !
-  !******* Source Three loads
-  !
-  !JQI    IF (SOURCE_THR) THEN
-  !JQI      DO WHILE(JDAY >= NXS3)
-  !JQI        DO JCON=1,NCP
-  !JQI          DO JS3=1,S3LN(JCON)
-  !JQI            S3L(JS3,JCON) = S3LNX(JS3,JCON)/86.4
-  !JQI          ENDDO
-  !JQI        ENDDO
-  !
-  !*********** Reduce/increase concentrations
-  !
-  !JQI        DO JCON=4,12
-  !JQI          DO JS3=1,S3LN(JCON)
-  !JQI            S3L(JS3,JCON) = S3L(JS3,JCON)*REDS3C
-  !JQI          ENDDO
-  !JQI        ENDDO
-  !JQI        DO JCON=13,19
-  !JQI          DO JS3=1,S3LN(JCON)
-  !JQI            S3L(JS3,JCON) = S3L(JS3,JCON)*REDS3N
-  !JQI          ENDDO
-  !JQI        ENDDO
-  !JQI        DO JCON=20,25
-  !JQI          DO JS3=1,S3LN(JCON)
-  !JQI            S3L(JS3,JCON) = S3L(JS3,JCON)*REDS3P
-  !JQI          ENDDO
-  !JQI        ENDDO
-  !JQI        DO JCON=30,32
-  !JQI          DO JS3=1,S3LN(JCON)
-  !JQI            S3L(JS3,JCON) = S3L(JS3,JCON)*REDS3P
-  !JQI          ENDDO
-  !JQI        ENDDO
-  !
-  !*********** Read in next set of loads
-  !
-  !JQI        DO JCON=1,NCP
-  !JQI          READ (S3,1020,END=124) NXS3,(S3LNX(JS3,JCON),JS3=1,S3LN(JCON))
-  !JQI        ENDDO
-  !JQI        NXS3 = (S3PTR-1)*FILGTH+NXS3
-  !JQI      ENDDO
-  !JQI      GO TO 125
-  !
-  !********* Open next data file
-  !
-  !JQI124   CONTINUE
-  !JQI      S3PTR = S3PTR+1
-  !JQI      IF (DIAGNOSTICS) WRITE (DIA,*) 'Opening Source Three ',     &
-  !JQI                                     'file ',S3PTR,' at day ',    &
-  !JQI                                      JDAY
-  !JQI      CLOSE (S3)
-  !JQI      OPEN  (S3,FILE=S3FN(S3PTR),STATUS='OLD')
-  !JQI      READ  (S3,1080)
-  !JQI      READ  (S3,1030) (S3LN(JCON),JCON=1,NCP)
-  !JQI      DO JCON=1,NCP
-  !JQI        READ (S3,1030) (S3LB(JNP,JCON),JNP=1,S3LN(JCON))
-  !JQI      ENDDO
-  !JQI      READ (S3,1080)
-  !JQI      DO JCON=1,NCP
-  !JQI        READ (S3,1020) NXS3,(S3LNX(JS3,JCON),JS3=1,S3LN(JCON))
-  !JQI      ENDDO
-  !JQI      NXS3 = (S3PTR-1)*FILGTH+NXS3
-  !JQI125   CONTINUE
-  !JQI      NXTVD = MIN(NXTVD,NXS3)
-  !JQI    ENDIF
-  !
-  !
+  
   !******* Benthic fluxes
   !
       If (BENTHIC_FLUXES) Then
@@ -473,11 +247,7 @@ Subroutine TVDS (NXTVD)
            !             WRITE(*,1104)NXBFI,(BFLUXNX_GL(1,JCON),JCON=1,9)
             End Do
         !
-        !WLong        READ(BFI,1101) NXBFI
-        !WLong        DO JCON=1,9
-        !WLong          READ (BFI,1020,END=127) NXBFI,(BFLUXNX_GL(BB,JCON),BB=1,MGL)
-        !WLong        ENDDO
-        !
+
             If (SERIAL) BFLUXNX = BFLUXNX_GL
         !
 #   if defined (MULTIPROCESSOR)
@@ -494,25 +264,7 @@ Subroutine TVDS (NXTVD)
             End If
 #   endif
         !
-        !--moved to before the reading of BFI by WLong------
-        !WL        DO BB=1,MLOC
-        !WL !JQI          BFLUXB(BB,1) = BFLUX(BB,1)                              ! DOC
-        !WL !JQI          BFLUXB(BB,2) = BFLUX(BB,2)                              ! NH4
-        !WL !JQI          BFLUXB(BB,3) = BFLUX(BB,3)                              ! NO3
-        !WL !JQI          BFLUXB(BB,4) = BFLUX(BB,5)                              ! PO4
-        !WL !JQI          BFLUXB(BB,5) = BFLUX(BB,7)                              ! COD
-        !WL !JQI          BFLUXB(BB,6) = BFLUX(BB,8)                              ! DO
-        !WL !JQI          BFLUXB(BB,7) = BFLUX(BB,9)                         ! SIAT
-        !WL !store data without the temperature effects, temperature effects
-        !WL !will be applied in wqm_kin.F using these values
-        !WL           BENDOCB(BB) = BFLUX(BB,1)                              ! DOC
-        !WL           BENNH4B(BB) = BFLUX(BB,2)                              ! NH4
-        !WL           BENNO3B(BB) = BFLUX(BB,3)                              ! NO3
-        !WL           BENPO4B(BB) = BFLUX(BB,5)                              ! PO4
-        !WL           BENCODB(BB) = BFLUX(BB,7)                              ! COD
-        !WL           BENDOB(BB)  = BFLUX(BB,8)                              ! DO
-        !WL          BENSAB(BB)  = BFLUX(BB,9)                              ! SIAT
-        !WL         ENDDO
+
         !---------------------------------------------------
         !
             NXBFI = (BFIPTR-1) * FILGTH + NXBFI
@@ -617,7 +369,7 @@ Subroutine TVDS (NXTVD)
 136      Continue
          Do WHILE (JDAY >= NXSAV)
             Do B = 1, MLOC
-           !WL            FACTOR = SAVAREA(B)/SFA(B)            !Wen Long: SFA is not calculated at all!
+           !WL            FACTOR = SAVAREA(B)/SFA(B)           
                FACTOR = SAVAREA (B) / ART1 (B)!replaced SFA by ART1 by Wen Long
                LDOCSAVW (B) = SLDOCNX * FACTOR
                RDOCSAVW (B) = SRDOCNX * FACTOR
@@ -669,7 +421,7 @@ Subroutine TVDS (NXTVD)
       End If
   !
   !
-  !******* Input FORMAT's
+  !******* Input FORMATs
   !
 1000  Format (/ //)
 1010  Format (10 F8.0, :/(:8 X, 9 F8.0))

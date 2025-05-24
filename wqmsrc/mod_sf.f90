@@ -1,3 +1,43 @@
+!mod_sf.F
+!************************************************************************
+!**                                                                    **
+!**                           FVCOM-ICM_4.0                            **
+!**                                                                    **
+!**               A Finite Volume Based Integrated Compartment         **
+!**                         Water Quality Model                        **      
+!**        The original unstructured-grid ICM code was developed by    ** 
+!**    the FVCOM development team at the University of Massachusetts   ** 
+!**         through a contract with U.S. Army Corps of Engineers       ** 
+!**         [Dr. Changsheng Chen (PI), Dr. Jianhua Qi and              ** 
+!**                      Dr. Geoffrey W. Cowles]                       **
+!**                                                                    **
+!**                Subsequent Development and Maintenance by           ** 
+!**                   PNNL/UW Salish Sea Modeling Center               **
+!**                                                                    **
+!**                 Tarang Khangaonkar    :  PNNL (2008 - Present)     **
+!**                 Lakshitha Premathilake:  PNNL (2019 - Present)     **
+!**                 Adi Nugraha           :  PNNL/UW (2018 - Present)  **
+!**                 Kurt Glaesmann        :  PNNL (2008 - Present)     **
+!**                 Laura Bianucci        :  PNNL/DFO(2015 - Present)  **
+!**                 Wen Long              :  PNNL (2012-2016)          **
+!**                 Taeyum Kim            :  PNNL (2008-2011)          **
+!**                 Rochelle G Labiosa    :  PNNL (2009-2010)          **
+!**                                                                    **
+!**                                                                    **
+!**                     Adopted from CE-QUAL-ICM  Model                **
+!**                           Developed by:                            **
+!**                                                                    **
+!**             Carl F. Cerco      : Water quality scheme              **
+!**             Raymond S. Chapman : Numerical solution scheme         **
+!**             Thomas M. Cole     : Computer algorithms & coding      **
+!**             Hydroqual          : Sediment compartment              **
+!**                                                                    **
+!**                    Water Quality Modeling Group                    **
+!**                    U.S. Army Corps of Engineers                    **
+!**                    Waterways Experiment Station                    **
+!**                    Vicksburg, Mississippi 39180                    **
+!**                                                                    **
+!************************************************************************
 !
 !
 !************************************************************************
@@ -11,7 +51,7 @@
 !**                                                                    **
 !**         hypoxic mortality - SAL 4.16.97                            **
 !**                                                                    **
-!** New development: Wen Long, PNNL                                    **
+
 !**                                                                    **
 !**      Latest change: form a separate module, input, output          **
 !**   and calculation are independent of main program                  **
@@ -120,25 +160,7 @@ Contains
         & JSASFX, JSUSFX, SEDTYPEX, SF_LPOCX, SF_LPONX, SF_LPOPX, &
         & SF_RPOCX, SF_RPONX, SF_RPOPX, SF_SUX, SF_SASX, SF_PIPX, &
         & SF_SSIX !  positive adding PO4 to water column
-    ! SF,			&
-    !  JNH4SFX,		&
-    !  JPO4SFX,		&
-    !  SODSFX,		& !DOXG consumption flux  (gO2/m^2/day) by all SF species (positive removing DOXG from water column)
-    !  JSASFX,		&
-    !  JSUSFX,		&
-    !  SEDTYPEX,   	&
-    !  SF_LPOCX,		&	!suspension feeder LPOC flux (mgC/m^2/day)
-    !  SF_LPONX,		&	!suspension feeder LPON flux (mgN/m^2/day)
-    !  SF_LPOPX,		&	!suspension feeder LPOP flux (mgP/m^2/day)
-    !  SF_RPOCX,	&   !suspension feeder RPOC flux (mgC/m^2/day)
-    !  SF_RPONX,	&	!suspension feeder RPON flux (mgN/m^2/day)
-    !  SF_RPOPX, 	&   !suspension feeder RPOP flux (mgP/m^2/day)
-    !  SF_SUX,		&   !suspension feeder filtration uptake of Particulate Biogenic Unavaible Silca (mgSi/m^2/day)
-    !  					  Positive removing Particulate biogenic silica from water column
-    !  SF_SASX,		&   !suspension feeder filtration uptake of dissolved silica (positive removing silica from water colmn) (mgSi/m^2/
-    !  SF_PIPX,		&   !generation of PO4 to water column (mgP/m^2/sec )due to SF fitlration on SSI which had PIP adsorbed on it
-    !  				     positive adding PO4 to water column
-    !	SF_SSIX
+
     !
          Real (SP) :: MAXINGX
     !
@@ -160,11 +182,7 @@ Contains
         & SFAC4, SFAC5, SFAN1, SFAN2, SFAN3, SFAN4, SFAN5, SFAP1, &
         & SFAP2, SFAP3, SFAP4, SFAP5, PF, DTDAY
     !
-    !   REAL(SP):: DLTS   !WLong: seems this is not necessary
-    !	!Keep track of delta_time, in days
-    !   DLTS=DLT/86400.
-    !
-    ! firstly set up calculation for that species type
+
     !
          Do I = 1, MLOC
             SF (I) = SFEED (I, N)
@@ -217,10 +235,7 @@ Contains
     ! do some initial calcs for low o2 respiration stress
     !
          RD = 4.605 / TDX ! ln(1/100)=4.6=99% mortality
-    !
-    ! RMORT is the mortality rate (1/day) resulting from hypoxia
-    ! initialize here; computed from RD and a DOXG-depdt function below.
-    ! MBM 970928 T-dependence on Rd added below!
+
     !
          RMORT = 0.0
     !
@@ -329,18 +344,10 @@ Contains
        ! calculate biomass dependent respiration and filtration
        !
             SFD = SF (I) / 1000. ! convert to g C /m^2 for this calc.
-       !     IF(SFD.LE.0.0)THEN   ! MBM 970107 Present scheme maintains SF > 0.
-       !       RESPCT=0.0
-       !       FILTCT=0.0
-       !     ELSE
+
             RESPCT = SFRESPX / SFD ** RESPFACTX
             FILTCT = FILTX / SFD ** FILTFACTX
-       !     ENDIF
-       !
-       ! Evaluate temperature dependent terms
-       ! Bivalve responses to temperature ranging to 30C are
-       !    Arrhenius-type responses: rate(T) = rate(Tref) * theta^(T-Tref)
-       !    The reference temperature is 20.0C.
+
        !
             FILTCT = FILTCT * THTAFILTX ** (CTEMP(I)-20.0)
             RESPCT = RESPCT * THTARESPX ** (CTEMP(I)-20.0)
@@ -380,10 +387,7 @@ Contains
           !     RMORT = 0.04773*exp( 0.05319*CTEMP(B) - 0.69538*DOX )
           !
             End If
-       !
-       ! MBM 971021
-       ! Total solids (mg DW/L)
-       !
+
             TSOLID = 2.5 * (B1ASF+B2ASF+B3ASF+LPOCASF+RPOCASF) + SSIASF
        !
        ! MBM 971021
@@ -530,13 +534,7 @@ Contains
        !
             RPFECES = SF (I) * FILTCT * RELING * (1.-SFAP5) * RPOPASF
        !
-       !        KNOWING THE TOTAL AMOUNT OF C,N,P FILTERED AND KNOWING HOW
-       !        MUCH WENT TO GROWTH AND FECES, THEN CALCULATE HOW MUCH ENDS
-       !        UP AS PSEUDOFECES
-       !        PSEUDOFECES = TOTAL FILTERED - GROWTH - FECES
-       !
-       !        PSEUDOFECES
-       ! MBM 970930 Bookkeeping for Refract pseudofeces added
+
        !
             CPSFEC = Max (0.0, CFILT-SFGC-CFECES-RCFECES)
             RCPSFEC = CPSFEC * RPOCASF / &
@@ -936,9 +934,7 @@ Contains
        !MBM 971021 added turbidity sensitivity parameters ^^^^
        !
          End Do
-    !
-    !WLong       ALLOCATE(SEDTYPE_GL(MGL,NSSFP));       SEDTYPE_GL = 0.0
-    !WLong       ALLOCATE(SFEED_GL(MGL,NSSFP));         SFEED_GL   = 0.0
+
     !
          Read (SFI, 1032)
          Do B = 1, MGL
@@ -972,9 +968,7 @@ Contains
                End Do
             End Do
          End If
-    !WLong     DEALLOCATE(SEDTYPE_GL)
-    !WLong	   DEALLOCATE(SFEED_GL)
-    !
+
     !
          Return
       End Subroutine SF_READ

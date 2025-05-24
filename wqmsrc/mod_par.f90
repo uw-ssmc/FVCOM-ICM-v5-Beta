@@ -1,3 +1,44 @@
+!mod_par.F
+!************************************************************************
+!**                                                                    **
+!**                           FVCOM-ICM_4.0                            **
+!**                                                                    **
+!**               A Finite Volume Based Integrated Compartment         **
+!**                         Water Quality Model                        **      
+!**        The original unstructured-grid ICM code was developed by    ** 
+!**    the FVCOM development team at the University of Massachusetts   ** 
+!**         through a contract with U.S. Army Corps of Engineers       ** 
+!**         [Dr. Changsheng Chen (PI), Dr. Jianhua Qi and              ** 
+!**                      Dr. Geoffrey W. Cowles]                       **
+!**                                                                    **
+!**                Subsequent Development and Maintenance by           ** 
+!**                   PNNL/UW Salish Sea Modeling Center               **
+!**                                                                    **
+!**                 Tarang Khangaonkar    :  PNNL (2008 - Present)     **
+!**                 Lakshitha Premathilake:  PNNL (2019 - Present)     **
+!**                 Adi Nugraha           :  PNNL/UW (2018 - Present)  **
+!**                 Kurt Glaesmann        :  PNNL (2008 - Present)     **
+!**                 Laura Bianucci        :  PNNL/DFO(2015 - Present)  **
+!**                 Wen Long              :  PNNL (2012-2016)          **
+!**                 Taeyum Kim            :  PNNL (2008-2011)          **
+!**                 Rochelle G Labiosa    :  PNNL (2009-2010)          **
+!**                                                                    **
+!**                                                                    **
+!**                     Adopted from CE-QUAL-ICM  Model                **
+!**                           Developed by:                            **
+!**                                                                    **
+!**             Carl F. Cerco      : Water quality scheme              **
+!**             Raymond S. Chapman : Numerical solution scheme         **
+!**             Thomas M. Cole     : Computer algorithms & coding      **
+!**             Hydroqual          : Sediment compartment              **
+!**                                                                    **
+!**                    Water Quality Modeling Group                    **
+!**                    U.S. Army Corps of Engineers                    **
+!**                    Waterways Experiment Station                    **
+!**                    Vicksburg, Mississippi 39180                    **
+!**                                                                    **
+!************************************************************************
+!
 Module MOD_PAR
       Use MOD_PREC, Only: MPI_F, SP
       Use MOD_TYPES, Only: GMAP, COMM
@@ -661,7 +702,7 @@ Module MOD_PAR
     !------------------------------------------------------------------------------
          Real (SP), Allocatable :: SBUF (:, :), RBUF (:, :)
          Integer STAT (MPI_STATUS_SIZE), IERR, I, IP, J, ISND, IRCV, &
-        & NSZE !, INC  !LBcleanup
+        & NSZE !, INC
     !------------------------------------------------------------------------------
 !
     !===================================================================================|
@@ -827,7 +868,7 @@ Module MOD_PAR
     !------------------------------------------------------------------------------
          Integer, Allocatable :: SBUF (:, :), RBUF (:, :)
          Integer STAT (MPI_STATUS_SIZE), IERR, I, IP, J, ISND, IRCV, &
-        & NSZE !, INC !LBcleanup
+        & NSZE !, INC
     !------------------------------------------------------------------------------
 !
     !===================================================================================|
@@ -898,7 +939,7 @@ Module MOD_PAR
          Integer, Intent (Out) :: M (SZE)
     !------------------------------------------------------------------------------
          Integer I, LAST, J (1)
-    !Real (SP) VALM !LBcleanup
+    !Real (SP) VALM 
          Intrinsic MINLOC
     !------------------------------------------------------------------------------
 !
@@ -982,14 +1023,14 @@ Module MOD_PAR
   !==============================================================================|
 !
       Subroutine PWRITE (IUNIT, MYID, NPROCS, VAR, I1, I2, IT, GI2, K2, &
-     & MP, IRS)!, VNAME) !LB cleanup
+     & MP, IRS)!, VNAME)
 !
     !==============================================================================|
          Implicit None
          Integer, Intent (In) :: IUNIT, I1, I2, IT, GI2, K2, IRS, MYID, &
         & NPROCS
          Type (GMAP), Intent (In) :: MP (NPROCS)
-    !Character (Len=*), Intent (In) :: VNAME  !LBcleanup
+    !Character (Len=*), Intent (In) :: VNAME 
          Real (SP), Intent (In), Dimension (I1:I2, K2) :: VAR
          Real (SP), Dimension (GI2, K2) :: TEMP
          Real (SP), Dimension (0:GI2, K2) :: TEMP2

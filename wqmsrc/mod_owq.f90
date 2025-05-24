@@ -1,4 +1,45 @@
+!mod_owq.F
+!************************************************************************
+!**                                                                    **
+!**                           FVCOM-ICM_4.0                            **
+!**                                                                    **
+!**               A Finite Volume Based Integrated Compartment         **
+!**                         Water Quality Model                        **      
+!**        The original unstructured-grid ICM code was developed by    ** 
+!**    the FVCOM development team at the University of Massachusetts   ** 
+!**         through a contract with U.S. Army Corps of Engineers       ** 
+!**         [Dr. Changsheng Chen (PI), Dr. Jianhua Qi and              ** 
+!**                      Dr. Geoffrey W. Cowles]                       **
+!**                                                                    **
+!**                Subsequent Development and Maintenance by           ** 
+!**                   PNNL/UW Salish Sea Modeling Center               **
+!**                                                                    **
+!**                 Tarang Khangaonkar    :  PNNL (2008 - Present)     **
+!**                 Lakshitha Premathilake:  PNNL (2019 - Present)     **
+!**                 Adi Nugraha           :  PNNL/UW (2018 - Present)  **
+!**                 Kurt Glaesmann        :  PNNL (2008 - Present)     **
+!**                 Laura Bianucci        :  PNNL/DFO(2015 - Present)  **
+!**                 Wen Long              :  PNNL (2012-2016)          **
+!**                 Taeyum Kim            :  PNNL (2008-2011)          **
+!**                 Rochelle G Labiosa    :  PNNL (2009-2010)          **
+!**                                                                    **
+!**                                                                    **
+!**                     Adopted from CE-QUAL-ICM  Model                **
+!**                           Developed by:                            **
+!**                                                                    **
+!**             Carl F. Cerco      : Water quality scheme              **
+!**             Raymond S. Chapman : Numerical solution scheme         **
+!**             Thomas M. Cole     : Computer algorithms & coding      **
+!**             Hydroqual          : Sediment compartment              **
+!**                                                                    **
+!**                    Water Quality Modeling Group                    **
+!**                    U.S. Army Corps of Engineers                    **
+!**                    Waterways Experiment Station                    **
+!**                    Vicksburg, Mississippi 39180                    **
+!**                                                                    **
+!************************************************************************
 !
+
 Module MOD_OWQ
   !
   !********************************************************************************
@@ -314,10 +355,7 @@ Contains
        !     KESS (I, 1) = OWQ (COLOR(I, 1), TOTCHL, TURB(I, 1), DEPTHKE, AVREFCOS)
        !!
        !! ASSIGN SURFACE ATTENUATION TO SUB-SURFACE CELLS
-       !!RGl - why is Kess the same in the wc?
-       !!WLong - because KESS is coefficient in front of vertical coordinate (depth from surface)
-       !!        for an exponentially decaying light field, this will be a constant
-       !!        for vertically homogeneous water column. Not true if CDOM and CHLA etc has vertical distribution
+
        !!
        !     Do K = 2, KBM1
        !        KESS (I, K) = KESS (I, 1)
@@ -345,11 +383,7 @@ Contains
                !COLOR (I, K) = Max (12.2*Exp(0.14*TOTDOC), 5.) !AN
        !
        ! ASSIGN SURFACE ATTENUATION TO SUB-SURFACE CELLS
-       !RGl - why is Kess the same in the wc?
-       !WLong - because KESS is coefficient in front of vertical coordinate (depth from surface)
-       !        for an exponentially decaying light field, this will be a constant
-       !        for vertically homogeneous water column. Not true if CDOM and CHLA etc has vertical distribution
-       !
+
               if (K==1) then
                KESS (I, 1) = OWQ (COLOR(I, 1), TOTCHL, TURB(I, 1), DEPTHKE, AVREFCOS)
               end if

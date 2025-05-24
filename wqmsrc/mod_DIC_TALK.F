@@ -1,8 +1,50 @@
+!mod_DIC_TALK.f
+!************************************************************************
+!**                                                                    **
+!**                           FVCOM-ICM_4.0                            **
+!**                                                                    **
+!**               A Finite Volume Based Integrated Compartment         **
+!**                         Water Quality Model                        **      
+!**        The original unstructured-grid ICM code was developed by    ** 
+!**    the FVCOM development team at the University of Massachusetts   ** 
+!**         through a contract with U.S. Army Corps of Engineers       ** 
+!**         [Dr. Changsheng Chen (PI), Dr. Jianhua Qi and              ** 
+!**                      Dr. Geoffrey W. Cowles]                       **
+!**                                                                    **
+!**                Subsequent Development and Maintenance by           ** 
+!**                   PNNL/UW Salish Sea Modeling Center               **
+!**                                                                    **
+!**                 Tarang Khangaonkar    :  PNNL (2008 - Present)     **
+!**                 Lakshitha Premathilake:  PNNL (2019 - Present)     **
+!**                 Adi Nugraha           :  PNNL/UW (2018 - Present)  **
+!**                 Kurt Glaesmann        :  PNNL (2008 - Present)     **
+!**                 Laura Bianucci        :  PNNL/DFO(2015 - Present)  **
+!**                 Wen Long              :  PNNL (2012-2016)          **
+!**                 Taeyum Kim            :  PNNL (2008-2011)          **
+!**                 Rochelle G Labiosa    :  PNNL (2009-2010)          **
+!**                                                                    **
+!**                                                                    **
+!**                     Adopted from CE-QUAL-ICM  Model                **
+!**                           Developed by:                            **
+!**                                                                    **
+!**             Carl F. Cerco      : Water quality scheme              **
+!**             Raymond S. Chapman : Numerical solution scheme         **
+!**             Thomas M. Cole     : Computer algorithms & coding      **
+!**             Hydroqual          : Sediment compartment              **
+!**                                                                    **
+!**                    Water Quality Modeling Group                    **
+!**                    U.S. Army Corps of Engineers                    **
+!**                    Waterways Experiment Station                    **
+!**                    Vicksburg, Mississippi 39180                    **
+!**                                                                    **
+!************************************************************************
+!
 Module MOD_DIC_TALK
 !
       Use MOD_PREC, Only: SP
       Use MOD_CONTROL, Only: MSR
-!
+      Use MOD_WQM, Only: JDAY, DLT
+      Use MOD_HYDROVARS, Only: PI, ART1
       Use MOD_LIMS, Only: MLOC, KBM1, MTLOC
 #if defined (WET_DRY)
 	  USE MOD_WD, ONLY: ISWETN
@@ -19,8 +61,7 @@ Contains
   !   TOTINC      : Calculation of changes in TDIC (DTTIC)                        !
   !   ALKALINE    : Calculation of changes in TALK (DTALK)                       !
   !                                                                              !
-  !   Laura Bianucci, Feb 2015 - laura.bianucci@pnnl.gov                         !
-  !   Wen Long added wet_dry, Oct, 2016. wen.long@pnnl.gov						 !
+
   !==============================================================================|
 !
   !************************************************************************
@@ -36,19 +77,7 @@ Contains
          Use MOD_CO2SYS, Only: K0, FugFac, pCO2atm, AIRSEA_OPTION, &
         & MAPCO2ATM, UNITCO2ATM, NXPCO2, pco2atmNX, &       !CO2star_sat,       &!
 		& JDstart1
-!f90pprUSE MOD_CO2SYS, ONLY:   K0,                &
-!f90ppr  FugFac,            &
-!f90ppr  !CO2star_sat,       &!
-!f90pprpCO2atm,           &
-!f90ppr  AIRSEA_OPTION,     &
-!f90ppr  MAPCO2ATM,         &
-!f90ppr  UNITCO2ATM,        &
-!f90ppr  NXPCO2,            &
-!f90ppr  pco2atmNX
-!
-!
-!
-!
+
 #    if defined (MULTIPROCESSOR)
          Use MOD_PAR
 #    endif
@@ -61,16 +90,16 @@ Contains
 
          Open (AIRC, File='inputs/input_pCO2atm.dat', Status='OLD')
 
-    ! What parameterization do we use for air-sea exchange of O2 and CO2?     !1=reareation,  2=Wanninkhof (1992), 3=Nightingale (20
+
          Read (AIRC, 1009) AIRSEA_OPTION
          If (MSR) write (*,*) 'Parameterization air-sea exchange: (1=re&
         &areation, 2=W92, 3=N00, 4=Ho06, 5=W12, 6=PNNL)'
          If (MSR) write (*,*) '  --> AIRSEA_OPTION=', AIRSEA_OPTION
 
-    ! Is atm CO2 uniform in space or varies?  or does it vary with time? NOTE: it can only vary with time OR space, not both
+
          Read (AIRC, 1010) MAPCO2ATM
 !
-    ! Are we providing pCO2atm or fCO2atm?
+
          Read (AIRC, 1011) UNITCO2ATM
 !
          If (MAPCO2ATM == 'UNIFORM') Then
@@ -88,7 +117,7 @@ Contains
                pCO2atm (I) = pco2atmNX
             End Do
 !
-         Else !spatial varying -LB: this part has not been debugged yet
+         Else 
             Allocate (RTMP21(MGL))
             RTMP21 = 0.0
 !
@@ -104,8 +133,7 @@ Contains
                Do I = 1, MLOC
                   pCO2atm (I) = RTMP21 (NGID(I))
                End Do
-               Do I = 1, NHN !LB: I dont think pCO2atm is used in halo nodes,
-			                 !but I leave it for the sake of completeness
+               Do I = 1, NHN 
                   pCO2atm (I+MLOC) = RTMP21 (HN_LST(I))
                End Do
             End If
@@ -216,24 +244,8 @@ Contains
          Use MOD_CO2SYS, Only: CO2star_sat, pCO2atm, CO2star_surf, &
         & AIRSEA_OPTION, UNITCO2ATM, K0, FugFac, DICUPT, DICBMP, &
         & DICPRD, DICMNL, DICDEN, DICGAS, DICSED, &         !DICNIT,         &!
-        & JDstart1
-!f90pprUSE MOD_CO2SYS, ONLY:          &
-!f90ppr  CO2star_sat,    &
-!f90ppr  pCO2atm,        &
-!f90ppr  CO2star_surf,   &
-!f90ppr  AIRSEA_OPTION,  &
-!f90ppr  UNITCO2ATM,     &
-!f90ppr  K0,             &
-!f90ppr  FugFac,         &
-!f90ppr  DICUPT,         &
-!f90ppr  DICBMP,         &
-!f90ppr  DICPRD,         &
-!f90ppr  DICMNL,         &
-!f90ppr  DICDEN,         &
-!f90ppr  !DICNIT,         &!
-!f90ppr  DICGAS,         &
-!f90ppr  DICSED
-!
+        & JDstart1,INSTCDFLX
+
          Use MOD_WQMINIT, Only: COD_CALC, ZOO_CALC !AN add ZOO_CALC
          USE MOD_SAV, ONLY : BM_LEAF, LEAF, ACDWSAV,PLEAF,SAVCELL,NSAVCELL     ! Laki added for SAV
 
@@ -257,7 +269,6 @@ Contains
 !
          DTTIC = 0.0
 !
-    !**LB note: for the sake of completeness, I coded (but commented out)
     !           all equations related to Algae 3
          CPSAV = 0.0
          Do K = 1, KBM1
@@ -390,7 +401,7 @@ Contains
          Else !if we provided fCO2atm in microatm or ppmv
             Do I = 1, MLOC
 			   !CO2star_sat(I) = K0(I,1) * pCO2atm(I)   !micromol/kg-SW --> assume rho=1000kg/m3 --> mmol/m3!LB commented on 8jan2016\
-			   !CO2star_sat(I) = K0(I,1) * pCO2atm(I) * RHO(I,1) * 1.E-3_SP  !mmol/m3 !!LB: for some reason, this line doesn't give a cor
+
                auxLB = K0 (I, 1) * pCO2atm (I) * RHO (I, 1) * 1.E-3_SP
                CO2star_sat (I) = auxLB
 
@@ -421,8 +432,8 @@ Contains
 				ENDIF
 !
                DTTIC (I, 1) = DTTIC (I, 1) + FLUXCO2 / 86400.0
-			   !DICGAS(I,1) = FLUXCO2  !TDIC flux from air-sea gas exchange, snapshot  mmolC/m3/d
-               DICGAS (I, 1) = DICGAS (I, 1) + FLUXCO2 !TDIC flux from air-sea gas exchange, accumulated
+               DICGAS (I, 1) = DICGAS (I, 1) + ((FLUXCO2/86400.0)*DLT*ART1(I)*D(I)*DZ2D(I,1))/1E6                     !air-sea gas exchange, accumulated (kmolC)
+               INSTCDFLX(I,1) = FLUXCO2
             End Do
 !
          !Else
@@ -464,8 +475,8 @@ Contains
 				ENDIF
 !
                DTTIC (I, 1) = DTTIC (I, 1) + FLUXCO2 / 86400.0 !mmolC/m3/sec
-			   !DICGAS(I,1) = FLUXCO2  !TDIC flux from air-sea gas exchange, snapshot   !mmolC/m3/day
-               DICGAS (I, 1) = DICGAS (I, 1) + FLUXCO2 !TDIC flux from air-sea gas exchange, accumulated
+               DICGAS (I, 1) = DICGAS (I, 1) + ((FLUXCO2/86400.0)*DLT*ART1(I)*D(I)*DZ2D(I,1))/1E6 !TDIC flux from air-sea gas exchange, accumulated
+               INSTCDFLX(I,1) = FLUXCO2
             End Do
 		 Else If (AIRSEA_OPTION == 6) Then
 		    FACTOR = AREAR * (BREAR*WMS) ** CREAR
@@ -503,8 +514,8 @@ Contains
 				ENDIF
 !
                DTTIC (I, 1) = DTTIC (I, 1) + FLUXCO2 / 86400.0 !mmolC/m3/sec
-			   !DICGAS(I,1) = FLUXCO2  !DIC flux from air-sea gas exchange, snapshot   !mmolC/m3/day
-               DICGAS (I, 1) = DICGAS (I, 1) + FLUXCO2 !DIC flux from air-sea gas exchange, accumulated
+               DICGAS (I, 1) = DICGAS (I, 1) + ((FLUXCO2/86400.0)*DLT*ART1(I)*D(I)*DZ2D(I,1))/1E6 !DIC flux from air-sea gas exchange, accumulated
+               INSTCDFLX(I,1) = FLUXCO2
             End Do
 !
 !
@@ -587,7 +598,7 @@ Contains
 #  endif
 				DO K=1,KBM1
 
-					DTTIC(I,K)=0.0_SP 					!Wen Long: killed change to DTTIC
+					DTTIC(I,K)=0.0_SP 					!stopped change to DTTIC
 					DICSED(I,K)=DICSED(I,K)+0.0_SP
 					DICGAS(I,K)=DICGAS(I,K)+0.0_SP
 					DICUPT (I, K) =DICUPT(I,K)+ 0.0_SP
@@ -736,7 +747,7 @@ Contains
             ALKNH4SED (I, KBM1) = ALKNH4SED (I, KBM1) + alks_nh4sed !accumulated
             ALKNO3SED (I, KBM1) = ALKNO3SED (I, KBM1) + alks_no3sed !accumulated
 !
-			!ALKNH4SED(I,KBM1) = 0.0    !to have benfluxesTA=0 comment lines above (inside DO loop and uncomment these 2 lines)
+			!ALKNH4SED(I,KBM1) = 0.0    
 			!ALKNO3SED(I,KBM1) =  0.0
 
 
@@ -755,8 +766,7 @@ Contains
 					DTTALK (I, 1) = DTTALK (I, 1) - PRECIP * ATMNO3 / &
               & (D(I)*DZ2D(I,1)) / 14. * 1000.0
 				ELSE
-					!Wen Long: If dry, what would atm deposition do? settle into sediments directly?
-					!Wen Long: NOT implemented
+
 				ENDIF
             End Do
          End If

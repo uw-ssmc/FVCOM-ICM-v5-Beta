@@ -1,3 +1,44 @@
+!cell_area.F
+!************************************************************************
+!**                                                                    **
+!**                           FVCOM-ICM_4.0                            **
+!**                                                                    **
+!**               A Finite Volume Based Integrated Compartment         **
+!**                         Water Quality Model                        **      
+!**        The original unstructured-grid ICM code was developed by    ** 
+!**    the FVCOM development team at the University of Massachusetts   ** 
+!**         through a contract with U.S. Army Corps of Engineers       ** 
+!**         [Dr. Changsheng Chen (PI), Dr. Jianhua Qi and              ** 
+!**                      Dr. Geoffrey W. Cowles]                       **
+!**                                                                    **
+!**                Subsequent Development and Maintenance by           ** 
+!**                   PNNL/UW Salish Sea Modeling Center               **
+!**                                                                    **
+!**                 Tarang Khangaonkar    :  PNNL (2008 - Present)     **
+!**                 Lakshitha Premathilake:  PNNL (2019 - Present)     **
+!**                 Adi Nugraha           :  PNNL/UW (2018 - Present)  **
+!**                 Kurt Glaesmann        :  PNNL (2008 - Present)     **
+!**                 Laura Bianucci        :  PNNL/DFO(2015 - Present)  **
+!**                 Wen Long              :  PNNL (2012-2016)          **
+!**                 Taeyum Kim            :  PNNL (2008-2011)          **
+!**                 Rochelle G Labiosa    :  PNNL (2009-2010)          **
+!**                                                                    **
+!**                                                                    **
+!**                     Adopted from CE-QUAL-ICM  Model                **
+!**                           Developed by:                            **
+!**                                                                    **
+!**             Carl F. Cerco      : Water quality scheme              **
+!**             Raymond S. Chapman : Numerical solution scheme         **
+!**             Thomas M. Cole     : Computer algorithms & coding      **
+!**             Hydroqual          : Sediment compartment              **
+!**                                                                    **
+!**                    Water Quality Modeling Group                    **
+!**                    U.S. Army Corps of Engineers                    **
+!**                    Waterways Experiment Station                    **
+!**                    Vicksburg, Mississippi 39180                    **
+!**                                                                    **
+!************************************************************************
+!
 !==============================================================================|
 !    This subroutine is used to calculate the area of individual               !
 !    triangle based on the three vertex coordinates and also calculate         !
@@ -20,7 +61,7 @@ Subroutine CELL_AREA
       Use MOD_TGE, Only: ISONB, NTVE, NBVE, NBVT, NV
   !
       Use MOD_HYDROVARS, Only: ZERO, XC, YC, VX, VY, ART, ART1, ART2
-  !Wen Long took MOD_CONTROL out of MOD_HYDROVARS and put the used variables here
+  
       Use MOD_CONTROL, Only: PAR
 # if defined (MULTIPROCESSOR)
       Use MOD_PAR, Only: NBN, BN_LOC, BN_MLT, BNC, NODE_MATCH
@@ -32,12 +73,7 @@ Subroutine CELL_AREA
   !==============================================================================!
   !
   !---------------INITIALIZE ARRAYS----------------------------------------------!
-  !
-  !WLong moved these to HYDRO_ALLOC()
-  !ALLOCATE(ART(0:NTLOC))           ;ART  = ZERO   !!AREA OF ELEMENT
-  !ALLOCATE(ART1(0:MTLOC))          ;ART1 = ZERO   !!AREA OF NODE-BASE CONTROl VOLUME
-  !ALLOCATE(ART2(0:MTLOC))            ;ART2 = ZERO   !!AREA OF ELEMENTSAROUND NODE
-  !
+
       MAX_NBRE = MAXVAL (NTVE) + 1
       Allocate (XX(2*MAX_NBRE+1), YY(2*MAX_NBRE+1))
       XX = 0.0_SP

@@ -1,3 +1,44 @@
+!bcs_force.F
+!************************************************************************
+!**                                                                    **
+!**                           FVCOM-ICM_4.0                            **
+!**                                                                    **
+!**               A Finite Volume Based Integrated Compartment         **
+!**                         Water Quality Model                        **      
+!**        The original unstructured-grid ICM code was developed by    ** 
+!**    the FVCOM development team at the University of Massachusetts   ** 
+!**         through a contract with U.S. Army Corps of Engineers       ** 
+!**         [Dr. Changsheng Chen (PI), Dr. Jianhua Qi and              ** 
+!**                      Dr. Geoffrey W. Cowles]                       **
+!**                                                                    **
+!**                Subsequent Development and Maintenance by           ** 
+!**                   PNNL/UW Salish Sea Modeling Center               **
+!**                                                                    **
+!**                 Tarang Khangaonkar    :  PNNL (2008 - Present)     **
+!**                 Lakshitha Premathilake:  PNNL (2019 - Present)     **
+!**                 Adi Nugraha           :  PNNL/UW (2018 - Present)  **
+!**                 Kurt Glaesmann        :  PNNL (2008 - Present)     **
+!**                 Laura Bianucci        :  PNNL/DFO(2015 - Present)  **
+!**                 Wen Long              :  PNNL (2012-2016)          **
+!**                 Taeyum Kim            :  PNNL (2008-2011)          **
+!**                 Rochelle G Labiosa    :  PNNL (2009-2010)          **
+!**                                                                    **
+!**                                                                    **
+!**                     Adopted from CE-QUAL-ICM  Model                **
+!**                           Developed by:                            **
+!**                                                                    **
+!**             Carl F. Cerco      : Water quality scheme              **
+!**             Raymond S. Chapman : Numerical solution scheme         **
+!**             Thomas M. Cole     : Computer algorithms & coding      **
+!**             Hydroqual          : Sediment compartment              **
+!**                                                                    **
+!**                    Water Quality Modeling Group                    **
+!**                    U.S. Army Corps of Engineers                    **
+!**                    Waterways Experiment Station                    **
+!**                    Vicksburg, Mississippi 39180                    **
+!**                                                                    **
+!************************************************************************
+!
 !subroutine BCS_FORCE()
 !
 !==============================================================================|
@@ -14,8 +55,7 @@ Subroutine BCS_FORCE
      & MLOC
       Use MOD_PREC, Only: SP
       Use MOD_HYDROVARS, Only: DZ, D
-!
-  !Wen Long took MOD_CONTROL out of MOD_HYDROVARS and put the used variables here
+
       Use MOD_CONTROL, Only: SERIAL, MSR, PAR, CASENAME, &
      & RIV_FILENUMBER, INFLOW_TYPE, POINT_ST_TYPE, PNT_SOURCE
 !
@@ -37,8 +77,7 @@ Subroutine BCS_FORCE
      & (:, :)
       Integer, Allocatable :: RIV_2_LOC_PNT (:)
       Integer, Allocatable :: TEMP (:), TEMP2 (:), TEMP3 (:)! &
-  !& , TEMP4(:), NODE_SBC (:)  --> LBcleanup
-  !   INTEGER,  ALLOCATABLE :: TEMPD(:,:),TEMP2D(:,:),TEMP3D(:,:) !WLong not used at all
+
       Integer I, J, K, NQTIME, NBFWTIME, ISBCN1, INMAX, IOS, NCNT, IGL, &
      & IERR, JN
       Integer PNQTIME
@@ -331,25 +370,7 @@ Subroutine BCS_FORCE
            & :, :)
             Deallocate (RIV_2_LOC_PNT)
          End If
-     !! Regression to estimate the SSI<0.0625
-     !Do I = 1, NQTIME
-	!	 Do J = 1, NUMPNT
-     !     PDWQDIS(J,3,I) = PDWQDIS(J,3,I) * (0.0173*PDQDIS(J,I) + 12.753)/100
-	!	 End Do
-	 !End Do
-     !
-     !
-     !write(*,*)'LBnoteBCS: PDQDIS=',PDQDIS
-     !write(*,*)'LBnoteBCS: PDWQDIS TA=',PDWQDIS(:,34,:)
-     !write(*,*)'LBnoteBCS: PDWQDIS DO=',PDWQDIS(:,27,:)
-     !!LB: increase DOClab,DOCref,POClab,POCref (x 2)
-     !PDWQDIS(:,9,:)  = PDWQDIS(:,9,:)  * 2  !LDOC
-     !PDWQDIS(:,10,:) = PDWQDIS(:,10,:) * 2  !RDOC
-     !PDWQDIS(:,11,:) = PDWQDIS(:,11,:) * 2  !LPOC
-     !PDWQDIS(:,12,:) = PDWQDIS(:,12,:) * 2  !RPOC
-     !
-     !
-     !
+
          Deallocate (RTEMP, RTEMP1, RTEMP2)
      !
          Close (INPT)

@@ -1,3 +1,43 @@
+!mod_toxics.F
+!************************************************************************
+!**                                                                    **
+!**                           FVCOM-ICM_4.0                            **
+!**                                                                    **
+!**               A Finite Volume Based Integrated Compartment         **
+!**                         Water Quality Model                        **      
+!**        The original unstructured-grid ICM code was developed by    ** 
+!**    the FVCOM development team at the University of Massachusetts   ** 
+!**         through a contract with U.S. Army Corps of Engineers       ** 
+!**         [Dr. Changsheng Chen (PI), Dr. Jianhua Qi and              ** 
+!**                      Dr. Geoffrey W. Cowles]                       **
+!**                                                                    **
+!**                Subsequent Development and Maintenance by           ** 
+!**                   PNNL/UW Salish Sea Modeling Center               **
+!**                                                                    **
+!**                 Tarang Khangaonkar    :  PNNL (2008 - Present)     **
+!**                 Lakshitha Premathilake:  PNNL (2019 - Present)     **
+!**                 Adi Nugraha           :  PNNL/UW (2018 - Present)  **
+!**                 Kurt Glaesmann        :  PNNL (2008 - Present)     **
+!**                 Laura Bianucci        :  PNNL/DFO(2015 - Present)  **
+!**                 Wen Long              :  PNNL (2012-2016)          **
+!**                 Taeyum Kim            :  PNNL (2008-2011)          **
+!**                 Rochelle G Labiosa    :  PNNL (2009-2010)          **
+!**                                                                    **
+!**                                                                    **
+!**                     Adopted from CE-QUAL-ICM  Model                **
+!**                           Developed by:                            **
+!**                                                                    **
+!**             Carl F. Cerco      : Water quality scheme              **
+!**             Raymond S. Chapman : Numerical solution scheme         **
+!**             Thomas M. Cole     : Computer algorithms & coding      **
+!**             Hydroqual          : Sediment compartment              **
+!**                                                                    **
+!**                    Water Quality Modeling Group                    **
+!**                    U.S. Army Corps of Engineers                    **
+!**                    Waterways Experiment Station                    **
+!**                    Vicksburg, Mississippi 39180                    **
+!**                                                                    **
+!************************************************************************
 MODULE TXC_KNT
 
   USE MOD_LIMS, Only: MTLOC, KBM1, KB, MLOC, NBTX_PNT
@@ -12,7 +52,7 @@ MODULE TXC_KNT
                     & TXCF_INC,TXCF_PNT,TXCF_OBC, TXCF_INC_SD,PTC_SD, PTC_WC,SED_DEN, & 
                     & DFFCOEFS12, BRLVEL,MolWghtCng,HNRCFF,TxcSdmInitType,TxcSdmUnfm, TxcAccSZ,TxcAccLZ, &
                     & PCBTxcOn,MTLTxcOn,NumTxcOutVar,TxcHotWC,TxcHotstart,TxcHotSD1,TxcHotSD2, PCBOutVrb, &
-                    & VDiffCoff, KDecay,ExcLossSZ,ExcLossLZ
+                    & VDiffCoff, KDecay,ExcLossSZ,ExcLossLZ,PcbCon_AlgW1,PcbCon_AlgW2
 
   USE MOD_CONTROL, ONLY: SERIAL, MSR, PAR
   USE MOD_PAR, Only: NGID, NHN, HN_LST, NLID
@@ -73,7 +113,11 @@ SUBROUTINE TXC_ALLOC
           ALLOCATE(PcbCon_W(0:MTLOC,KBM1,NTXVB))
           PcbCon_W = 0.0 
           ALLOCATE(PcbCon_AlgW(0:MTLOC,KBM1,NTXVB))
-          PcbCon_AlgW = 0.0 
+          PcbCon_AlgW = 0.0
+          ALLOCATE(PcbCon_AlgW1(0:MTLOC,KBM1,NTXVB))
+          PcbCon_AlgW1 = 0.0
+          ALLOCATE(PcbCon_AlgW2(0:MTLOC,KBM1,NTXVB))
+          PcbCon_AlgW2 = 0.0
           ALLOCATE(PcbCon_ZplW(0:MTLOC,KBM1,NTXVB))
           PcbCon_ZplW = 0.0 
           ALLOCATE(PcbCon_SldW(0:MTLOC,KBM1,NTXVB))
@@ -1055,7 +1099,9 @@ SUBROUTINE ExtractTxcData
 
  PcbCon_W = FD_W * CONPCB_W
  PcbCon_ZplW = FP_ZOO_W * CONPCB_W 
- PcbCon_AlgW = FP_BOC1_W * CONPCB_W  +  FP_BOC2_W * CONPCB_W 
+ PcbCon_AlgW = FP_BOC1_W * CONPCB_W  +  FP_BOC2_W * CONPCB_W
+ PcbCon_AlgW1 = FP_BOC1_W * CONPCB_W
+ PcbCon_AlgW2 = FP_BOC2_W * CONPCB_W
  PcbCon_SldW = FP_SSI_W * CONPCB_W 
  PcbCon_POCW = FP_POC_W * CONPCB_W
  PcbCon_DOCW = FP_DOC_W * CONPCB_W

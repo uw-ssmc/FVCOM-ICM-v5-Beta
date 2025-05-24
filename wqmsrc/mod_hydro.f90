@@ -1,3 +1,44 @@
+!mod_hydro.F
+!************************************************************************
+!**                                                                    **
+!**                           FVCOM-ICM_4.0                            **
+!**                                                                    **
+!**               A Finite Volume Based Integrated Compartment         **
+!**                         Water Quality Model                        **      
+!**        The original unstructured-grid ICM code was developed by    ** 
+!**    the FVCOM development team at the University of Massachusetts   ** 
+!**         through a contract with U.S. Army Corps of Engineers       ** 
+!**         [Dr. Changsheng Chen (PI), Dr. Jianhua Qi and              ** 
+!**                      Dr. Geoffrey W. Cowles]                       **
+!**                                                                    **
+!**                Subsequent Development and Maintenance by           ** 
+!**                   PNNL/UW Salish Sea Modeling Center               **
+!**                                                                    **
+!**                 Tarang Khangaonkar    :  PNNL (2008 - Present)     **
+!**                 Lakshitha Premathilake:  PNNL (2019 - Present)     **
+!**                 Adi Nugraha           :  PNNL/UW (2018 - Present)  **
+!**                 Kurt Glaesmann        :  PNNL (2008 - Present)     **
+!**                 Laura Bianucci        :  PNNL/DFO(2015 - Present)  **
+!**                 Wen Long              :  PNNL (2012-2016)          **
+!**                 Taeyum Kim            :  PNNL (2008-2011)          **
+!**                 Rochelle G Labiosa    :  PNNL (2009-2010)          **
+!**                                                                    **
+!**                                                                    **
+!**                     Adopted from CE-QUAL-ICM  Model                **
+!**                           Developed by:                            **
+!**                                                                    **
+!**             Carl F. Cerco      : Water quality scheme              **
+!**             Raymond S. Chapman : Numerical solution scheme         **
+!**             Thomas M. Cole     : Computer algorithms & coding      **
+!**             Hydroqual          : Sediment compartment              **
+!**                                                                    **
+!**                    Water Quality Modeling Group                    **
+!**                    U.S. Army Corps of Engineers                    **
+!**                    Waterways Experiment Station                    **
+!**                    Vicksburg, Mississippi 39180                    **
+!**                                                                    **
+!************************************************************************
+!
 Module MOD_HYDRO
   !
 Contains
@@ -16,7 +57,7 @@ Contains
         & num_hyd_ints, NCFILE_PREFIX, NCFILE_SUFFIX, NCFILE_NUMBER, &
         & FORMAT_STR, hydro_dir, hydro_filenumwidth, &
         & hydro_filenumstart, hydro_Nrec, IFNC, NTRECNC, NTHYDRO
-    !Wen Long took MOD_CONTROL out of MOD_HYDROVARS and put the used variables here
+
          Use MOD_CONTROL, Only: MSR, PAR
     !
          Use MOD_LIMS, Only: MTLOC, KBM1
@@ -67,11 +108,7 @@ Contains
             NCFILE = TRIM (hydro_dir) // TRIM (NCFILE_PREFIX) // TRIM &
            & (NCFILE_NUMBER) // TRIM (NCFILE_SUFFIX)
             If (MSR) WRITE (*,*) 'NCFILE=', TRIM (NCFILE)
-       !        variable             varilable                         unit       dimensions (e.g. :
-       !        name in              meaning                                      siglay=10, siglev=11
-       !        NCFILE                                                            obc=11,obc2=11,node=9013
-       !                                                                          nele=13941 )
-       !                                    ----------------------------------------------------------------------------------------
+       
             Call NCD_READ_OPEN (NCFILE, UNC2, VNC2, WTSNC2, &
            & UARD_OBCNNC2, XFLUX_OBCNC2, DTFANC2, KHNC2, ELNC2, TNC2, &
            & SNC2, NTRECNC)!        -- time record number corresponding to index of 'time' variable in NCFILE
@@ -104,7 +141,7 @@ Contains
     !
          Use MOD_SIZES, Only: MGL, NGL, NOBTY
     !
-    !Wen Long took MOD_CONTROL out of MOD_HYDROVARS and put the used variables here
+
          Use MOD_CONTROL, Only: PAR
     !
     !
@@ -336,15 +373,15 @@ Contains
     !---then push the global arrays into local arays including halo nodes and halo elements
          If (PAR) Then
             Do I = 1, MLOC
-          !WRITE(*,*)'ELL_GL Debug here here 03 '
+
                ELL (I) = ELL_GL (NGID(I))
-          !WRITE(*,*)'ELL_GL Debug here here 3 '
+
             End Do
        !
             Do I = 1, NHN
-          !WRITE(*,*)'ELL_GL Debug here here 04 '
+
                ELL (I+MLOC) = ELL_GL (HN_LST(I))
-          !WRITE(*,*)'ELL_GL Debug here here 4 '
+
             End Do
        !
             UARD_OBCNL = - 99999

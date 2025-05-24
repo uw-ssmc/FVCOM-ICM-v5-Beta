@@ -1,3 +1,44 @@
+!mod_ncd.F
+!************************************************************************
+!**                                                                    **
+!**                           FVCOM-ICM_4.0                            **
+!**                                                                    **
+!**               A Finite Volume Based Integrated Compartment         **
+!**                         Water Quality Model                        **      
+!**        The original unstructured-grid ICM code was developed by    ** 
+!**    the FVCOM development team at the University of Massachusetts   ** 
+!**         through a contract with U.S. Army Corps of Engineers       ** 
+!**         [Dr. Changsheng Chen (PI), Dr. Jianhua Qi and              ** 
+!**                      Dr. Geoffrey W. Cowles]                       **
+!**                                                                    **
+!**                Subsequent Development and Maintenance by           ** 
+!**                   PNNL/UW Salish Sea Modeling Center               **
+!**                                                                    **
+!**                 Tarang Khangaonkar    :  PNNL (2008 - Present)     **
+!**                 Lakshitha Premathilake:  PNNL (2019 - Present)     **
+!**                 Adi Nugraha           :  PNNL/UW (2018 - Present)  **
+!**                 Kurt Glaesmann        :  PNNL (2008 - Present)     **
+!**                 Laura Bianucci        :  PNNL/DFO(2015 - Present)  **
+!**                 Wen Long              :  PNNL (2012-2016)          **
+!**                 Taeyum Kim            :  PNNL (2008-2011)          **
+!**                 Rochelle G Labiosa    :  PNNL (2009-2010)          **
+!**                                                                    **
+!**                                                                    **
+!**                     Adopted from CE-QUAL-ICM  Model                **
+!**                           Developed by:                            **
+!**                                                                    **
+!**             Carl F. Cerco      : Water quality scheme              **
+!**             Raymond S. Chapman : Numerical solution scheme         **
+!**             Thomas M. Cole     : Computer algorithms & coding      **
+!**             Hydroqual          : Sediment compartment              **
+!**                                                                    **
+!**                    Water Quality Modeling Group                    **
+!**                    U.S. Army Corps of Engineers                    **
+!**                    Waterways Experiment Station                    **
+!**                    Vicksburg, Mississippi 39180                    **
+!**                                                                    **
+!************************************************************************
+!
 !==============================================================================|
 !   NETCDF UTILITIES                                                              !
 !==============================================================================|
@@ -13,7 +54,7 @@ Module MOD_NCD
 						& TcrtConSdm, TcrKntOn, NumTcrVrb, NumTcrOutVar, TcrOutVrb, TcrtOutput, C2, SPM, &
 						& PcbCon_W, PcbCon_AlgW, PcbCon_ZplW, PcbCon_SldW, PcbCon_POCW, PcbCon_DOCW, &
 						& PcbConW_S1, PcbCon_POCS1, PcbCon_DOCS1, PcbConW_S2, PcbCon_POCS2, PcbCon_DOCS2, BioAcc, &
-						& PcbConWSZ, PcbConWLZ
+						& PcbConWSZ, PcbConWLZ, PcbCon_AlgW1, PcbCon_AlgW2,POCSD,PONSD,POPSD
 
 	  Implicit None
 	  Save
@@ -68,6 +109,7 @@ Module MOD_NCD
    integer :: wd_vid
    !integer :: ww_vid
    integer :: wts_vid
+   INTEGER :: popsd_vid,pocsd_vid,ponsd_vid
 
    integer :: s1_vid
    integer :: t1_vid
@@ -84,7 +126,7 @@ Module MOD_NCD
 !   integer :: uard_obcn_vid
 !------------------------------- netcdf ids for Toxic related variables ------------------------- 
 	INTEGER :: Pcbwc_vid, Pcbzpl_vid, Pcbagl_vid, Pcbsld_vid, Pcbws1_vid, Pcbws2_vid, Pcbpoc_vid, Pcbdoc_vid
-	INTEGER :: Pcbpocs1_vid, Pcbpocs2_vid, Pcbdocs1_vid, Pcbdocs2_vid, PcbConsz_vid, PcbConlz_vid
+	INTEGER :: Pcbpocs1_vid, Pcbpocs2_vid, Pcbdocs1_vid, Pcbdocs2_vid, PcbConsz_vid, PcbConlz_vid,Pcbagl1_vid,Pcbagl2_vid
 	INTEGER :: Tcrwc_vid, Tcrsd_vid
 
 	Integer ::	 T_vid 			&!(1:MGL, 1:KBM1)			! Wen Long, correction to assign values for all layers
@@ -112,6 +154,8 @@ Module MOD_NCD
 				,TALK_vid		&!C2 (1:MGL, 1:KBM1, 34)		!TALK 	!LB
 				,pH_vid			&!(1:MGL, 1:KBM1)			!pH		!LB
 				,pCO2_vid		&!(1:MGL, 1:KBM1)		!pCO2	!LB
+			    ,Calcite_vid    &
+				,Aragonite_vid  &
 				,P1_vid			&
 				,P2_vid			&
 				,BM1_vid		&
@@ -156,6 +200,9 @@ Module MOD_NCD
 				,DICDEN_vid		&
 				!,DICNIT_GL = DICNIT	&!
 				,DICGAS_vid		&
+				,INSTCDFLX_vid  &
+				,CO2star_sat_vid &
+				,CO2star_surf_vid &
 				,DICSED_vid		&
 				,ALKNH4_vid		&
 				,ALKNO3_vid		&
@@ -561,9 +608,9 @@ subroutine putvar(i1,i2,n1,n1gl,kt,k1,map_type,var,nc_fid,vid,myid,nprocs,ipt)
 
    ierr = nf90_put_var(nc_fid,vid,temp,START=dims)
    if(ierr /= nf90_noerr)then
-     IF(msr) THEN
-       WRITE(*,*)'Enter here....',vid ! Laki debugging
-     END IF
+     !IF(msr) THEN
+     !  WRITE(*,*)'Enter here....',vid 
+     !END IF
      call handle_ncerr(ierr,"error writing variable to netcdf",ipt)
    end if
    deallocate(dims)
@@ -1508,11 +1555,32 @@ subroutine putvar(i1,i2,n1,n1gl,kt,k1,map_type,var,nc_fid,vid,myid,nprocs,ipt)
 			ierr = nf90_put_att(nc_ofid,BFLUX_vid,"units","???")
 			ierr = nf90_put_att(nc_ofid,BFLUX_vid,"grid","fvcom_grid")
 			ierr = nf90_put_att(nc_ofid,BFLUX_vid,"type","data")
+		case("POCSD") !!=============== pocsd ======================================!
+			ierr = nf90_def_var(nc_ofid,"POCSD",nf90_float,dynm2dn,pocsd_vid)
+			ierr = nf90_put_att(nc_ofid,pocsd_vid,"long_name","Particulate organic carbon in sediment layer 1")
+			ierr = nf90_put_att(nc_ofid,pocsd_vid,"units","gC meters-3")
+			ierr = nf90_put_att(nc_ofid,pocsd_vid,"grid","fvcom_grid")
+			ierr = nf90_put_att(nc_ofid,pocsd_vid,"type","data")
+		case("PONSD") !!=============== ponsd ======================================!
+			ierr = nf90_def_var(nc_ofid,"PONSD",nf90_float,dynm2dn,ponsd_vid)
+			ierr = nf90_put_att(nc_ofid,ponsd_vid,"long_name","Particulate organic nitrogen in sediment layer 1")
+			ierr = nf90_put_att(nc_ofid,ponsd_vid,"units","gN meters-3")
+			ierr = nf90_put_att(nc_ofid,ponsd_vid,"grid","fvcom_grid")
+			ierr = nf90_put_att(nc_ofid,ponsd_vid,"type","data")
+		case("POPSD") !!=============== ponsd ======================================!
+			ierr = nf90_def_var(nc_ofid,"POPSD",nf90_float,dynm2dn,popsd_vid)
+			ierr = nf90_put_att(nc_ofid,popsd_vid,"long_name","Particulate organic phosphorus in sediment layer 1")
+			ierr = nf90_put_att(nc_ofid,popsd_vid,"units","gP meters-3")
+			ierr = nf90_put_att(nc_ofid,popsd_vid,"grid","fvcom_grid")
+			ierr = nf90_put_att(nc_ofid,popsd_vid,"type","data")
+		
 !WLong: the following are related to CARBONATE_CALC
 		case ( "TDIC")
 		case ( "TALK")
 		case ( "pH")
 		case ( "pCO2")
+	    case ("Calcite")
+		case ("Aragonite")
 		case ( "DICUPT")
 		case ( "DICBMP")
 		case ( "DICPRD")
@@ -1589,6 +1657,9 @@ subroutine putvar(i1,i2,n1,n1gl,kt,k1,map_type,var,nc_fid,vid,myid,nprocs,ipt)
 		!AN the following are related to ZOO_CALC
 		case ( "SZ")
 		case ( "LZ")
+		case ( "INSTCDFLX" )
+		case ( "CO2star_sat" )
+		case ( "CO2star_surf" )
      case default
        write(ipt,*)'variable',cdf_vdp(i),' not set up for netcdf output'
        write(ipt,*)'modify module mod_ncdio.f'
@@ -1625,6 +1696,22 @@ end select
 			ierr = nf90_put_att(nc_ofid,pCO2_vid,"units","")
 			ierr = nf90_put_att(nc_ofid,pCO2_vid,"grid","fvcom_grid")
 			ierr = nf90_put_att(nc_ofid,pCO2_vid,"type","data")
+		
+		case ("Calcite")
+			ierr = nf90_def_var(nc_ofid,"Calcite",nf90_float,dynm3dn_lay,Calcite_vid)
+			ierr = nf90_put_att(nc_ofid,Calcite_vid,"long_name","Calcite")
+			ierr = nf90_put_att(nc_ofid,Calcite_vid,"standard_name","Calcite")
+			ierr = nf90_put_att(nc_ofid,Calcite_vid,"units","")
+			ierr = nf90_put_att(nc_ofid,Calcite_vid,"grid","fvcom_grid")
+			ierr = nf90_put_att(nc_ofid,Calcite_vid,"type","data")
+
+		case ("Aragonite")
+			ierr = nf90_def_var(nc_ofid,"Aragonite",nf90_float,dynm3dn_lay,Aragonite_vid)
+			ierr = nf90_put_att(nc_ofid,Aragonite_vid,"long_name","Aragonite")
+			ierr = nf90_put_att(nc_ofid,Aragonite_vid,"standard_name","Aragonite")
+			ierr = nf90_put_att(nc_ofid,Aragonite_vid,"units","")
+			ierr = nf90_put_att(nc_ofid,Aragonite_vid,"grid","fvcom_grid")
+			ierr = nf90_put_att(nc_ofid,Aragonite_vid,"type","data")
 		case ( "DICUPT")
 			ierr = nf90_def_var(nc_ofid,"DICUPT",nf90_float,dynm3dn_lay,DICUPT_vid)
 			ierr = nf90_put_att(nc_ofid,DICUPT_vid,"long_name","DICUPT")
@@ -1663,10 +1750,17 @@ end select
 		case ( "DICGAS")
 			ierr = nf90_def_var(nc_ofid,"DICGAS",nf90_float,dynm3dn_lay,DICGAS_vid)
 			ierr = nf90_put_att(nc_ofid,DICGAS_vid,"long_name","DICGAS")
-			ierr = nf90_put_att(nc_ofid,DICGAS_vid,"standard_name","DICGAS")
-			ierr = nf90_put_att(nc_ofid,DICGAS_vid,"units","mmolC/m3/day")
+			ierr = nf90_put_att(nc_ofid,DICGAS_vid,"standard_name","Net CO2 flux dueto air-sea exchange")
+			ierr = nf90_put_att(nc_ofid,DICGAS_vid,"units","kmolC")
 			ierr = nf90_put_att(nc_ofid,DICGAS_vid,"grid","fvcom_grid")
 			ierr = nf90_put_att(nc_ofid,DICGAS_vid,"type","data")
+		case ( "INSTCDFLX" )
+			ierr = nf90_def_var(nc_ofid,"INSTCDFLX",nf90_float,dynm3dn_lay,INSTCDFLX_vid)
+			ierr = nf90_put_att(nc_ofid,INSTCDFLX_vid,"long_name","Instantaneous CO2 air-sea exhange flux")
+			ierr = nf90_put_att(nc_ofid,INSTCDFLX_vid,"standard_name","INSTCDFLX")
+			ierr = nf90_put_att(nc_ofid,INSTCDFLX_vid,"units","mmolC/m3/day")
+			ierr = nf90_put_att(nc_ofid,INSTCDFLX_vid,"grid","fvcom_grid")
+			ierr = nf90_put_att(nc_ofid,INSTCDFLX_vid,"type","data")
 		case ( "DICSED")
 			ierr = nf90_def_var(nc_ofid,"DICSED",nf90_float,dynm3dn_lay,DICSED_vid)
 			ierr = nf90_put_att(nc_ofid,DICSED_vid,"long_name","DICSED")
@@ -1723,6 +1817,20 @@ end select
 			ierr = nf90_put_att(nc_ofid,ALKNO3SED_vid,"units","mmol/m^3/day")
 			ierr = nf90_put_att(nc_ofid,ALKNO3SED_vid,"grid","fvcom_grid")
 			ierr = nf90_put_att(nc_ofid,ALKNO3SED_vid,"type","data")
+		case("CO2star_sat")
+     		ierr = nf90_def_var(nc_ofid,"CO2star_sat",nf90_float,dynm2dn,CO2star_sat_vid)
+     		ierr = nf90_put_att(nc_ofid,CO2star_sat_vid,"long_name","CO2* saturation concentration at surface")
+     		ierr = nf90_put_att(nc_ofid,CO2star_sat_vid,"units","mmolC/m^3")
+     		ierr = nf90_put_att(nc_ofid,CO2star_sat_vid,"grid","fvcom-grid")
+     		ierr = nf90_put_att(nc_ofid,CO2star_sat_vid,"standard_name","surface CO2* saturation")
+     		ierr = nf90_put_att(nc_ofid,CO2star_sat_vid,"type","data")
+		case("CO2star_surf")
+     		ierr = nf90_def_var(nc_ofid,"CO2star_surf",nf90_float,dynm2dn,CO2star_surf_vid)
+     		ierr = nf90_put_att(nc_ofid,CO2star_surf_vid,"long_name","Surface CO2* concentration at surface")
+     		ierr = nf90_put_att(nc_ofid,CO2star_surf_vid,"units","mmolC/m^3")
+     		ierr = nf90_put_att(nc_ofid,CO2star_surf_vid,"grid","fvcom-grid")
+     		ierr = nf90_put_att(nc_ofid,CO2star_surf_vid,"standard_name","surface CO2* concentration")
+     		ierr = nf90_put_att(nc_ofid,CO2star_surf_vid,"type","data")
 end select
 ENDIF
 
@@ -2088,7 +2196,21 @@ IF((TxcKntOn == .TRUE.) .AND. (TxcOutput == .TRUE.)) THEN
 			ierr = nf90_put_att(nc_ofid,Pcbagl_vid,"standard_name","PcbCon_AlgW")
 			ierr = nf90_put_att(nc_ofid,Pcbagl_vid,"units","g meters-3")
 			ierr = nf90_put_att(nc_ofid,Pcbagl_vid,"grid","fvcom_grid")
-			ierr = nf90_put_att(nc_ofid,Pcbagl_vid,"type","data") 
+			ierr = nf90_put_att(nc_ofid,Pcbagl_vid,"type","data")
+		CASE("PcbCon_AlgW1")
+			ierr = nf90_def_var(nc_ofid,"PCBCONALGW1",nf90_float,dynm4txc_lay,Pcbagl1_vid)
+			ierr = nf90_put_att(nc_ofid,Pcbagl1_vid,"long_name","PCB concentration in Algae in WC")
+			ierr = nf90_put_att(nc_ofid,Pcbagl1_vid,"standard_name","PcbCon_AlgW1")
+			ierr = nf90_put_att(nc_ofid,Pcbagl1_vid,"units","g meters-3")
+			ierr = nf90_put_att(nc_ofid,Pcbagl1_vid,"grid","fvcom_grid")
+			ierr = nf90_put_att(nc_ofid,Pcbagl1_vid,"type","data")
+		CASE("PcbCon_AlgW2")
+			ierr = nf90_def_var(nc_ofid,"PCBCONALGW2",nf90_float,dynm4txc_lay,Pcbagl2_vid)
+			ierr = nf90_put_att(nc_ofid,Pcbagl2_vid,"long_name","PCB concentration in Algae in WC")
+			ierr = nf90_put_att(nc_ofid,Pcbagl2_vid,"standard_name","PcbCon_AlgW2")
+			ierr = nf90_put_att(nc_ofid,Pcbagl2_vid,"units","g meters-3")
+			ierr = nf90_put_att(nc_ofid,Pcbagl2_vid,"grid","fvcom_grid")
+			ierr = nf90_put_att(nc_ofid,Pcbagl2_vid,"type","data")		
 		CASE("PcbCon_SldW")
 			ierr = nf90_def_var(nc_ofid,"PCBCONSLDW",nf90_float,dynm4txc_lay,Pcbsld_vid)
 			ierr = nf90_put_att(nc_ofid,Pcbsld_vid,"long_name","PCB concentration in soilds in WC")
@@ -2302,7 +2424,7 @@ END IF
    !tvec(1:kbm1) = zz(1,1:kbm1)   !T.W., changed back to v2.3, for WQ linkage purpose
    ierr = nf90_put_var(nc_ofid,siglay_vid,tvec)
    if(ierr /= nf90_noerr)then
-     !WRITE(*,*)'Enter here ...., ncd file' !Laki debugging
+ 
      call handle_ncerr(ierr,"error writing variable to netcdf",ipt)
    end if
    deallocate(tvec)
@@ -2321,7 +2443,7 @@ END IF
 !   tvec(1:kb) = z(1,1:kb)  !T.W., changed back to v2.3
    ierr = nf90_put_var(nc_ofid,siglev_vid,tvec)
    if(ierr /= nf90_noerr)then
-     !WRITE(*,*)'Enter here .....,ncd file'  !Laki debugging
+ 
      call handle_ncerr(ierr,"error writing variable to netcdf",ipt)
    end if
    deallocate(tvec)
@@ -2387,7 +2509,9 @@ END IF
 
 	USE MOD_CO2SYS, ONLY: 	DICUPT, DICBMP, DICPRD, DICMNL, DICDEN, DICGAS, &
 							DICSED, ALKNH4, ALKNO3, ALKNIT,ALKDEN, ALKREM,	&
-							ALKNH4SED,ALKNO3SED
+							ALKNH4SED,ALKNO3SED,INSTCDFLX, CO2star_sat, CO2star_surf, &
+							Calcite,Aragonite
+
 
 	USE MOD_ZOOP, ONLY: B1SZ, B2SZ, B1LZ, B2LZ, DOSZ, DOLZ, SZ, LZ
 
@@ -2432,7 +2556,7 @@ END IF
 
 !--Dump Time/IINT to File
    dims(1) = stck_cnt
-!RGL added if -then per Kurt, below; get rid of dims statement above?
+
    IF(msr) then
      ierr    = nf90_put_var(nc_ofid,iint_vid,iint,START=dims)
      ierr    = nf90_put_var(nc_ofid,time_vid,thour*3600.,START=dims)
@@ -2441,8 +2565,6 @@ END IF
 !--Write Variables to File
    if(msr) write(ipt,*)'dumping to netcdf file: ',trim(cdfname),stck_cnt
 
-!WRITE(*,*)'Went through one iteration.........ncd'
-!STOP
    
    do i=1,nout_vars
 
@@ -2728,6 +2850,19 @@ END IF
 		case ( "BFLUX")
 			i1 = lbound(BFLUX,1) ; i2 = ubound(BFLUX,1)
 			call putvar(i1,i2,MLOC,mgl,kb-1,9,"n",BFLUX,nc_ofid,BFLUX_vid,myid,nprocs,ipt)	  !9 variables for BFLUX
+		
+		case ("POCSD") !!=============== pocsd ======================================!
+			i1 = lbound(POCSD,1) ; i2 = ubound(POCSD,1)
+			call putvar(i1,i2,MLOC,mgl,1,1,"n",POCSD,nc_ofid,pocsd_vid,myid,nprocs,ipt)
+		
+		case ("PONSD") !!=============== ponsd ======================================!
+			i1 = lbound(PONSD,1) ; i2 = ubound(PONSD,1)
+			call putvar(i1,i2,MLOC,mgl,1,1,"n",PONSD,nc_ofid,ponsd_vid,myid,nprocs,ipt)
+		
+		case ("POPSD") !!=============== popsd ======================================!
+			i1 = lbound(POPSD,1) ; i2 = ubound(POPSD,1)
+			call putvar(i1,i2,MLOC,mgl,1,1,"n",POPSD,nc_ofid,popsd_vid,myid,nprocs,ipt)
+		
 
 !carbonate_calc
 !The following are related to pH and carbonate_calc
@@ -2735,12 +2870,15 @@ END IF
 		case ( "TALK" )
 		case ( "pH" )
 		case ( "pCO2" )
+		case ("Calcite")
+		case ("Aragonite")
 		case ( "DICUPT" )
 		case ( "DICBMP" )
 		case ( "DICPRD" )
 		case ( "DICMNL" )
 		case ( "DICDEN" )
 		case ( "DICGAS" )
+		case ( "INSTCDFLX" )
 		case ( "DICSED" )
 		case ( "ALKNH4" )
 		case ( "ALKNO3" )
@@ -2790,21 +2928,23 @@ END IF
 		case ( "CPOS" )
 		case ( "HSED1" )
 		case ( "BENSTRTM1S" )
-!Adi-2/14/18: the following are related to SOLIDS_CALC
+
 		case ( "TSS" )
 		case ( "SSI" )
 		case ( "KESS" )
 		case ( "TURB" )
 		case ( "PARAD" )
-		!AN the following are related to SAV_CALC
+
 		case ( "LEAF")
 		case ( "STEM")
 		case ( "ROOT")
 		case ( "TUBER")
 		case ( "EP")
-		!AN the following are related to ZOO_CALC
+
 		case ( "SZ")
 		case ( "LZ")
+		case("CO2star_sat") 
+		case("CO2star_surf") 
 
 		case default
 			if(msr)then
@@ -2835,6 +2975,13 @@ END IF
 			i1 = lbound(pCO2,1) ; i2 = ubound(pCO2,1)
 			call putvar(i1,i2,MLOC,mgl,kb-1,kb-1,"n",pCO2,nc_ofid,pCO2_vid,myid,nprocs,ipt)
 
+		case ("Calcite")
+			i1 = lbound(Calcite,1) ; i2 = ubound(Calcite,1)
+			call putvar(i1,i2,MLOC,mgl,kb-1,kb-1,"n",Calcite,nc_ofid,Calcite_vid,myid,nprocs,ipt)
+
+		case ("Aragonite")
+			i1 = lbound(Aragonite,1) ; i2 = ubound(Aragonite,1)
+			call putvar(i1,i2,MLOC,mgl,kb-1,kb-1,"n",Aragonite,nc_ofid,Aragonite_vid,myid,nprocs,ipt)
 		case ( "DICUPT")
 			i1 = lbound(DICUPT,1) ; i2 = ubound(DICUPT,1)
 			call putvar(i1,i2,MLOC,mgl,kb-1,kb-1,"n",DICUPT,nc_ofid,DICUPT_vid,myid,nprocs,ipt)
@@ -2859,7 +3006,10 @@ END IF
 
 			i1 = lbound(DICGAS,1) ; i2 = ubound(DICGAS,1)
 			call putvar(i1,i2,MLOC,mgl,kb-1,kb-1,"n",DICGAS,nc_ofid,DICGAS_vid,myid,nprocs,ipt)	!Wen Long, could be just 1 layer
+		case ( "INSTCDFLX")
 
+			i1 = lbound(INSTCDFLX,1) ; i2 = ubound(INSTCDFLX,1)
+			call putvar(i1,i2,MLOC,mgl,kb-1,kb-1,"n",INSTCDFLX,nc_ofid,INSTCDFLX_vid,myid,nprocs,ipt)	!
 		case ( "DICSED")
 			i1 = lbound(DICSED,1) ; i2 = ubound(DICSED,1)
 			call putvar(i1,i2,MLOC,mgl,kb-1,kb-1,"n",DICSED,nc_ofid,DICSED_vid,myid,nprocs,ipt)	!Wen Long, could be just 1 layer
@@ -2892,6 +3042,13 @@ END IF
 			i1 = lbound(ALKNO3SED,1) ; i2 = ubound(ALKNO3SED,1)
 			call putvar(i1,i2,MLOC,mgl,kb-1,kb-1,"n",ALKNO3SED,nc_ofid,ALKNO3SED_vid,myid,nprocs,ipt)
 
+		case("CO2star_sat") 
+			i1 = lbound(CO2star_sat,1) ; i2 = ubound(CO2star_sat,1)
+			call putvar(i1,i2,MLOC,mgl,1,1,"n",CO2star_sat,nc_ofid,CO2star_sat_vid,myid,nprocs,ipt)
+		
+		case("CO2star_surf") 
+			i1 = lbound(CO2star_surf,1) ; i2 = ubound(CO2star_surf,1)
+			call putvar(i1,i2,MLOC,mgl,1,1,"n",CO2star_surf,nc_ofid,CO2star_surf_vid,myid,nprocs,ipt)
 		case default
 			!do nothing
 		end select
@@ -3055,11 +3212,9 @@ END IF
 			i1 = lbound(TURB,1) ; i2 = ubound(TURB,1)
 			call putvar(i1,i2,MLOC,mgl,kb-1,kb-1,"n",TURB,nc_ofid,TURB_vid,myid,nprocs,ipt)
 		case ( "SSI")
-			!SSI(:,:) = SPM(:,:)
 			i1 = lbound(SSI,1) ; i2 = ubound(SSI,1)
 			call putvar(i1,i2,MLOC,mgl,kb-1,kb-1,"n",SSI,nc_ofid,SSI_vid,myid,nprocs,ipt)
 		case ( "TSS")
-			!TSS(:,:) = C2(:,:,37)
 			i1 = lbound(TSS,1) ; i2 = ubound(TSS,1)
 			call putvar(i1,i2,MLOC,mgl,kb-1,kb-1,"n",TSS,nc_ofid,TSS_vid,myid,nprocs,ipt)
 		case ( "PARAD")
@@ -3107,6 +3262,12 @@ IF((TxcKntOn == .TRUE.) .AND. (TxcOutput == .TRUE.)) THEN
 
 			CASE("PcbCon_AlgW")
 				CALL PUTSVAR_TXC4D(nc_ofid,Pcbagl_vid,MLOC,KBM1,NumTxVrb,PcbCon_AlgW,stck_cnt)
+			
+			CASE("PcbCon_AlgW1")
+				CALL PUTSVAR_TXC4D(nc_ofid,Pcbagl1_vid,MLOC,KBM1,NumTxVrb,PcbCon_AlgW1,stck_cnt)
+			
+			CASE("PcbCon_AlgW2")
+				CALL PUTSVAR_TXC4D(nc_ofid,Pcbagl2_vid,MLOC,KBM1,NumTxVrb,PcbCon_AlgW2,stck_cnt)
 
 			CASE("PcbCon_SldW")
 				CALL PUTSVAR_TXC4D(nc_ofid,Pcbsld_vid,MLOC,KBM1,NumTxVrb,PcbCon_SldW,stck_cnt)

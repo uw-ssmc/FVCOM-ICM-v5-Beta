@@ -1,3 +1,44 @@
+!wqm_inputs.F
+!************************************************************************
+!**                                                                    **
+!**                           FVCOM-ICM_4.0                            **
+!**                                                                    **
+!**               A Finite Volume Based Integrated Compartment         **
+!**                         Water Quality Model                        **      
+!**        The original unstructured-grid ICM code was developed by    ** 
+!**    the FVCOM development team at the University of Massachusetts   ** 
+!**         through a contract with U.S. Army Corps of Engineers       ** 
+!**         [Dr. Changsheng Chen (PI), Dr. Jianhua Qi and              ** 
+!**                      Dr. Geoffrey W. Cowles]                       **
+!**                                                                    **
+!**                Subsequent Development and Maintenance by           ** 
+!**                   PNNL/UW Salish Sea Modeling Center               **
+!**                                                                    **
+!**                 Tarang Khangaonkar    :  PNNL (2008 - Present)     **
+!**                 Lakshitha Premathilake:  PNNL (2019 - Present)     **
+!**                 Adi Nugraha           :  PNNL/UW (2018 - Present)  **
+!**                 Kurt Glaesmann        :  PNNL (2008 - Present)     **
+!**                 Laura Bianucci        :  PNNL/DFO(2015 - Present)  **
+!**                 Wen Long              :  PNNL (2012-2016)          **
+!**                 Taeyum Kim            :  PNNL (2008-2011)          **
+!**                 Rochelle G Labiosa    :  PNNL (2009-2010)          **
+!**                                                                    **
+!**                                                                    **
+!**                     Adopted from CE-QUAL-ICM  Model                **
+!**                           Developed by:                            **
+!**                                                                    **
+!**             Carl F. Cerco      : Water quality scheme              **
+!**             Raymond S. Chapman : Numerical solution scheme         **
+!**             Thomas M. Cole     : Computer algorithms & coding      **
+!**             Hydroqual          : Sediment compartment              **
+!**                                                                    **
+!**                    Water Quality Modeling Group                    **
+!**                    U.S. Army Corps of Engineers                    **
+!**                    Waterways Experiment Station                    **
+!**                    Vicksburg, Mississippi 39180                    **
+!**                                                                    **
+!************************************************************************
+!
 !Subroutine INPUTS()
 !
 Subroutine INPUTS ()
@@ -284,9 +325,7 @@ Subroutine INPUTS ()
       Read (CON, 1030) (DLTMAX(J), J=1, NDLT)
       Read (CON, 1030) (DLTFTN(J), J=1, NDLT)
   !
-  !TYKIM
-  ! FILGTH IS LENGTH (IN DAYS) OF PERIOD SPANNED BY MET AND OTHER INPUT
-  !RGL FILGTH is only specified once in the hydro part of the con file??
+
   ! AHMDLT IS FVCOM output interval
       Read (CON, 1030) AHMDLT, FILGTH
   ! RGl moved JDAY setting earlier to allow for correct netcdf file find
@@ -294,11 +333,7 @@ Subroutine INPUTS ()
 
   !--SELECT NETCDF FILE TO READ FOR GRID CONSTRUCTION
       If (MSR) WRITE (YEAR, '(I4.4)') YEARSTRT
-  !
-  !
-  !   NCFILE="/home/long075/work/input-netcdf/"//TRIM(CASENAME)//"_0001.nc"
-  !
-  !
+
   !--DETERMINE NUMBER OF ELEMENTS AND NODES IN THE MODEL
   !
   !read global dimensions
@@ -742,10 +777,7 @@ Subroutine INPUTS ()
       If (SOURCE_THR) OPEN (S3, FILE=S3FN(S3PTR), STATUS='OLD')
       If (ATMOS_LOADS) OPEN (ATM, FILE=ATMFN(ATMPTR), STATUS='OLD')
   !
-  !
-  !
-  !WLong: sanity check on Nstation and NstationNum_GL, t_stn_dlt and t_his_dlt
-  !
+
   !
       If (Nstation > NSTATIONMAX) Then
          ERROR_MSG = ''
@@ -791,19 +823,13 @@ Subroutine INPUTS ()
   ! to after the control file reading is finished. For model restart, one would
   ! need to find out what time record to read based on restarting time, as opposed to
   ! reading the first two records of all files combined.
-  !
-  !
-  ! Tykim FVCOM netcdf outfile is daily base - RGL -test change to hourly/semihourly for coarse grid
+  
   ! coarsegrid = read every timestep, open new file every 2 simulation hours
   !  DAY = DAY + 1
       IJDAY = AINT (JDAY)
       If (MSR) WRITE (*,*) 'IJDAY, JDAY', IJDAY, JDAY
   !
-  !WLong: Note here R_HOUR was never initiallized, and we should have set R_HOUR to 0 at beginning
-  !       Also netcdf files do not necessary only have length of one hour.  Hence calling the
-  !       file numbers by R_HOUR is misleading. We should change these to IFNC etc for file number
-  !       counting and NTRECNC for time record counting within each netcdf file
-  !
+ 
   !WL  R_HOUR = R_HOUR + 1
   !WL  R_HOUR_INT = R_HOUR_INT + 1
   !WL  R_HOUR_first = R_HOUR
@@ -832,13 +858,6 @@ Subroutine INPUTS ()
       Call NCD_READ_OPEN (NCFILE, UNC1, VNC1, WTSNC1, UARD_OBCNNC1, &
      & XFLUX_OBCNC1, DTFANC1, KHNC1, ELNC1, TNC1, SNC1, NTRECNC)!reading NTRECNC'th record in NCFILE
 
-	  !Wen  Long commented these useless variables for the previous timestep
-      !UUT = UNC1
-      !VVT = VNC1
-      !WTST = WTSNC1
-      !UARD_OBCNT = UARD_OBCNNC1
-      !XFLUX_OBCT = XFLUX_OBCNC1
-      !DTFAT = DTFANC1
 
 
 	    UU = UNC1
@@ -916,18 +935,7 @@ Subroutine INPUTS ()
   !
   !
       If (SAV_CALC) Then
-     ! Move up for matrix allocation AN
-	 !read SVIFN file and find maximum number of SAV species - NSAVM
-     !
-     !    Open (SVI, File=SVIFN(1), Status='OLD')
-     !
-     !    Read (SVI, '(///)')!jump 4th lines (first skip 3 lines and then read nothing from 4th line)
-     !    Read (SVI, '(A72)') (TITLE(J), J=1, 6)!read six lines
-     !    Read (SVI, '(//8X,I8)') NSAVM !go down two lines and read the third line
-	 !    If (MSR) write (*,*) '  --> Max number of SAV =', NSAVM
-     !    Close (SVI)
-     !
-     !WLong, it's probably beter to ut NSAVM in CON file and  then skip the upper SVI reading thing
+ 
      !
      !Use the maximum number of SAV species to allocate SAV arrays
          Call SAV_ALLOC
@@ -954,24 +962,7 @@ Subroutine INPUTS ()
       If (UNI_ICON_IN) Then !MNOEL 2-5-93
          Open (ICI, File=ICIFN, Status='OLD')
          Read (ICI,*)
-     !
-     ! START TY ADD -- DEPTH PROFILE READ-IN
-     !       DO I=1,MLOC
-     !         DO K=1,KBM1
-     !             read(ICI,*)(C1(I,K,JCON),JCON=1,NCP)
-     !
-     !             DO JCON=1,NCP
-     !                C2(I,K,JCON)=C1(I,K,JCON)
-     !                C1MIN(I,K,JCON) = 1.E10
-     !                C1MAX(I,K,JCON) = 0.
-     !             ENDDO
-     !         ENDDO
-     !       ENDDO
-     ! END TY ADDED
-     !       READ(ICI,*) (CIC(JCON),JCON=1,NCP)
-     ! RGL need to change above for profile read-in and collocate with sigma depths
-     !      READ(ICI,*) (CIC(K,JCON),K=1,KB,JCON=1,NCP)
-     !
+
      ! KRG 22-JUNE-2010, the above now in parallel, KURT GLAESEMANN
          Allocate (RTMP(0:MGL, KBM1, NCP))
          RTMP = 0.0 !WLong, note index starts from zero
@@ -983,26 +974,7 @@ Subroutine INPUTS ()
      !
          If (SERIAL) C1 = RTMP
      !
-     !IF(SERIAL)THEN
-     !        DO JCON = 1,NCP
-     !            DO K=1,KBM1
-     !                DO I=1,MTLOC
-     !                    C1(I,K,JCON) = RTMP(I,K,JCON)
-     !                ENDDO
-     !            ENDDO
-     !        ENDDO
-     !        IF(MSR)THEN
-     !                DO I=1,MTLOC
-     !                DO K=1,KBM1
-     !                !checking initial condition
-     !                    WRITE(*,*)'I,K=',I,K
-     !                    WRITE(*,*)'oxygen=',C1(I,K,27)
-     !                ENDDO
-     !                ENDDO
-     !                !READ(*,*)
-     !        ENDIF
-     !ENDIF
-     !
+
          If (PAR) Then
             Do JCON = 1, NCP
                Do K = 1, KBM1
@@ -1021,78 +993,22 @@ Subroutine INPUTS ()
          C2 = C1
          C1MIN = 1.E10
          C1MAX = 0.
-     ! END KRG
-     !
-     !---------Calculate an initial RHO field, using initial T and SALT from
-     !         the first record of first netcdf file    !LB 8 Jan 2016
-     !!******!check that T and SALT are zero right now. Delete or comment out once it's checked
-     !         auxT = 0.0_SP
-     !         auxS = 0.0_SP
-     !         Do I = 1, MLOC
-     !            auxT = Max( T (I, 1), auxT)
-     !            auxS = Max( SALT (I, 1), auxS)
-     !         End Do
-     !         Write (*,*) 'max T= ',auxT,'  max SALT= ',auxS
-     !!******! CHECKED!
-     !take T and SALT to be first record of first netcdf file
+
          T = TNC1
          SALT = SNC1
      !If(MSR) Write (*,*) 'LBnote I0. RHO,T,S(at some surf place)= ',RHO(1,1),T(1,1),SALT(1,1)
          Call DENS2
-     !If(MSR) Write (*,*) 'LBnote I1. RHO(at some surf place)= ',RHO(1,1)
-     !
-     !!******!check that T and SALT are NOT zero right now. Delete or comment out once it's checked
-     !         auxT = 0.0_SP
-     !         auxS = 0.0_SP
-     !         Do I = 1, MLOC
-     !            auxT = Max( T (I, 1), auxT)
-     !            auxS = Max( SALT (I, 1), auxS)
-     !         End Do
-     !         Write (*,*) 'max TNC1= ',auxT,'  max SNC1= ',auxS
-     !!******!  CHECKED!
+
      !
      !Go back to T and SALT equal to zero
          T = 0.0_SP
          SALT = 0.0_SP
-     !
-     !
-     !      KURT GLAESEMANN - only print from MSR
-     !      write(*,*)'initial',(CIC(JCON),JCON=1,NCP)
-     !
-     !WLong, we are not using constant IC anymore for water column
-     !       Hence we should report the average of C1
-     !       or we should keep the constant IC as an option
-     !
-     !IF(MSR)write(*,*)'initial',(CIC(JCON),JCON=1,NCP)
-!
-     !
-     !WLong Note below we are still using constant IC for Sediment flux model
-     !      suspention feeder model, deposition feeder model and sav model
-     !
-     !
-     !LB: We read this case only if STEADY_STATE_SED_IC=FALSE (ie, if not initializing sediments with steady state)
-     !
-     !IF (.NOT. STEADY_STATE_SED_IC .AND. SEDIMENT_CALC ) THEN  !--> unfortunately, this option doesn't work because STEADY_STATE_SE
-     !    It gets updated to T if SSTATEIC=1 when calling SED_READ (line 4138 of this subroutine)
+
          If (SEDIMENT_CALC) Then
             If (UNI_ICON_IN_SED_VAR) Then !LB added: Sediment initial conditions are spatially variable, taken from previous run
            !
                Call SED_INIT ()!  Setup sediment diagenesis module (including SED_ALLOC)
-           !
-           !READ (ICI,1029) (CTEMP_GL(I),I=1,MGL),                                 &
-           !    ((CPOP_GL(I,J),I=1,MGL),J=1,3),                         &
-                !    ((CPON_GL(I,J),I=1,MGL),J=1,3),                         &
-           !    ((CPOC_GL(I,J),I=1,MGL),J=1,3),                         &
-                !    (CPOS_GL(I),I=1,MGL),                                   &
-           !    (PO4T2TM1S_GL(I),I=1,MGL), (NH4T2TM1S_GL(I),I=1,MGL),   &
-                !    (NO3T2TM1S_GL(I),I=1,MGL), (HST2TM1S_GL(I),I=1,MGL),    &
-           !    (CH4T2TM1S_GL(I),I=1,MGL), (CH41TM1S_GL(I),I=1,MGL),    &
-                !    (SO4T2TM1S_GL(I),I=1,MGL), (SIT2TM1S_GL(I),I=1,MGL),    &
-           !    (BENSTRTM1S_GL(I),I=1,MGL), (SODTM1S_GL(I),I=1,MGL),    &
-                !    (PO41TM1S_GL(I),I=1,MGL ), (NH41TM1S_GL(I),I=1,MGL ),   &!LB: save other sediment variables needed for restarts
-           !    (NO31TM1S_GL(I),I=1,MGL ), (HS1TM1S_GL(I),I=1,MGL ),    &
-                !    (SI1TM1S_GL(I),I=1,MGL )
-           !!LB: not sure if the above will read the file properly. The lines below have been checked with make_ic_from_restart_new.
+
            !
                Read (ICI, 1029) (CTEMP_GL(I), I=1, MGL)!Temperature (deg-C)
                Read (ICI, 1029) ((CPOP_GL(I, JG), I=1, MGL), JG=1, 3)!3G POP (mg-P/m^3)
@@ -1128,39 +1044,7 @@ Subroutine INPUTS ()
                  & NSPECIES)!SFEED_GL is global array of suspension feeder biomass (mg/m^2)
                End If
 
-!------------ Added by Adi, modified by Laki ---------------------------------------
-			   !IF (SAV_CALC) THEN
 
-           !ALLOCATE(INI_LEAF(NSAVM))
-           !INI_LEAF = 0.0
-           !ALLOCATE(INI_STEM(NSAVM))
-           !INI_STEM = 0.0
-          ! ALLOCATE(INI_ROOT(NSAVM))
-          ! INI_ROOT = 0.0
-          ! ALLOCATE(INI_TUBER(NSAVM))
-          ! INI_TUBER = 0.0
-          ! ALLOCATE(INI_EPY(NSAVM))
-          ! INI_EPY = 0.0
-
-          ! READ (ICI, 1029) (INI_LEAF(I), I=1,NSAVM)
-          ! READ (ICI, 1029) (INI_STEM(I), I=1,NSAVM)
-          ! READ (ICI, 1029) (INI_ROOT(I), I=1,NSAVM)
-          ! READ (ICI, 1029) (INI_TUBER(I), I=1,NSAVM)
-          ! READ (ICI, 1029) (INI_EPY(I), I=1,NSAVM)
-
-          ! DO I=1, NSAVCELL_GL
-            ! SVID = SAVNDS_GL(I)
-            ! IF(SVID == 0) THEN
-              ! CYCLE
-             !ELSE
-               !LEAF_GL(SVID,:) = INI_LEAF(:)
-               !STEM_GL(SVID,:) = INI_STEM(:)
-               !ROOT_GL(SVID,:) = INI_ROOT(:)
-               !TUBER_GL(SVID,:) = INI_TUBER(:)
-              ! EP_GL(SVID,:) = INI_EPY(:)
-             !END IF
-           !END DO
-         !END IF
 !-----------------------------------------------------------------------------------------
         IF (SAV_CALC) THEN
                   Read (ICI, 1029) ((LEAF_GL(I, K), I=1, MGL), K=1, &
@@ -1176,10 +1060,6 @@ Subroutine INPUTS ()
          END IF
 !---------------------------------------------------------------------------------------
 
-			!   If(MSR) Write (*,*) '5 LEAF_GL(2,1)= ',LEAF_GL(2,1)
-			!   If(MSR) Write (*,*) '9 EP_GL(2,1)= ',EP_GL(2,1)
-			!   If(MSR) Write (*,*) '10 LEAF_GL(2,2)= ',LEAF_GL(2,2)
-			!   If(MSR) Write (*,*) '14 EP_GL(2,2)= ',EP_GL(2,2)
 		    !
                If (SERIAL) Then
                   CTEMP = CTEMP_GL
@@ -1351,86 +1231,10 @@ Subroutine INPUTS ()
          End If
      !
      !***** Constituent concentrations
-     !
-     ! KRG 22-JUN-2010. This is commented out because it is now set above
-     !       DO JCON=1,NAC
-     !         DO K=1,KBM1
-     !           DO I=1,MLOC
-     !             C1(I,K,AC(JCON))    = CIC(AC(JCON))
-     !             C2(I,K,AC(JCON))    = CIC(AC(JCON))
-     !             C1MIN(I,K,AC(JCON)) = 1.E10
-     !             C1MAX(I,K,AC(JCON)) = 0.
-     !      ENDDO
-     !         ENDDO
-     !       ENDDO
-     !
-     !WLong and LB moved this to mod_sed in subroutine named sed_init_ici()
-     !and it is called in sed_init
-     !
-     !
-     !IF (SEDIMENT_CALC) THEN
-     !  DO I=1,MLOC
-     !
-     !       !initial condition of concentrations in sediments
-     !
-     !    CTEMP(I)      = CTEMPI
-     !    DO JG=1,3
-     !      CPOP(I,JG)  = CPOPI(JG)
-     !      CPON(I,JG)  = CPONI(JG)
-     !      CPOC(I,JG)  = CPOCI(JG)
-     !    ENDDO
-     !
-     !    CPOS(I)       = CPOSI
-     !
-     !       PO41TM1S(I)  = PO41TI
-     !    PO4T2TM1S(I)  = PO4T2I
-     !
-     !       NH41TM1S(I)     = NH41TI
-     !    NH4T2TM1S(I)  = NH4T2I
-     !
-     !       NO31TM1S(I)   = NO31TI
-     !    NO3T2TM1S(I)  = NO3T2I
-     !
-     !       HS1TM1S(I)     = HS1TI
-     !    HST2TM1S(I)   = HST2I
-     !
-     !       CH41TM1S(I)   = CH41TI
-     !    CH4T2TM1S(I)  = CH4T2I
-     !
-     !       !SO41TM1S(I)   = SO41TI
-     !    SO4T2TM1S(I)  = SO4T2I
-     !
-     !       SI1TM1S(I)       = SI1TI
-     !    SIT2TM1S(I)   = SIT2I
-     !
-     !    BENSTRTM1S(I)   = BENSTI
-     !       SODTM1S(I)     = SODI
-     !
-     !
-     !****needs to be taken care of in mod_ba.F and mod_sf.F and mod_df.F instead*****!
-     !
-     !       IF(BALGAE_CALC)THEN
-     !            !biomass of benthic algae
-     !            BBM(I)        = BBMI
-     !       ENDIF
-     !
-     !       !biomass of suspension feeders
-     !       IF(SFEEDER)THEN
-     !            DO N=1,NSPECIES
-     !                SFEED(I,N)      = SFEEDI(N)
-     !            ENDDO
-     !       ENDIF
-     !
-     !       !biomass of deposition feeder
-     !       IF(DFEEDER)THEN
-     !            DFEEDM1S(I)   = DFEEDI
-     !       ENDIF
-     !
-     !  ENDDO
-     !ENDIF
+
          Close (ICI)
      !
-     !RGL changed binary initial condition file to restart file
+
      !******* RESTART constituent initial concentrations
      !
       Else If (RES_ICON_IN) Then !MNOEL 2-5-93
@@ -1468,25 +1272,7 @@ Subroutine INPUTS ()
      !
          If (SEDIMENT_CALC) Then
         !
-        !WLong moved these to mod_sed.F
-        !ALLOCATE(CTEMP_GL(MGL));     CTEMP_GL     = 0.0
-        !ALLOCATE(CPOP_GL(MGL,3));    CPOP_GL      = 0.0
-        !ALLOCATE(CPON_GL(MGL,3));    CPON_GL      = 0.0
-        !ALLOCATE(CPOC_GL(MGL,3));    CPOC_GL      = 0.0
-        !ALLOCATE(CPOS_GL(MGL));      CPOS_GL      = 0.0
-        !ALLOCATE(PO4T2TM1S_GL(MGL)); PO4T2TM1S_GL = 0.0
-        !ALLOCATE(NH4T2TM1S_GL(MGL)); NH4T2TM1S_GL = 0.0
-        !ALLOCATE(NO3T2TM1S_GL(MGL)); NO3T2TM1S_GL = 0.0
-        !ALLOCATE(HST2TM1S_GL(MGL));  HST2TM1S_GL  = 0.0
-        !ALLOCATE(CH4T2TM1S_GL(MGL)); CH4T2TM1S_GL = 0.0
-        !ALLOCATE(CH41TM1S_GL(MGL));  CH41TM1S_GL  = 0.0
-        !ALLOCATE(SO4T2TM1S_GL(MGL)); SO4T2TM1S_GL = 0.0
-        !ALLOCATE(SIT2TM1S_GL(MGL));  SIT2TM1S_GL  = 0.0
-        !ALLOCATE(BENSTRTM1S_GL(MGL));  BENSTRTM1S_GL  = 0.0
-        !
-        !WLong moved this to mod_ba.F
-        !ALLOCATE(BBM_GL(MGL));       BBM_GL       = 0.0
-        !
+
             Read (RSI) (CTEMP_GL(I), I=1, MGL), ((CPOP_GL(I, J), I=1, &
            & MGL), J=1, 3), ((CPON_GL(I, J), I=1, MGL), J=1, 3), &
            & ((CPOC_GL(I, J), I=1, MGL), J=1, 3), (CPOS_GL(I), I=1, &
@@ -1591,24 +1377,7 @@ Subroutine INPUTS ()
                End Do
             End If
         !
-        !WLong moved this to mod_sed.F
-        !DEALLOCATE(CTEMP_GL)
-        !DEALLOCATE(CPOP_GL)
-        !DEALLOCATE(CPON_GL)
-        !DEALLOCATE(CPOC_GL)
-        !DEALLOCATE(CPOS_GL)
-        !DEALLOCATE(PO4T2TM1S_GL)
-        !DEALLOCATE(NH4T2TM1S_GL)
-        !DEALLOCATE(NO3T2TM1S_GL)
-        !DEALLOCATE(HST2TM1S_GL)
-        !DEALLOCATE(CH4T2TM1S_GL)
-        !DEALLOCATE(CH41TM1S_GL)
-        !DEALLOCATE(SO4T2TM1S_GL)
-        !DEALLOCATE(SIT2TM1S_GL)
-        !DEALLOCATE(BENSTRTM1S_GL)
-        !
-        !WLong moved this to mod_ba.F
-        !DEALLOCATE(BBM_GL)
+
         !
          End If
      !
@@ -1679,9 +1448,7 @@ Subroutine INPUTS ()
             End If
          End If
          Close (RSI)
-     !
-     !       CLOSE (ICI)   !Wen Logn, removed CLOSE(ICI) HERE
-     !
+
       Else
          Write (*,*) 'initial conditions file specified incorrectly'
          Stop
@@ -1709,8 +1476,7 @@ Subroutine INPUTS ()
       If (SPVARM == 'CONSTANT') Then
          Read (MRL, 1033) KLDC (1, 1)
          Do K = 1, KBM1
-        ! KRG 22-JUNE-2010, this could become a bug if all of kldc was ever used
-        !         DO I=1,MLOC
+
             Do I = 1, MTLOC
                KLDC (I, K) = KLDC (1, 1)
             End Do
@@ -2312,7 +2078,7 @@ Subroutine INPUTS ()
       End If
   !
   !***** Sources One
-  !vjp  OPEN(UNIT=130,file='NPS96.OUT',status='unknown')
+
       If (SOURCE_ONE) Then !MNOEL   1-25-93
          Read (S1, 1100)
          Read (S1, 1020) (S1LN(JCON), JCON=1, TXCRT)
@@ -2399,8 +2165,7 @@ Subroutine INPUTS ()
             RTMP26 = 0.0 !WLong: note index from zero because WSU index is from zero
             Do K = 1, KBM1
                Do I = 1, MGL
-              !READ(STL,1085) WSS(I,K),WSL(I,K),WSR(I,K),WS1(I,K),WS2(I,K),  &
-              !        WS3(I,K),WSU(I,K)
+
 !!!LB commented the above and fixed with the line below:
                   Read (STL, 1085) RTMP2 (I, K), RTMP21 (I, K), RTMP22 &
                  & (I, K), RTMP23 (I, K), RTMP24 (I, K), RTMP25 (I, K), &
@@ -2449,13 +2214,7 @@ Subroutine INPUTS ()
       If (ATMOS_LOADS) READ (ATM, 1000)
   !
   !***** Submerged aquatic vegetation
-  !Wen Long: this should be deprecated and at least be moved to wqm_sav.F
-  !JQI     IF (SAV_LOADS) THEN
-  !JQI       READ (SVI,1100)
-  !JQI       READ (SVI,1030) (SAVAREA(B),B=1,NSAVP)
-  !JQI       READ (SVI,1100)
-  !JQI     ENDIF
-  !Wen Long
+
   !
   !***** Benthic fluxes
       If (BENTHIC_FLUXES) Then
@@ -2535,52 +2294,7 @@ Subroutine INPUTS ()
 11103 Format (10 F8.0)
 11040 Format (/ /)
 11051 Format (://8 X, 9 F8.4)!go down 2 lines and write, but do not
-  !continue going down when writing is finished
-  !
-  !************************************************************************
-  !**                 Initialize Computational Variables                 **
-  !************************************************************************
-  !
-  !!***** Logical control variables
-  !
-  ! Moved the following to right after CON is finished reading
-  !     VOLUME_BALANCE   = VBC == ' ON'
-  !     FLOW             = FLC == ' ON'
-  !     PLOTS            = PLTC == ' ON'
-  !     MASS_BALANCE     = MBLC == ' ON'
-  !     OXYGEN_PLOTS     = OPLC == ' ON'
-  !     SNAPSHOTS        = SNPC == ' ON'
-  !     BENTHIC_OUTPUT   = BFOC == ' ON'
-  !     DFEEDER_OUTPUT   = DFOC == ' ON' !Wen Long, deposition feeder output
-  !     BA_OUTPUT        = BAOC == ' ON' !Wen Long, benthic algae output
-  !     TRANSPORT_FLUXES = TFLC == ' ON'.OR.MBLC == ' ON'
-  !     RESTART_OUT      = RSOC == ' ON'
-  !     RESTART_IN       = RSIC == ' ON'
-  !     DIAGNOSTICS      = DIAC == ' ON'
-  !     Z_DIFFUSION      = ZDFC == ' ON'
-  !     AVERAGE_PLOTS    = APLTC == ' ON'
-  !     QUALITY_DIAG     = QPLTC == ' ON'
-  !     AUTO_STEPPING    = AUTOC == ' ON'
-  !     XY_DIFFUSION     = XYDFC == ' ON'
-  !     UPWIND           = SLC == '  UPWIND'
-  !     QUICKEST         = SLC == 'QUICKEST'
-  !     STEP_BOUNDARY    = BNDTC == '    STEP'
-  !     CONSERVE_MASS    = CONSC == '    MASS'
-  !     SEDIMENT_DIAG    = SPLTC == ' ON'.AND.(SEDIMENT_CALC .OR. BENTHIC_FLUXES)
-  !     SAV_PLOTS        = SAVPLTC == ' ON'.AND.(SAV_LOADS.OR.SAV_CALC)
-  !     END_RUN          = .FALSE.
-  !
-  !     IF (ACC(1) == ' ON')  TEMPERATURE_CALC = .TRUE.
-  !     IF (ACC(3) == ' ON')  SOLIDS_CALC      = .TRUE.
-  !     IF ((ACC(4) == ' ON').OR.(ACC(5) == ' ON').OR.(ACC(6) == ' ON'))  &
-  !                           ALGAE_CALC   = .TRUE.
-  !     IF (ACC(9) == ' ON')  CARBON_CALC      = .TRUE.
-  !     IF (ACC(13) == ' ON') NITROGEN_CALC    = .TRUE.
-  !     IF (ACC(20) == ' ON') PHOSPHORUS_CALC  = .TRUE.
-  !     IF (ACC(26) == ' ON') COD_CALC         = .TRUE.
-  !     IF (ACC(27) == ' ON') OXYGEN_CALC      = .TRUE.
-  !     IF (ACC(29) == ' ON') SILICA_CALC      = .TRUE.
-  !     IF (ACC(25) == ' ON') PIP_CALC         = .TRUE.
+
   !
   !***** Time variables
   !
@@ -2814,72 +2528,7 @@ Subroutine INPUTS ()
       ABAPOP = 0.0
       ABADO = 0.0
   !
-     ! Moved to mod_sav.f in SAV_INIT !AN
-	 ! If (SAV_CALC) Then
-     !!initialize time average quantities for SAV module
-     !!Wen Long, this should be moved to SAV_INIT subroutine in wqm_sav.F
-     !    ALEAF = 0.0
-     !    AROOT = 0.0
-     !    ASTEM = 0.0
-     !    ATUBER = 0.0
-     !    AEP = 0.0
-     !!
-     !    APLEAF = 0.0
-     !    ABMLEAF = 0.0
-     !    ABMTUBER = 0.0
-     !!
-     !    APEP = 0.0
-     !    ABMEP = 0.0
-     !    APREP = 0.0
-     !    ASLSH = 0.0
-     !!
-     !    ANLSAV = 0.0
-     !    APLSAV = 0.0
-     !    ANLEPI = 0.0
-     !    APLEPI = 0.0
-     !    AFNSED = 0.0
-     !    AFPSED = 0.0
-     !    AFHS = 0.0
-     !!
-     !    AEPATN = 0.0
-     !    AWATATN = 0.0
-     !    AFISH = 0.0
-     !    AFIEP = 0.0
-     !    ANPPSAV = 0.0
-     !    ANPPEPI = 0.0
-     !!
-     !    ADOCSAVW = 0.0
-     !    APOCSAVW = 0.0
-     !    ADOCEPIW = 0.0
-     !    APOCEPIW = 0.0
-     !!
-     !    ANH4SAVW = 0.0
-     !    ANO3SAVW = 0.0
-     !    ADONSAVW = 0.0
-     !    APONSAVW = 0.0
-     !    ANH4EPIW = 0.0
-     !    ANO3EPIW = 0.0
-     !    ADONEPIW = 0.0
-     !    APONEPIW = 0.0
-     !!
-     !    APO4SAVW = 0.0
-     !    ADOPSAVW = 0.0
-     !    APOPSAVW = 0.0
-     !    APO4EPIW = 0.0
-     !    ADOPEPIW = 0.0
-     !    APOPEPIW = 0.0
-     !!
-     !    ADOSAVW = 0.0
-     !    ADOEPIW = 0.0
-     !!
-     !    ASEDDOSAV = 0.0
-     !    ASEDPOCSAV = 0.0
-     !    ASEDPONSAV = 0.0
-     !    ASEDNH4SAV = 0.0
-     !    ASEDPOPSAV = 0.0
-     !    ASEDPO4SAV = 0.0
-     !!
-     ! End If
+
   !***** Initial water column mass
   !
       If (MASS_BALANCE) Then
@@ -2957,11 +2606,7 @@ Subroutine INPUTS ()
      !
       End If
   !
-  !	  If(MSR) Write (*,*) 'LEAF(2,1)= ',LEAF(2,1)
-  !	  If(MSR) Write (*,*) 'EP(2,1)= ',EP(2,1)
-  !	  If(MSR) Write (*,*) 'LEAF(2,2)= ',LEAF(2,2)
-  !   If(MSR) Write (*,*) 'EP(2,2)= ',EP(2,2)
-  !
+
   !************************************************************************
   !**                              Outputs                               **
   !************************************************************************
@@ -3302,8 +2947,7 @@ Subroutine INPUTS ()
       NXAPL = APLTD (APLDP)
   !
       INFLOW = 0
-      Do F = 1, NHQF !WLong will need to calculate all the vertical faces of TCE edges to calculate
-     !horizontal flux! This should not be needed anymore
+      Do F = 1, NHQF 
          If (RIGHT_FLOWB(F) .Or. LEFT_FLOWB(F)) Then
             INFLOW = INFLOW + 1
             IFLOWP (INFLOW) = F

@@ -1,3 +1,44 @@
+!mod_wqm.F
+!************************************************************************
+!**                                                                    **
+!**                           FVCOM-ICM_4.0                            **
+!**                                                                    **
+!**               A Finite Volume Based Integrated Compartment         **
+!**                         Water Quality Model                        **      
+!**        The original unstructured-grid ICM code was developed by    ** 
+!**    the FVCOM development team at the University of Massachusetts   ** 
+!**         through a contract with U.S. Army Corps of Engineers       ** 
+!**         [Dr. Changsheng Chen (PI), Dr. Jianhua Qi and              ** 
+!**                      Dr. Geoffrey W. Cowles]                       **
+!**                                                                    **
+!**                Subsequent Development and Maintenance by           ** 
+!**                   PNNL/UW Salish Sea Modeling Center               **
+!**                                                                    **
+!**                 Tarang Khangaonkar    :  PNNL (2008 - Present)     **
+!**                 Lakshitha Premathilake:  PNNL (2019 - Present)     **
+!**                 Adi Nugraha           :  PNNL/UW (2018 - Present)  **
+!**                 Kurt Glaesmann        :  PNNL (2008 - Present)     **
+!**                 Laura Bianucci        :  PNNL/DFO(2015 - Present)  **
+!**                 Wen Long              :  PNNL (2012-2016)          **
+!**                 Taeyum Kim            :  PNNL (2008-2011)          **
+!**                 Rochelle G Labiosa    :  PNNL (2009-2010)          **
+!**                                                                    **
+!**                                                                    **
+!**                     Adopted from CE-QUAL-ICM  Model                **
+!**                           Developed by:                            **
+!**                                                                    **
+!**             Carl F. Cerco      : Water quality scheme              **
+!**             Raymond S. Chapman : Numerical solution scheme         **
+!**             Thomas M. Cole     : Computer algorithms & coding      **
+!**             Hydroqual          : Sediment compartment              **
+!**                                                                    **
+!**                    Water Quality Modeling Group                    **
+!**                    U.S. Army Corps of Engineers                    **
+!**                    Waterways Experiment Station                    **
+!**                    Vicksburg, Mississippi 39180                    **
+!**                                                                    **
+!************************************************************************
+!
 Module MOD_WQM
   !
       Use MOD_SIZES, Only: NCP, NQFP, NS1P, NS2P, NS3P, NBCP, NFLP, &
@@ -157,188 +198,7 @@ Module MOD_WQM
       Real (SP) :: KADPO4, KADSA !Partition coefficient for sorption of silica on inorganic solids (m^3/gSolids)
   !SA-- available silica
   !SUA -- unavailable particulate biogenic silica
-  !
-  !
-  !Wen Long moved all these to the mod_zoop.F
-  !!Zooplankton parameters
-  !
-  !     REAL(SP) :: CTSZ,    &  !carbon threshold for grazing (gC/m^3) for microzooplankton
-  !             CTLZ,    &  !carbon threshold for grazing (gC/m^3) for mesozooplankton
-       !             KHCSZ,   &  !prey density at which grazing is halved (gC/m^3) for microzooplankton
-  !             KHCLZ,   &  !prey density at which grazing is halved (gC/m^3) for mesozooplankton
-       !             MZEROSZ, &  !mortality at zero dissolved oxygen (1/day) for microzooplankton
-  !             MZEROLZ     !mortality at zero dissolved oxygen (1/day) for mesozooplankton
-  !
-  !     REAL(SP) :: UB1SZ, &   !Utilization of algal group 1 by microzooplankton, range [0,1]
-  !             UB2SZ, &   !Utilization of algal group 2 by microzooplankton, range [0,1]
-       !             UB3SZ, &   !Utilization of algal group 3 by microzooplankton, range [0,1]
-  !             UB1LZ, &   !Utilization of algal group 1 by mesozooplankton, range [0,1]
-       !             UB2LZ, &   !Utilization of algal group 2 by mesozooplankton, range [0,1]
-  !             UB3LZ, &   !Utilization of algal group 3 by mesozooplankton, range [0,1]
-       !             UDSZ,  &   !Utilization of dissolved organic carbon by microzooplankton, range [0,1]
-  !             ULDSZ, &   !Utilization of labile dissolved organic carbon by microzooplankton, range [0,1]
-       !             URDSZ, &   !Utilization of refractory dissolved organic carbon by microzooplankton, range [0,1]
-  !             ULPSZ, &   !microzooplankton utilization of labile particulate organic carbon, range [0,1]
-       !             URPSZ, &   !microzooplankton utilization of refractory particulate organic carbon, range [0,1]
-  !             ULLZ,  &   !mesozooplankton utilization of labile particulate organic carbon, range [0,1]
-       !             URLZ,  &   !mesozooplankton utilization of refractory particulate organic carbon, range [0,1]
-  !             USZLZ, &   !mesozooplankton utilization of microzooplankton, range [0,1], (~1.0)
-       !             TRSZ,  &   !reference temperature for microzooplankton metabolism (degC)
-  !             TRLZ,  &   !reference temperature for mesozooplankton metabolism (degC)
-       !             DOCRITSZ, &!dissolved oxygen below which mortality occurs for microzooplankton (gO2/m^3)
-  !             DOCRITLZ, &!dissolved oxygen below which mortality occurs for mesozooplankton (gO2/m^3)
-       !             ANCSZ,  &  !microzooplankton nitrogen to carbon ratio (gN/gC)  (~ 0.2)
-  !             ANCLZ,  &  !mesozooplankton nitrogen to carbon ratio (gN/gC)  (~ 0.2)
-       !             APCSZ,  &  !microzooplankton phosphorus to carbon ratio (gP/gC) (~0.02)
-  !             APCLZ,  &  !mesozooplankton phosphorus to carbon ratio (gP/gC) (~0.02)
-       !             AOCRSZ, &  !ratio of oxygen consumed to microzooplankton carbon metabolized (gO2/gC) (~2.67)
-  !             AOCRLZ, &  !ratio of oxygen consumed to mesozooplankton carbon metabolized (gO2/gC) (~2.67)
-       !             FRSASZ, &  !fraction of microzooplankton silica recycled to dissolved silica pool, range [0,1]
-  !             FRSALZ     !fraction of mesozooplankton silica recycled to dissolved silica pool, range [0,1]
-  !
-  !     REAL(SP) :: FLDOCSZ,&    !fraction of microzooplankton carbon released to LDOC, range [0,1]
-  !             FRDOCSZ,&    !fraction of microzooplankton carbon released to RDOC, range [0,1]
-       !             FLPOCSZ,&    !fraction of microzooplankton carbon released to LPOC, range [0,1]
-  !             FRPOCSZ,&    !fraction of microzooplankton carbon released to RPOC, range [0,1]
-       !             FLDONSZ,&    !fraction of microzooplankton nitrogen released to LDON, range [0,1]
-  !             FRDONSZ,&    !fraction of microzooplankton nitrogen released to RDON, range [0,1]
-       !             FLPONSZ,&    !fraction of microzooplankton nitrogen released to LPON, range [0,1]
-  !             FRPONSZ,&    !fraction of microzooplankton nitrogen released to RPON, range [0,1]
-       !             FLDOPSZ,&    !fraction of microzooplankton phosphorus released to LDOP range [0,1]
-  !             FRDOPSZ,&    !fraction of microzooplankton phosphorus released to RDOP range [0,1]
-       !             FLPOPSZ,&    !fraction of microzooplankton phosphorus released to LPOP range [0,1]
-  !             FRPOPSZ,&    !fraction of microzooplankton phosphorus released to RPOP range [0,1]
-       !             FNH4SZ, &    !fraction of microzooplankton nitrogen recycled to DIN as NH4, range [0,1]
-  !             FPO4SZ, &    !fraction of microzooplankton phosphorus recycled to DIP as PO4, range [0,1]
-       !             FUREASZ,&    !Never used !!!
-  !             FLDOCLZ,&    !fraction of mesozooplankton carbon released to LDOC, range [0,1]
-       !             FRDOCLZ,&    !fraction of mesozooplankton carbon released to RDOC, range [0,1]
-  !             FLPOCLZ,&    !fraction of mesozooplankton carbon released to LPOC, range [0,1]
-       !             FRPOCLZ,&    !fraction of mesozooplankton carbon released to RPOC, range [0,1]
-  !             FLDONLZ,&    !fraction of mesozooplankton nitrogen released to LDON, range [0,1]
-       !             FRDONLZ,&    !fraction of mesozooplankton nitrogen released to RDON, range [0,1]
-  !             FLPONLZ,&    !fraction of mesozooplankton nitrogen released to LPON, range [0,1]
-       !             FRPONLZ,&    !fraction of mesozooplankton nitrogen released to RPON, range [0,1]
-  !             FLDOPLZ,&    !fraction of mesozooplankton phosphorus released to LDOP range [0,1]
-       !             FRDOPLZ,&    !fraction of mesozooplankton phosphorus released to RDOP range [0,1]
-  !             FLPOPLZ,&    !fraction of mesozooplankton phosphorus released to LPOP range [0,1]
-       !             FRPOPLZ,&    !fraction of mesozooplankton phosphorus released to RPOP range [0,1]
-  !             FNH4LZ, &    !fraction of mesozooplankton nitrogen recycled to DIN as NH4, range [0,1]
-       !             FPO4LZ, &    !fraction of mesozooplankton phosphorus recycled to DIP as PO4, range [0,1]
-  !             FUREALZ      !Never used!!!
-  !
-  !     REAL(SP),ALLOCATABLE::  B1ASZ(:,:),   &
-  !                         B2ASZ(:,:),   &
-       !                         B3ASZ(:,:),   &
-  !                         LPOCASZ(:,:), &
-       !                         RPOCASZ(:,:), &
-  !                         PRASZ(:,:),   &
-       !                         B1ALZ(:,:),   &
-  !                         B2ALZ(:,:),   &
-       !                         B3ALZ(:,:),   &
-  !                         SZALZ(:,:),   &
-       !                         LPOCALZ(:,:), &
-  !                         RPOCALZ(:,:), &
-       !                         PRALZ(:,:),   &
-  !                         CLSZ(:,:),    &
-       !                         CLLZ(:,:),    &
-  !                         RSZ(:,:),     &
-       !                         RLZ(:,:),     &
-  !                         RMAXSZ(:,:),  &
-       !                         RMAXLZ(:,:),  &
-  !                         BMSZ(:,:),    &
-       !                         BMLZ(:,:),    &
-  !                         BMRSZ(:,:),   &
-       !                         BMRLZ(:,:),   &
-  !                         MSZ(:,:),     &
-       !                         MLZ(:,:),     &
-  !                         PRSZLZ(:,:),  &
-       !                         GSZ(:,:),     &
-  !                         GLZ(:,:),     &
-       !                         ESZ(:,:),     &
-  !                         ELZ(:,:),     &
-       !                         RFSZ(:,:),    &
-  !                         RFLZ(:,:),    &
-       !                         PRSZ(:,:),    &
-  !                         PRLZ(:,:),    &
-       !                         LDOCASZ(:,:), &
-  !                         BPRSZ(:,:),   &
-       !                         BPRLZ(:,:),   &
-  !                         RDOCASZ(:,:), &
-       !                         LDOCSZ(:,:),  &
-  !                         LPOCSZ(:,:),  &
-       !                         RPOCSZ(:,:),  &
-  !                         LDOCLZ(:,:),  &
-       !                         LPOCLZ(:,:),  &
-  !                         RPOCLZ(:,:),  &
-       !                         NH4SZ(:,:),   &
-  !                         LDONSZ(:,:),  &
-       !                         LPONSZ(:,:),  &
-  !                         RPONSZ(:,:),  &
-       !                         NH4LZ(:,:),   &
-  !                         LDONLZ(:,:),  &
-       !                         LPONLZ(:,:),  &
-  !                         RPONLZ(:,:),  &
-       !                         PO4SZ(:,:),   &
-  !                         LDOPSZ(:,:),  &
-       !                         LPOPSZ(:,:),  &
-  !                         RPOPSZ(:,:),  &
-       !                         PO4LZ(:,:),   &
-  !                         LDOPLZ(:,:),  &
-       !                         LPOPLZ(:,:),  &
-  !                         RPOPLZ(:,:),  &
-       !                         RDOCSZ(:,:),  &
-  !                         RDONSZ(:,:),  &
-       !                         RDOPSZ(:,:),  &
-  !                         RDOCLZ(:,:),  &
-       !                         RDONLZ(:,:),  &
-  !                         RDOPLZ(:,:),  &
-       !                         PIB1SZ(:,:),  &
-  !                         PIB2SZ(:,:),  &
-       !                         PIB3SZ(:,:),  &
-  !                         PIB1LZ(:,:),  &
-       !                         PIB2LZ(:,:),  &
-  !                         PIB3LZ(:,:),  &
-       !                         B1SZ(:,:),    &
-  !                         B2SZ(:,:),    &
-       !                         B3SZ(:,:),    &
-  !                         B1LZ(:,:),    &
-       !                         B2LZ(:,:),    &
-  !                         B3LZ(:,:),    &
-       !                         DOSZ(:,:),    &
-  !                         DOLZ(:,:),    &
-       !                         SASZ(:,:),    &
-  !                         SUSZ(:,:),    &
-       !                         SALZ(:,:),    &
-  !                         SULZ(:,:)
-  !     REAL(SP),ALLOCATABLE,DIMENSION(:,:) :: ACLSZ,   ACLLZ,    ARSZ,    ARLZ,     &
-  !               ABMSZ,   ABMLZ,    AMSZ,    AMLZ,     &
-       !               APRSZLZ, AGSZ,     AGLZ,    ADOCSZ,   &
-  !               APOCSZ,  ADOCLZ,   APOCLZ,                 &
-       !               ANH4SZ,  ADONSZ,   APONSZ,                 &
-  !               ANH4LZ,  ADONLZ,   APONLZ,                 &
-       !               APO4SZ,  ADOPSZ,   APOPSZ,                 &
-  !               APO4LZ,  ADOPLZ,   APOPLZ,                 &
-       !               APRSZ,   APRLZ,    APISZ,  APILZ
-  !
-  !     REAL(SP),ALLOCATABLE,DIMENSION(:,:) :: AB1SZ,   AB2SZ,    AB3SZ,  AB1LZ,     &
-  !               AB2LZ,   AB3LZ,    ADOSZ,  ADOLZ,     &
-       !               ASASZ,   ASUSZ,    ASALZ,  ASULZ
-  !
-  !     REAL(SP),DIMENSION(-50:400) :: FTLZ,  FTSZ,  FTBMSZ,          &
-  !               FTBMLZ,FTPRSZ,FTPRLZ,
-  !
-  !
-  !!Tempreature control on algae, should move to mod_algal.F   !!LB: commented because we now use get_ft1,get_ftbm1,etc
-  !       REAL(SP),DIMENSION(-50:400) ::  FT1,            &
-  !                                   FT2,            &
-       !                                   FT3,         &
-  !                                FTBM1,            &
-       !                                FTBM2,            &
-  !                                FTBM3,          &
-       !                                FTPR
-  !
-  !
+
   !  variables needed by autostep and main   VJP 10/11/04
       Integer, Save :: NXHYD = 0
       Real (SP), Save :: COURMX, COURQS, COURVS
@@ -430,78 +290,25 @@ Module MOD_WQM
   !
       Real (SP), Allocatable, Dimension (:) :: CTEMP !sediment temperature (degC)
   !
-  !!The following needs to be moved to SED_INIT
-  ! REAL(SP),ALLOCATABLE,DIMENSION(:,:) :: CPOP,   &  !Sediment POP (mgP/gSediment)
-  !                                         CPON,   &  !Sediment PON (mgN/gSediment)
-       !                                         CPOC       !Sediment POC (mgN/gSediment)
-  !
-  !
-  !
-  !
-  !REAL(SP),ALLOCATABLE,DIMENSION(:) ::  CPOS,    &  !Sediment particulate organic
-  !                                              !silica (mgSi/m^3)
-  !                                  CPO4,    &  !Sediment inorganic phosphorus (mgP/m^3))
-  !                                  CNO3,    &  !sediment NO3 concentration
-       !                                              !(2nd layer) (mgC/m^3)
-  !
-  !                                  !CDTEMP, &  !never used
-  !                                  !CNH4,    &  !sediment NH4 concentration    !Noved to mod_sed.F
-  !                                  CCH4,    &  !sediment CH4 concentration
-  !                                              !mgO2/^3
-  !                                  CSO4,    &  !sediment SO4 concentration
-  !                                              !mgO2/m^3
-  !                                  CHS,     &  !Sediment HS concentration
-  !                                              !(mgO2/m^3)
-  !                                  CSI         !Silicate concentration
-  !                                              !(mgSi/m^3)
-  !
-  !
-  !REAL(SP),ALLOCATABLE,DIMENSION(:,:) :: JPOP, & !POP flux (mgP/m^2/day)
-  !                                             !positive into sediments
-  !                                   JPON, & !PON flux (mgN/m^2/day)
-  !                                             !positive into sediments
-  !                                   JPOC    !POC flux (mgC/m^2/day)
-  !                                             !positive into sediments
-  !
-  !REAL(SP),ALLOCATABLE,DIMENSION(:) :: JPOS         !Particulate organic silica
-  !                                                !flux, (mgSi/m^2/day) positive
-  !                                                !into sediments
-  !
-  !REAL(SP),ALLOCATABLE,DIMENSION(:) :: HSED         !sediment layer thickness (H2 (m))
+
       Real (SP), Allocatable, Dimension (:) :: BSVOL !WLong: never used
   !
   !water column nitrogen balance check  (positive into water column)
       Real (SP), Allocatable, Dimension (:) :: ATMFLXNB, ATMFLXPB, &
      & ATMFLXCB !atmospheric flux of carbon
-  !ATMFLXNB,    & !atmospheric flux of N (kgN/day), positive into water
-  !ATMFLXPB,    & !atmospheric flux of P (kgP/day), positive into water
-  !ATMFLXCB       !atmospheric flux of carbon(kgC/day), positive into water
+
 !
       Real (SP), Allocatable, Dimension (:) :: BENFLXPNB, BENFLXDNB, &
      & BENFLXPPB, BENFLXDPB, BENFLXPCB !benthic POC flux (kgC/day)
-  !  BENFLXPNB,   & !benthic PON flux (kgN/day) positive into water
-  !BENFLXDNB,   & !benthic  dissolved
-  !inorganic nitrogen  flux (NH4 and NO3) (kgN/day)
-  !BENFLXPPB,   & !benthic POP flux (kgP/day)
-  !BENFLXDPB,   & !benthic dissolved PO4 flux (kgP/day)
-  !BENFLXPCB      !benthic POC flux (kgC/day)
-  !
+
   !sediment nitrogen check (positive into sediments)
       Real (SP), Allocatable, Dimension (:) :: DLSEDKNB, DLSEDKCB, &
      & BURIALFLXNB, BURIALFLXPB, BURIALFLXCB
-  ! DLSEDKNB,    &     !sediment denitrification kinetic flux (kgN/day)
-  ! DLSEDKCB,    &     !sediment carbib diagenesis kinetic flux (kgC/day)
-  ! BURIALFLXNB, &     !sediment nitrogen flux due to burial (kgN/day)
-  ! BURIALFLXPB, &     !sediment P flux due to burial (kgP/day) positive into sediments
-  ! BURIALFLXCB        !sediment C flux due to buria (kgC/day), positive into sediments
-  !
+
       Real (SP) :: AFLUX (NQFP, 13)!fluxes through all faces of 13 chosen species
       !Real (SP) :: FLUXT (0:NQFP, NCP)
       REAL(SP), DIMENSION(:,:), ALLOCATABLE :: FLUXT
-  !
-  !might be used for calculating flxues through all TCE faces in the water
-  !column, WLong: need to separate horizontal face fluxes and
-  !surface/bottom fluxes
+
   !NQFP should be replaced by 2D arrays  instead
   !
       Real (SP), Dimension (NQFP) :: FLXTTEM, FLXTSAL, FLXTSSI, FLXT1, &
@@ -514,26 +321,7 @@ Module MOD_WQM
   !settling flux of all particulate constituents in water column through
   !bottom face of each layer for each TCE
       Real (SP), Allocatable :: FLUXS (:, :, :)!size MTLOC x KBM1 x 13
-  !13 settling fluxes above :
-  !1  SSI
-  !2  B1
-  !3  B2
-  !4  B3
-  !5  POC
-  !6  PON calculated by NITROG() in wqm_main.F
-  !       which is dummy FLXSPON in
-  !       NITROG() method with size
-  !       MTLOC x KBM1, need to be careful
-  !       here passing parts of FLUXS to
-  !       FLXSPON(:,:)
-  !7  PO4
-  !8  POP
-  !9  PIP
-  !10 Si
-  !11 PIB1
-  !12 PIB2
-  !13 PIB3
-  !never used
+
       Real (SP), Allocatable, Dimension (:, :) :: FLXSPIB1, FLXSPIB2, &
      & FLXSPIB3 !13 of FLUXS above
   !
@@ -557,13 +345,7 @@ Module MOD_WQM
       INTEGER, DIMENSION(:), ALLOCATABLE :: S1LN, S2LN, S3LN, AC, NCB
   !
       Real (SP), Dimension (0:NQFP) :: Q, A, DIFF
-  !
-  !WLong removed the following variables
-  !             REAL(SP),ALLOCATABLE ::                     BL(:,:,:)
-  !             REAL(SP),ALLOCATABLE,DIMENSION(:,:) ::     V1S,    &
-  !                                                        HMV,    &
-  !                                                        ZD
-  !             REAL(SP),ALLOCATABLE,DIMENSION(:) :: HMBV
+            REAL(SP),ALLOCATABLE,DIMENSION(:) :: HMBV
   !
       Real (SP), Allocatable, Dimension (:, :) :: V2 !,V1?? LB - lost in cleanup or not needed?
   !
@@ -615,26 +397,7 @@ Module MOD_WQM
       Real (SP), Allocatable, Dimension (:, :) :: FI1, FI2, FI3, NL1, &
      & NL2, NL3, PL1, PL2, PL3, SL2, RESP, SL1, SL3, KE, KEISS, KEVSS, &
      & KEDOC !  Not used, should remove
-  !FI1,         &
-  !FI2,         &
-  !FI3,         &
-  !NL1,         &
-  !NL2,         &
-  !NL3,          &
-  !PL1,         &
-  !PL2,         &
-  !PL3,         &
-  !SL2,         &
-  !RESP,         &
-  !KESS,         &! WLong mooved this to mod_owq.F
-  !SL1,         &
-  !SL3,         &
-  !IAVG,         &!    WLong moved this to mod_owq.F
-  !IATBOT,    &!     Wlong moved this to mod_owq.F
-  !KE,         &!    Not used, should remove
-  !KEISS,         &!    Not used, should remove
-  !KEVSS,         &!  Not used, should remove
-  !KEDOC         !  Not used, should remove
+
   !
       Real (SP), Allocatable, Dimension (:, :) :: FTMNL, FTHDR
   !
@@ -875,9 +638,7 @@ Module MOD_WQM
   !
       Real (SP) :: DLT, AHMDLT, FILGTH, ZDFMUL, ZDFBCK
   !
-  !WLong moved to mod_zoop.F
-  !INTEGER  ::     KTBSZ,        &
-  !                KTBLZ
+
       Integer :: NHMDLT, NWQMR, NHMR, NIT !count of integration time steps
   !
   !
@@ -950,7 +711,7 @@ Module MOD_WQM
  INTEGER :: NumTcrVrb                   ! added by Laki for FC-Bacteria
  LOGICAL :: TcrKntOn, TcrtOutput  ! added by Laki for FC-Bacteria   
  CHARACTER(LEN = 64), ALLOCATABLE, DIMENSION(:) :: TxcOutVar,TcrOutVar
- REAL(SP), ALLOCATABLE, DIMENSION (:, :, :) :: PcbCon_W, PcbCon_AlgW, PcbCon_ZplW, PcbCon_SldW, PcbCon_POCW, PcbCon_DOCW
+ REAL(SP), ALLOCATABLE, DIMENSION (:, :, :) :: PcbCon_W, PcbCon_AlgW, PcbCon_ZplW, PcbCon_SldW, PcbCon_POCW, PcbCon_DOCW,PcbCon_AlgW1,PcbCon_AlgW2  
  REAL(SP), ALLOCATABLE, DIMENSION (:,:) :: PcbConTW, PcbConTW_GL
  REAL(SP), ALLOCATABLE, DIMENSION (:, :, :) :: PcbConWSZ, PcbConWLZ, PCBInOC, PCBInSZ, PcbConWSZ_GL, PcbConWLZ_GL 
  REAL(SP), ALLOCATABLE, DIMENSION (:, :, :) :: TcrtConW, TcrtConW_GL, TxSZUptk, TxLZUptk, TxSZLoss, TxLZLoss
@@ -969,7 +730,7 @@ Module MOD_WQM
  REAL(SP), ALLOCATABLE, DIMENSION (:, :) :: RdcnConW_S2, RdcnCon_POCS2, RdcnCon_DOCS2, RdcnCon_SldS2
  REAL(SP), ALLOCATABLE, DIMENSION (:, :) :: RdcnConWS2_GL, RdcnConPOCS2_GL, RdcnConDOCS2_GL, RdcnConSldS2_GL
  REAL(SP), ALLOCATABLE, DIMENSION (:) :: RdcnConTS1, RdcnConTS1_GL, RdcnConTS2, RdcnConTS2_GL, SedFlux, SusFlux, BtmShear
- REAL(SP), ALLOCATABLE, DIMENSION (:) :: ULND,VLND,WWLND,SdmHT,SdmBRL
+ REAL(SP), ALLOCATABLE, DIMENSION (:) :: ULND,VLND,WWLND,SdmHT,SdmBRL, POCSD, PONSD, POPSD
  LOGICAL :: WqCalcOn
  !---------------------------------- Toxics cmm parameters --------------------------------------
  CHARACTER(LEN = 1024) :: TXCF_INC,TXCF_PNT,TXCF_OBC,TXCF_INC_SD,TxcHotWC,TxcHotSD1,TxcHotSD2,TxcAccSZ,TxcAccLZ
@@ -1049,6 +810,14 @@ Contains
          SIAT = 0.0
          Allocate (SALT(0:MTLOC, KBM1))
          SALT = 0.0
+         Allocate (POCSD(0:MTLOC))
+         POCSD = 0.0
+         Allocate (PONSD(0:MTLOC))
+         PONSD = 0.0
+         Allocate (POPSD(0:MTLOC))
+         POPSD = 0.0
+
+
     !
          Allocate (RDOC(0:MTLOC, KBM1))
          RDOC = 0.0
@@ -1072,7 +841,7 @@ Contains
          Allocate (TALK(0:MTLOC, KBM1))
          TALK = 0.0 !LB
          Allocate (pH(0:MTLOC, KBM1))
-         pH = 8.0 !LB hopefully this will work to initialize the first pH guess as 8
+         pH = 8.0 !LB 
          Allocate (pCO2(0:MTLOC, KBM1))
          pCO2 = 0.0 !LB
 !
@@ -1128,7 +897,7 @@ Contains
          Allocate (ASRAT(MTLOC))
          ASRAT = 0.0
          Allocate (total_netPP(0:MTLOC))
-         total_netPP = 0.0 !LB: changed to 0: for Uranium tests... may delete later
+         total_netPP = 0.0 
     !
          Allocate (KE(MTLOC, KBM1))
          KE = 0.0
@@ -1221,19 +990,6 @@ Contains
           TTL_MASS3 = 0.0
 
 
-          ! ALLOCATE(M1DMass(1:101))
-          ! M1DMass = 0.0
-          ! ALLOCATE(M1SDMass(1:101))
-          ! M1SDMass = 0.0
-          ! ALLOCATE(PCB_W(1:101,NTXVB))
-          ! PCB_W = 0.0
-          ! ALLOCATE(PCB_S(1:101,NTXVB))
-          ! PCB_S = 0.0
-          ! ALLOCATE(PORST1(101))
-          ! PORST1 = 0.0
-          ! ALLOCATE(PORST2(101))
-          ! PORST2 = 0.0
-
 
     !
          Allocate (WSS(0:MTLOC, KBM1))
@@ -1280,19 +1036,11 @@ Contains
          WS3NET = 0.0
     !
     !
-    !ALLOCATE(DIAGP(MTLOC));             DIAGP  = 0.0
-    !ALLOCATE(DIAGN(MTLOC));             DIAGN  = 0.0
-    !ALLOCATE(DIAGC(MTLOC));             DIAGC  = 0.0
-    !ALLOCATE(DIAGS(MTLOC));             DIAGS  = 0.0
-    !ALLOCATE(MTVEL(MTLOC));             MTVEL  = 0.0    !WL moved to mod_sed.F
+
          Allocate (WSUNET(MTLOC))
          WSUNET = 0.0
     !
-    !           ALLOCATE(BL(0:MTLOC,KBM1,3));       BL   = 0.0
-    !           ALLOCATE(V1S(0:MTLOC,KBM1));        V1S  = 0.0
-    !           ALLOCATE(HMV(0:MTLOC,KBM1));        HMV  = 0.0
-    !           ALLOCATE(HMBV(MTLOC));              HMBV = 0.0
-    !           ALLOCATE(ZD(0:MTLOC,KBM1));         ZD   = 0.0
+
     !
          Allocate (DTM(0:MTLOC, KBM1, NCP))
          DTM = 0.0
@@ -1732,7 +1480,7 @@ Contains
          BBN = 0
          Allocate (HMSBV(MTLOC))
          HMSBV = 0
-    !Wen Long   ALLOCATE(SFA(MTLOC));          SFA = 0   !Wen Long deprecated SFA, replaced by ART1
+ 
     !
          Allocate (FLUXS(0:MTLOC, KBM1, 13))
          FLUXS = 0.0
@@ -1825,9 +1573,7 @@ Contains
          ACFIX = 0.0
          Allocate (ANFIX(MTLOC, KBM1))
          ANFIX = 0.0
-    !
-    !----
-    !
+
          Allocate (BENDOCB(MTLOC))
          BENDOCB = 0.0
          Allocate (BENNH4B(MTLOC))
@@ -1914,8 +1660,7 @@ Contains
     !
          Allocate (UL_GL(NGL, KBM1))
          UL_GL = 0.0
-    !LB: had added "0:" because parallel mode gave error "Subscript #1 of the array UL_GL has value 0 which is less than the lower b
-    !but then, PSM did not run.  In revision 117, we need it from 1 for PSM to run!!!
+
          Allocate (VL_GL(NGL, KBM1))
          VL_GL = 0.0
          Allocate (WTSL_GL(MGL, KB))
@@ -1936,8 +1681,6 @@ Contains
          XFLUX_OBC_GL = 0.0
     !
     !
-
-
 
          !--Wen Long  added the following algae debugging global variables here ---
     !
@@ -2005,6 +1748,7 @@ Contains
             TURB_GL = 0.0
 		  Allocate (PARAD_GL(MGL, KBM1))
             PARAD_GL = 0.0
+          !end if  
          Allocate (IK1_GL(MGL, KBM1))
          IK1_GL = 0.0
          Allocate (IK2_GL(MGL, KBM1))
@@ -2038,12 +1782,10 @@ Contains
          COD_GL = 0.0
          Allocate (REAERDO_GL(MGL, KBM1))
          REAERDO_GL = 0.0
-         Allocate (REAERDO(MTLOC, KBM1))  !Wen LONG: we really do not have to have it all vertical layers
-										  !SHOULD HAVE BEEN JUST FOR THE SURFACE LAYER
+         Allocate (REAERDO(MTLOC, KBM1))  
          REAERDO = 0.0 ! local variabl
     !
-    !---Wen Long declared a large buffer (so that we do not have to dynamically allocate and deallocate buffers
-    !   all the time--
+    
          If ( .Not. ALLOCATED(RCVBUF)) ALLOCATE (RCVBUF(Max(MGL, &
         & NGL)*3*KB))
          RCVBUF = 0.0
@@ -2209,19 +1951,7 @@ Contains
          If (ALLOCATED(WS3NET)) DEALLOCATE (WS3NET)
          If (ALLOCATED(WSUNET)) DEALLOCATE (WSUNET)
     !
-    !IF(ALLOCATED(DIAGC))DEALLOCATE(DIAGC)
-    !IF(ALLOCATED(DIAGN))DEALLOCATE(DIAGN)
-    !IF(ALLOCATED(DIAGP))DEALLOCATE(DIAGP)
-    !IF(ALLOCATED(DIAGS))DEALLOCATE(DIAGS)
-    !
-    !IF(ALLOCATED(MTVEL))DEALLOCATE(MTVEL)    !WLong moved to mod_sed.F
-    !
-    !
-    !           IF(ALLOCATED(BL))DEALLOCATE(BL)
-    !           IF(ALLOCATED(V1S))DEALLOCATE(V1S)
-    !           IF(ALLOCATED(HMV))DEALLOCATE(HMV)
-    !           IF(ALLOCATED(HMBV))DEALLOCATE(HMBV)
-    !           IF(ALLOCATED(ZD))DEALLOCATE(ZD)
+
     !
          If (ALLOCATED(DTM)) DEALLOCATE (DTM)
     !
@@ -2698,8 +2428,7 @@ Contains
 			If (ALLOCATED(EP_GL)) DEALLOCATE (EP_GL)
          !End If
     !
-    !---Wen Long declared a large buffer (so that we do not have to dynamically allocate and deallocate buffers
-    !   all the time--
+
          If (ALLOCATED(RCVBUF)) DEALLOCATE (RCVBUF)
          If (ALLOCATED(SNDBUF)) DEALLOCATE (SNDBUF)
     !

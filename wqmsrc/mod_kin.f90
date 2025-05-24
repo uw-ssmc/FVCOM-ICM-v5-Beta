@@ -1,3 +1,42 @@
+!************************************************************************
+!**                                                                    **
+!**                           FVCOM-ICM_4.0                            **
+!**                                                                    **
+!**               A Finite Volume Based Integrated Compartment         **
+!**                         Water Quality Model                        **      
+!**        The original unstructured-grid ICM code was developed by    ** 
+!**    the FVCOM development team at the University of Massachusetts   ** 
+!**         through a contract with U.S. Army Corps of Engineers       ** 
+!**         [Dr. Changsheng Chen (PI), Dr. Jianhua Qi and              ** 
+!**                      Dr. Geoffrey W. Cowles]                       **
+!**                                                                    **
+!**                Subsequent Development and Maintenance by           ** 
+!**                   PNNL/UW Salish Sea Modeling Center               **
+!**                                                                    **
+!**                 Tarang Khangaonkar    :  PNNL (2008 - Present)     **
+!**                 Lakshitha Premathilake:  PNNL (2019 - Present)     **
+!**                 Adi Nugraha           :  PNNL/UW (2018 - Present)  **
+!**                 Kurt Glaesmann        :  PNNL (2008 - Present)     **
+!**                 Laura Bianucci        :  PNNL/DFO(2015 - Present)  **
+!**                 Wen Long              :  PNNL (2012-2016)          **
+!**                 Taeyum Kim            :  PNNL (2008-2011)          **
+!**                 Rochelle G Labiosa    :  PNNL (2009-2010)          **
+!**                                                                    **
+!**                                                                    **
+!**                     Adopted from CE-QUAL-ICM  Model                **
+!**                           Developed by:                            **
+!**                                                                    **
+!**             Carl F. Cerco      : Water quality scheme              **
+!**             Raymond S. Chapman : Numerical solution scheme         **
+!**             Thomas M. Cole     : Computer algorithms & coding      **
+!**             Hydroqual          : Sediment compartment              **
+!**                                                                    **
+!**                    Water Quality Modeling Group                    **
+!**                    U.S. Army Corps of Engineers                    **
+!**                    Waterways Experiment Station                    **
+!**                    Vicksburg, Mississippi 39180                    **
+!**                                                                    **
+!************************************************************************
 Module MOD_KIN
       Use MOD_PREC, Only: SP
       Use MOD_ZOOP, Only: CTSZ, CTLZ, KHCSZ, KHCLZ, MZEROSZ, MZEROLZ, &
@@ -121,8 +160,7 @@ Contains
                   WSSHI (I, K) = WSS (I, K)
                Else
                  WSSHI (I, K) = 5.0     ! original code
-                 !WRITE(*,*)'SSI concentration is above 100.0'
-                 !STOP
+
                End If
             End Do
          End Do
@@ -408,15 +446,7 @@ Contains
           !
             End Do
          End Do
-    ! ---------------- Laki debugging - making zoo effect on carbon zero ------------
-          !LDOCSZ = 0.0
-          !RDOCSZ = 0.0
-          !LPOCSZ = 0.0
-          !RPOCSZ = 0.0
-          !LDOCLZ = 0.0
-          !RDOCLZ = 0.0
-          !LPOCLZ = 0.0
-          !RPOCLZ = 0.0
+
     !---------------------------------------------------------------------------------
     ! EFFECT OF ZOOPLANKTON ON NITROGEN (GM N/M**3/DAY)
     !
@@ -487,17 +517,7 @@ Contains
           !
             End Do
          End Do
-    !-------------- Laki debugging - making zoo effect on nitrogen zero --------------
-         !NH4SZ = 0.0
-         !LDONSZ = 0.0
-         !RDONSZ = 0.0
-         !LPONSZ = 0.0
-         !RPONSZ = 0.0
-         !NH4LZ = 0.0
-         !LDONLZ = 0.0
-         !RDONLZ = 0.0
-         !LPONLZ = 0.0
-         !RPONLZ = 0.0
+
     !--------------------------------------------------------------------------------------
     ! EFFECT OF ZOOPLANKTON ON PHOSPHORUS (GM P/M**3/DAY)
     !
@@ -548,25 +568,7 @@ Contains
           !
             End Do
          End Do
-    !------------- Laki debugging - making zoo effects on phosphorus zero -----------
-            !PIB1SZ = 0.0
-            !PIB2SZ = 0.0
-            !PIB3SZ = 0.0
-            !PIB1LZ = 0.0
-            !PIB2LZ = 0.0
-            !PIB3LZ = 0.0
 
-            !PO4SZ = 0.0
-            !LDOPSZ = 0.0
-            !RDOPSZ = 0.0
-            !LPOPSZ = 0.0
-            !RPOPSZ = 0.0
-
-            !PO4LZ = 0.0
-            !LDOPLZ = 0.0
-            !RDOPLZ = 0.0
-            !LPOPLZ = 0.0
-            !RPOPLZ = 0.0
     !-----------------------------------------------------------------------------------------
     ! EFFECT OF ZOOPLANKTON ON DISSOLVED OXYGEN (GM DO/M**3/DAY)
     !
@@ -580,9 +582,7 @@ Contains
           !
             End Do
          End Do
-    !------------ Laki debugging - making zoo effect on DO zero -------------------
-        !DOSZ = 0.0
-        !DOLZ = 0.0
+
     !----------------------------------------------------------------------------------------
     ! EFFECT OF ZOOPLANKTON ON SILICA (GM SI/M**3/DAY)
     !
@@ -847,10 +847,7 @@ Contains
 
             End Do
          End If
-    !
-    !
-    !Wen Long added SAV loads as bottom boundary condition, note that SAV_LOADS should
-    ! not be turned on if SAV_CALC is on
+
     !
          If (SAV_LOADS) Then
             Do I = 1, NSAVCELL
@@ -1474,7 +1471,7 @@ Contains
        !******  Settling
             Do I = 1, MLOC
                FLXSPIP (I, 1) = WSSHI (I, 1) * PIP (I, 1) * V2 (I, 1) / &
-              & (D(I)*DZ2D(I,1)*86400.)!WLong, we need to work on V2
+              & (D(I)*DZ2D(I,1)*86400.)
                DTPIP (I, 1) = - WSSHI (I, 1) * PIP (I, 1) / &
               & (D(I)*DZ2D(I,1)*86400.)
             End Do
@@ -1525,9 +1522,7 @@ Contains
     !
          Do K = 1, KBM1
             Do I = 1, MLOC
-          !! Analytical solution
-          !       FTCOD(I,K) = KCOD(I,K)!*EXP(-KTCOD)
-          !RGL need to check below
+
                FTCOD (I, K) = KCOD (I, K) * Exp (KTCOD*(T(I, K)-TRCOD))
                DTCOD (I, K) = (-DOXG(I, K)/(KHOCOD+DOXG(I, K))*FTCOD(I, &
               & K)*COD(I, K)) / 86400.
@@ -1536,11 +1531,9 @@ Contains
          End Do
     !
     !******* Sediment demand
-    ! why is sediment not included?
+
          Do I = 1, MLOC
-            DTCOD (I, KBM1) = DTCOD (I, KBM1)!+BENCOD(I)/(D(I)*DZ2D(I,KBM1))/86400.  !Wen Long: Wrong not to include
-       !benthic COD contribution!!!
-       !Original code has BENCOD term here
+            DTCOD (I, KBM1) = DTCOD (I, KBM1)
          End Do
     !
          Return
@@ -1635,9 +1628,7 @@ Contains
               &- NITRIF(I, K) - DOSZ(I, K) - DOLZ(I, K))/86400.  !AN
 			   RESP (I, K) = ALGDO + DOPR (I, K) + DDOC (I, K) + NITRIF &
               & (I, K) + DOSZ (I, K) + DOLZ (I, K)
-          !
-          !
-          !LB: moved DCOD out of calculation of DTDO and RESP, and add it only if COD_CALC is true
+ 
                If (COD_CALC) Then
                   DTDO (I, K) = DTDO (I, K) - DCOD (I, K) / 86400.
                   RESP (I, K) = RESP (I, K) + DCOD (I, K)
@@ -1661,8 +1652,7 @@ Contains
               & * (0.1665+TDOS*(9.796E-5*TDOS-5.866E-3))
                DTDO (I, 1) = DTDO (I, 1) + KRDO / (D(I)*DZ2D(I,1)) * &
               & (DOS-DOXG(I, 1)) / 86400.
-          !
-          !Wen Long debugging areation
+
                REAERDO (I, 1) = KRDO / (D(I)*DZ2D(I,1)) * (DOS-DOXG(I, 1))!gO2/m^3/day rate of areation in surface layer
           !Stumm and Morgan (third edition) pp242
             End Do
@@ -1786,12 +1776,6 @@ Contains
 
           !Stumm and Morgan (third edition) pp242
 
-        !!Wen Long debug REAERDO
-		!		write(*,*)'I, KRDO', 		I, KRDO
-		!		write(*,*)'I, D(I)', 		I, D(I)
-		!		write(*,*)'I, DZ2D(I,1)', 	I, DZ2D(I,1)
-		!		write(*,*)'I, DOS',			I, DOS
-		!		write(*,*)'I, DOXG(I,1)',	I, DOXG(I,1)
 
             End Do
          End If
@@ -1934,12 +1918,7 @@ Contains
        !
             FLXSSI (I, 1) = (WSS(I, 1)*PF*SIAT(I, 1)+WSU(I, 1)*SIUPB(I, &
            & 1)) * V2 (I, 1) / (D(I)*DZ2D(I,1)*86400.)
-       !
-       !Wen Long: We should also be very careful here with the vertical index k
-       !here, in FVCOM k=1 is at surface layer, yet in original ICM, it is at
-       !bottom layer? So when we use FLXSSI(I,k), we have to be sure about its
-       !direction and which boundary (surface or bottom) it is applied to
-       !
+
          End Do
     !
          Do K = 2, KBM1
@@ -2034,7 +2013,7 @@ Contains
             BENDO (I) = BENDOB (I) * FTSOD * DOXG (I, KBM1) / &
            & (KHSO+DOXG(I, KBM1))
             BENCOD (I) = BENCODB (I) - BENDOB (I) * FTSOD * KHSO / &
-           & (KHSO+DOXG(I, KBM1))!WLong, here we should have BENCODB on RHS instead of BENDOB ??
+           & (KHSO+DOXG(I, KBM1))
        !
        !********* Balance of nutrients (g/m2/day)
        !
@@ -2074,7 +2053,7 @@ Contains
        !
        !******* Now accumulate fluxes of labile and refractory particles as well as suspended solids
        !
-!!!!!WLong: Seems these were already calculated in mod_sed.F!!!!!
+
             PPFWS (I) = PPFWS (I) - WSL (I, KBM1) * LPOP (I, KBM1) - &
            & WSR (I, KBM1) * RPOP (I, KBM1)
             PNFWS (I) = PNFWS (I) - WSL (I, KBM1) * LPON (I, KBM1) - &
@@ -2086,8 +2065,7 @@ Contains
        !
        !******* Now accumulate fluxes of algal biomass
        !
-       !
-       !RGL fixed bug  in PCFWS - twp WS2's instead of WS2 and WS3
+
             PCFWS (I) = PCFWS (I) - WS1 (I, KBM1) * B1 (I, KBM1) - WS2 &
            & (I, KBM1) * B2 (I, KBM1)!-WS3(I,KBM1)*B3(I,KBM1)
        !

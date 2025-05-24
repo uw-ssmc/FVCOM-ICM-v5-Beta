@@ -1,3 +1,44 @@
+!dens2.F
+!************************************************************************
+!**                                                                    **
+!**                           FVCOM-ICM_4.0                            **
+!**                                                                    **
+!**               A Finite Volume Based Integrated Compartment         **
+!**                         Water Quality Model                        **      
+!**        The original unstructured-grid ICM code was developed by    ** 
+!**    the FVCOM development team at the University of Massachusetts   ** 
+!**         through a contract with U.S. Army Corps of Engineers       ** 
+!**         [Dr. Changsheng Chen (PI), Dr. Jianhua Qi and              ** 
+!**                      Dr. Geoffrey W. Cowles]                       **
+!**                                                                    **
+!**                Subsequent Development and Maintenance by           ** 
+!**                   PNNL/UW Salish Sea Modeling Center               **
+!**                                                                    **
+!**                 Tarang Khangaonkar    :  PNNL (2008 - Present)     **
+!**                 Lakshitha Premathilake:  PNNL (2019 - Present)     **
+!**                 Adi Nugraha           :  PNNL/UW (2018 - Present)  **
+!**                 Kurt Glaesmann        :  PNNL (2008 - Present)     **
+!**                 Laura Bianucci        :  PNNL/DFO(2015 - Present)  **
+!**                 Wen Long              :  PNNL (2012-2016)          **
+!**                 Taeyum Kim            :  PNNL (2008-2011)          **
+!**                 Rochelle G Labiosa    :  PNNL (2009-2010)          **
+!**                                                                    **
+!**                                                                    **
+!**                     Adopted from CE-QUAL-ICM  Model                **
+!**                           Developed by:                            **
+!**                                                                    **
+!**             Carl F. Cerco      : Water quality scheme              **
+!**             Raymond S. Chapman : Numerical solution scheme         **
+!**             Thomas M. Cole     : Computer algorithms & coding      **
+!**             Hydroqual          : Sediment compartment              **
+!**                                                                    **
+!**                    Water Quality Modeling Group                    **
+!**                    U.S. Army Corps of Engineers                    **
+!**                    Waterways Experiment Station                    **
+!**                    Vicksburg, Mississippi 39180                    **
+!**                                                                    **
+!************************************************************************
+!
 !==============================================================================|
 !     COMPUTE DENSITY USING SALINITY AND POTENTIAL TEMP                        |
 !		 Code taken from FVCOM               							       |
@@ -17,7 +58,6 @@ Subroutine DENS2
       Integer :: I, K
   !==============================================================================|
   !
-!!!LB: Initialize RHO as zero
   !!   RHO = 0.0_SP
   !
   !
@@ -25,11 +65,9 @@ Subroutine DENS2
   !
       Do I = 1, MTLOC
          Do K = 1, KBM1
-            TF (I, K) = T (I, K)!LB uncommented this on Jan 7 2016
+            TF (I, K) = T (I, K)
             SF (I, K) = SALT (I, K)
-!
-        !LB 7jan16 commented:       TF(I,K) = max(T1(I,K),1.0) !T.K 1/31/2013 added this for stability in intertidal regions
-!
+
             RHOF (I, K) = SF (I, K) * SF (I, K) * SF (I, K) * &
            & 6.76786136E-6_SP - SF (I, K) * SF (I, K) * 4.8249614E-4_SP &
            & + SF (I, K) * 8.14876577E-1_SP - 0.22584586E0_SP
@@ -56,7 +94,7 @@ Subroutine DENS2
   !  CALCULATE RHO at nodes (internal + halo nodes)
   !
       Do I = 1, MTLOC
-     !IF (D(I) > 0.0_SP)THEN  !LB: didn't include this here- I need RHO to be calculated everywhere! (this IF exists in FVCOM)
+ 
          Do K = 1, KBM1
             RHO (I, K) = RHOF (I, K) * 1.e-3_SP
         !
@@ -65,11 +103,7 @@ Subroutine DENS2
          End Do
      !END IF  !else, RHO stays zero at total depth D<0 (dry?)
       End Do
-  !
-  !If(MSR) Write (*,*) 'LBnote D1. RHOF,RHO,D(at some surf place)= ',RHOF(1,1),RHO(1,1),D(1)
-  !
-!
-  !!RHO = 1000.0_SP
+
 !
       Return
 End Subroutine DENS2

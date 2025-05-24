@@ -1,20 +1,30 @@
+!wqm_main.F
 !************************************************************************
 !**                                                                    **
-!**                           FVCOM-ICM                                **
+!**                           FVCOM-ICM_4.0                            **
 !**                                                                    **
 !**               A Finite Volume Based Integrated Compartment         **
-!**                         Water Quality Model                        **
-!**                            Developed by:                           **
+!**                         Water Quality Model                        **      
+!**        The original unstructured-grid ICM code was developed by    ** 
+!**    the FVCOM development team at the University of Massachusetts   ** 
+!**         through a contract with U.S. Army Corps of Engineers       ** 
+!**         [Dr. Changsheng Chen (PI), Dr. Jianhua Qi and              ** 
+!**                      Dr. Geoffrey W. Cowles]                       **
 !**                                                                    **
-!**                   Jianhua Qi            :  UMass(2008-2009)        **
-!**                   Tarang Khangaonkar    :  PNNL (2008-    )        **
-!**                   Taeyum Kim            :  PNNL (2008-2011)        **
-!**                   Rochelle G Labiosa    :  PNNL (2009-2010)        **
-!**                   Wen Long              :  PNNL (2012-    )        **
-!**                   Laura Bianucci        :  PNNL (2015-    )        **
+!**                Subsequent Development and Maintenance by           ** 
+!**                   PNNL/UW Salish Sea Modeling Center               **
+!**                                                                    **
+!**                 Tarang Khangaonkar    :  PNNL (2008 - Present)     **
+!**                 Lakshitha Premathilake:  PNNL (2019 - Present)     **
+!**                 Adi Nugraha           :  PNNL/UW (2018 - Present)  **
+!**                 Kurt Glaesmann        :  PNNL (2008 - Present)     **
+!**                 Laura Bianucci        :  PNNL/DFO(2015 - Present)  **
+!**                 Wen Long              :  PNNL (2012-2016)          **
+!**                 Taeyum Kim            :  PNNL (2008-2011)          **
+!**                 Rochelle G Labiosa    :  PNNL (2009-2010)          **
 !**                                                                    **
 !**                                                                    **
-!**                     Adoped from CE-QUAL-ICM  Model                 **
+!**                     Adopted from CE-QUAL-ICM  Model                **
 !**                           Developed by:                            **
 !**                                                                    **
 !**             Carl F. Cerco      : Water quality scheme              **
@@ -28,7 +38,7 @@
 !**                    Vicksburg, Mississippi 39180                    **
 !**                                                                    **
 !************************************************************************
-!
+!!
 Program FVCOMICM
   !
       Use MOD_PREC, Only: 				&
@@ -339,9 +349,7 @@ Program FVCOMICM
 
     !--------------------------------------------------------------------------------------
   !CALL SET_BNDRY           !WLong: Was in FVCOM, but now This removed,
-  !which should be used for calculating N_ICELLQ(:,1:2)
-  ! maybe we should add it back so that WQM can take edge type of nutrient flux
-  !
+
   !
       CTR_STN = 0 !counter for station output records
       CTR_HIS = 0 !counter for history output records
@@ -351,7 +359,7 @@ Program FVCOMICM
       OPEN_STN = .False.
   !
   !counting numbe of steps past t_his_start and t_stn_start
-  !this may need to be different for RESTART runs, basically we should read these numbers from
+  
   !restart file there
 !
       NTHIS_OLD = FLOOR ((JDAY-t_his_start)/t_his_dlt) - 1 !number of steps for history output
@@ -429,15 +437,7 @@ Program FVCOMICM
         !Here we should make sure ELTMS is the same for all processors
         !as we are going to have a broadcasting from master process
         !and only master process is reading the hydrodynamics.
-        !It will be disastrous if time-sensitive information (hydrodynamic update) is broadcast
-        !to child processes who are not yet up to the same page in time (while loop)
-        !This may not occur very often since the master process is in general doing more work and
-        !slower than child processors, however, in case of meeting the odds,
-        !a strict check point here is definitely necessary.
-        !
-        !In theory, we could do an MPI_BARRIER() here, but that will slow down the program
-        !and also MPI_BARRIER() is not well suited  for being in while-loops (where number of looping
-        !interations is unknown apriori owing to variable timestep)
+
 !
             If (MSR) Then !Master calculates its own IINT
                MASTER_IINT = IINT !Then broadcast it to all processes
@@ -490,21 +490,7 @@ Program FVCOMICM
         !update the child process hydrodynamics by broadcasting from master
 
         !Method A): scatter the hydrodynamics from master proc to other procs
-        !           This is supposed to be faster as the message size is smaller. However
-        !
-
-	!!Wen Long: this does not work well yet
-        !!  now BROAD_CAST_HYDRO has been downsized to only deal with UARD_OBCNNC2 and XFLUX_OBCNC2 and ELL_GL, DTFAL_GL
-        !  CALL BROADCAST_HYDRO_REDUCED(0,UARD_OBCNNC2,XFLUX_OBCNC2,DTFANC2,ELNC2)
-        !!  scatter the rest of variables instead of broadcasting (scattering is faster with smaller message size)
-        !  CALL SCATTER(0,NLOC,NTLOC,NGL,KBM1,MYID,NPROCS,EMAP,EC,ELID,ELID_X,  UL_GL,UNC2)   !velocity UL_GL->UNC2(0:NTLOC,KB), VL_
-	!  CALL SCATTER(0,NLOC,NTLOC,NGL,KBM1,MYID,NPROCS,EMAP,EC,ELID,ELID_X,  VL_GL,VNC2)   !velocity UL_GL->UNC2(0:NTLOC,KB), VL_GL->VNC
-        !  CALL SCATTER(0,MLOC,MTLOC,MGL,KB,  MYID,NPROCS,NMAP,NC,NLID,NLID_X,WTSL_GL,WTSNC2) !velocity WTSL_GL->WTSNC2(0:MTLOC,KB)
-        !!                                                                                    !      and KHL_GL->KHNC2(0:MTLOC,KB)
-	!  CALL SCATTER(0,MLOC,MTLOC,MGL,KB,  MYID,NPROCS,NMAP,NC,NLID,NLID_X, KHL_GL,KHNC2)  !velocity WTSL_GL->WTSNC2(0:MTLOC,KB)
-        !  CALL SCATTER(0,MLOC,MTLOC,MGL,KBM1,MYID,NPROCS,NMAP,NC,NLID,NLID_X,  SL_GL,SNC2)   !SL_GL->SNC2(0:MTLOC,KB)  TL_GL->TNC2(
-	!  CALL SCATTER(0,MLOC,MTLOC,MGL,KBM1,MYID,NPROCS,NMAP,NC,NLID,NLID_X,  TL_GL,TNC2)   !SL_GL->SNC2(0:MTLOC,KB)  TL_GL->TNC2(0:MTLOC
-        !!                                                                                                ! Wen Long: seems SNC2 and
+        !           This is supposed to be faster as the message size is smaller. 
 !
         !Method B) broadcast hydrodynamics from master proc to other procs
             Call BROADCAST_HYDRO (0, UNC2, VNC2, WTSNC2, UARD_OBCNNC2, &
@@ -593,9 +579,7 @@ Program FVCOMICM
          RELTMS = ELTMS
          TODS = Mod (RELTMS, 86400.)
  !
-         !Debug AN
-		 !If(MSR) Write (*,*) 'TODS, TTSS in main= ', TODS/86400., TTSS/86400.
- 		 !If(MSR) Write (*,*) 'FD, JDAY BF COND in main= ', FD, JDAY
+
  !
          If (TODS < TTSS) Then
             I0 = 0.
@@ -611,9 +595,7 @@ Program FVCOMICM
             I0 = Max (I0, 0.)
  !
          End If
-		 !Debug AN
-		 !If(MSR) Write (*,*) 'I0 - in MAIN= ', I0
-		 !If(MSR) Write (199,'(e14.6,e14.6)') JDAY, I0
+
 
      !
      !--- HARDWIRE LIGHT HERE
@@ -742,7 +724,7 @@ END IF
 
     IF(WqCalcOn == .TRUE.) THEN  ! for wqm calculations
      !     IF (TEMPERATURE_CALC) CALL TEMPER(DTC(0,1,1))
-     !tykim-this makes change in temperature zero - need to comment out if want to calc temp
+
          DTC (:, :, 1) = 0.0
      !In next section first subscript changed to 0 per KURT
          If (SOLIDS_CALC) Call SOLIDS (DTC(0, 1, 3), FLUXS(0, 1, 1))!WLong and LB, we should move this into the IF block below as well??
@@ -814,8 +796,8 @@ END IF
      
          Call VISCOF_H !LB and WL added this call 12may2016
 
-!RGL uncommented VERTVL below for full PS run
-!      CALL VERTVL  !Wen Long: We may need this vertical velocity here
+
+!      CALL VERTVL  
 !
 !#if defined (WET_DRY)
 !		IF(WET_DRY_ON) CALL WD_UPDATE(2) !update wet_dry if DTFA is changed by VERTVL above
@@ -833,12 +815,7 @@ END IF
                         C2F (I, K, II) = C2F (I, K, II) + DTM (I, K, II) * &
                  & DLT
 					ENDIF
-!!Wen Long debug oxygen
-!				  IF(II==27 .and. K==1)THEN
-!					write(*,*)'I,K,II',I,K,II
-!					write(*,*)'C2F(I,K,II)',C2F(I,K,II)
-!					write(*,*)'DTM(I,K,II)',DTM(I,K,II)
-!				  ENDIF
+
 
                   C2F (I, K, II) = Max (C2F(I, K, II), 0.0)
                   If (II .Eq. 4 .Or. II .Eq. 5 .Or. II .Eq. 6) Then
@@ -858,8 +835,6 @@ END IF
          Call BCOND_WQM !Boundary Conditions            !!LB commented to emulate us_fvcom.F order 5may2016
 
 
-     !! KURT GLAESEMANN - have to exchange again, after boundary conditions
-     !! because boundary condition code does NOT know about the buffer regions
          Call EXCHANGE_WQM (C2F)!Interprocessor Exchange  !LB commented to emulate us_fvcom.F order 5may2016
          C2 = C2F
          ET = EL
@@ -891,8 +866,7 @@ END IF
            & TMSTRT+DLT/86400.0)) Then
                Call SED_INIT_ICI !WL: make sure the sediment CTEMP get the initial condition of temperature from
            !just updated water column (end of first time step)
-           !(this is becaluse excel version uses water column temperature AND DO NOT REALLY
-           !HAVE INITIAL TEMPERATURE, EXCEL VERSION DOESN NOT HAVE A TEMPERATURE EQUATION)
+
            !
            !OR SIMPLY USE the following line
            ! CTEMP=T(:,KBM1)
@@ -1720,8 +1694,7 @@ END IF
         !     END IF
         ! END IF
 !-----------------------------------------------------------------------------------------------------
-!WRITE(*,*)'Went through one iteration.........1'
-!STOP
+
  End Do !END DO WHILE(.NOT.END_RUN)
 
   !************************************************************************
@@ -1912,7 +1885,7 @@ END IF
         & TOTAL_TIME, " seconds"
       End If
 
-      CALL PSTOP     !Wen Long and Laura found this does not stop the run properly
+      CALL PSTOP     
 !#if defined (1)
 !      Call MPI_FINALIZE (IERR)
 !#endif
@@ -1951,19 +1924,15 @@ Subroutine EXCHANGE_WQM (CCC)
      !      CALL EXCHANGE(NC,MTLOC,KBM1,MYID,NPROCS,C2F(:,:,NJ))
      !    ENDDO
      ! KURT GLAESEMANN 17 SEPT 2009 DO MULTIPLE VARIABLES AT ONCE
-     ! ask Kurt if this just saves time -- why is he using 3 as extra
+
      !
      !  KURT GLAESEMANN 22 SEPT 2009 - DO ALL AT ONCE
          Call EXCHANGE_ALL (NC, MTLOC, KBM1, NCP, MYID, NPROCS, CCC)
-     !IF(MSR)write(*,*)'LBnote 1.4: size(C2,1)=',SIZE(CCC,1)
-     !IF(MSR)write(*,*)'LBnote 1.4: size(C2,2)=',SIZE(CCC,2)
-     !IF(MSR)write(*,*)'LBnote 1.4: size(C2,3)=',SIZE(CCC,3)
+
          Call NODE_MATCH_ALL (1, NBN, BN_MLT, BN_LOC, BNC, MTLOC, KBM1, &
         & NCP, MYID, NPROCS, CCC)
       End If
-  !IF(MSR)write(*,*)'LBnote 1.5: size(C2,1)=',SIZE(CCC,1)
-  !IF(MSR)write(*,*)'LBnote 1.5: size(C2,2)=',SIZE(CCC,2)
-  !IF(MSR)write(*,*)'LBnote 1.5: size(C2,3)=',SIZE(CCC,3)
+
       Return
 End Subroutine EXCHANGE_WQM
 !==============================================================================!
@@ -2130,7 +2099,7 @@ Subroutine WQM_OUTPUT (NTHIS_OLD, NTSTN_OLD, NTHIS, NTSTN, CTR_HIS, &
                         & CONPCB_S1GL, CONPCB_S2, CONPCB_S2GL, CONPCB_WGL, PSRT2, PSRT2_GL, &
                         & PcbCon_W, PcbCon_AlgW, PcbCon_ZplW, PcbCon_SldW, PcbCon_POCW, &
                         & PcbConW_S1, PcbCon_POCS1, PcbCon_SldS1, PcbConW_S2, PcbCon_POCS2, &
-                        & PcbCon_SldS2
+                        & PcbCon_SldS2,PcbCon_AlgW1,PcbCon_AlgW2
       Implicit None
       Include "mpif.h"
   !
@@ -2364,38 +2333,7 @@ Subroutine WQM_OUTPUT (NTHIS_OLD, NTSTN_OLD, NTHIS, NTSTN, CTR_HIS, &
             Call GATHER (1, MTLOC, MLOC, MGL, KBM1, MYID, NPROCS, NMAP, &
            & REAERDO(1, 1), REAERDO_GL(1, 1))
         !
-        !Wen Long added the following for debugging benthic flux including benthic SOD
-        !
-            Call GATHER (1, MTLOC, MLOC, MGL, 9, MYID, NPROCS, NMAP, &
-           & BFLUX(1, 1), BFLUX_GL(1, 1))
-        !
-        !WLong: Note above, C2 and C2_GL all have first indices starting from zero
-        !    I wonder why would we pass C2(0,,) to C2_GL(1,,) instead of C2_GL(0,*,*)
-        !    but SALT starts from 0, and S_GL starts from 1
-        !    There are might be problems here to sort out
-        !
-        !
-        !WLong: We ought to gather all other components of C2 to C2_GL as well
-        !       Right now, above statements only deals with afew state variables :27,9,10,11,12,4,5,13,14,20)
-        !       To fully parallelize ICM, the rest of them must also be gathered and
-        !       output to RSO and ICO for restart purpose
-        !       As well as output to profiles and plots etc
-        !
-        !
-            If (SEDIMENT_CALC) Then !LBcomment
-           !
-           !
-           !gather sediment diagenesis related variables
-           !
-           !
-           !all of the following are used for outputing sediment flux variables into history and station files
-           !Make sure all of them are collected
-           !
-           !(JPOC_GL(MGL,3));
-           !(JPON_GL(MGL,3));
-           !(JPOP_GL(MGL,3));
-           !(JPOS_GL(MGL));
-           !
+            If (SEDIMENT_CALC) Then
                Call GATHER (1, MTLOC, MLOC, MGL, 3, MYID, NPROCS, NMAP, &
               & JPOC(1, 1), JPOC_GL(1, 1))
                Call GATHER (1, MTLOC, MLOC, MGL, 3, MYID, NPROCS, NMAP, &
@@ -2405,146 +2343,89 @@ Subroutine WQM_OUTPUT (NTHIS_OLD, NTSTN_OLD, NTHIS, NTSTN, CTR_HIS, &
                Call GATHER (1, MTLOC, MLOC, MGL, 1, MYID, NPROCS, NMAP, &
               & JPOS(1), JPOS_GL(1))
            !
-           !!(O20_GL(MGL));            !given by C2_GL(:,:,27)
-           !!(D_GL(MGL));                !already defined
-           !(CTEMP_GL(MGL));             !
-           !
+
                Call GATHER (1, MTLOC, MLOC, MGL, 1, MYID, NPROCS, NMAP, &
               & CTEMP(1), CTEMP_GL(1))
-           !!(T_GL(MGL,KBM1));            !already defined, also given in CTEMP_GL
-           !!(NH40_GL(MGL));            !given by C2_GL
-           !!(NO30_GL(MGL));            !given by C2_GL
-           !!(SI0_GL(MGL));            !given by C2_GL
-           ! (CH40_GL(MGL));
-           !CALL GATHER(1,MTLOC,MLOC,MGL,1,MYID,NPROCS,NMAP,CH40(1)  ,        CH40_GL(1))
-           !
+
                CH40_GL = 0.d0 !temporarily set to zero
-           !!(SAL_GL(MGL));            !given by S_GL
-           !(SODTM1S_GL(MGL));
+
                Call GATHER (1, MTLOC, MLOC, MGL, 1, MYID, NPROCS, NMAP, &
               & SODTM1S(1), SODTM1S_GL(1))
-           !!(SOD_GL(MGL));            !given by SODTM1S_GL
-           !(JNH4_GL(MGL));
+
                Call GATHER (1, MTLOC, MLOC, MGL, 1, MYID, NPROCS, NMAP, &
               & JNH4TM1S(1), JNH4_GL(1))
-           !(JNO3_GL(MGL));
+
                Call GATHER (1, MTLOC, MLOC, MGL, 1, MYID, NPROCS, NMAP, &
               & JNO3TM1S(1), JNO3_GL(1))
-           !(BENDEN_GL(MGL));
+
                Call GATHER (1, MTLOC, MLOC, MGL, 1, MYID, NPROCS, NMAP, &
               & BENDEN(1), BENDEN_GL(1))
-           !(JCH4_GL(MGL));
+
                Call GATHER (1, MTLOC, MLOC, MGL, 1, MYID, NPROCS, NMAP, &
               & JCH4TM1S(1), JCH4_GL(1))
-           !(JCH4G_GL(MGL));
+
                Call GATHER (1, MTLOC, MLOC, MGL, 1, MYID, NPROCS, NMAP, &
               & JCH4GTM1S(1), JCH4G_GL(1))
-           !(JHS_GL(MGL));
+
                Call GATHER (1, MTLOC, MLOC, MGL, 1, MYID, NPROCS, NMAP, &
               & JHSTM1S(1), JHS_GL(1))
-           !(JPO4_GL(MGL));
+
                Call GATHER (1, MTLOC, MLOC, MGL, 1, MYID, NPROCS, NMAP, &
               & JPO4TM1S(1), JPO4_GL(1))
-           !(JSI_GL(MGL));
+
                Call GATHER (1, MTLOC, MLOC, MGL, 1, MYID, NPROCS, NMAP, &
               & JSITM1S(1), JSI_GL(1))
-           !(NH41_GL(MGL));
+
                Call GATHER (1, MTLOC, MLOC, MGL, 1, MYID, NPROCS, NMAP, &
               & NH41TM1S(1), NH41_GL(1))
-           !(NH42_GL(MGL));
+
                Call GATHER (1, MTLOC, MLOC, MGL, 1, MYID, NPROCS, NMAP, &
               & NH42TM1S(1), NH42_GL(1))
-           !(NO31_GL(MGL));
+
                Call GATHER (1, MTLOC, MLOC, MGL, 1, MYID, NPROCS, NMAP, &
               & NO31TM1S(1), NO31_GL(1))
-           !(NO32_GL(MGL));
+
                Call GATHER (1, MTLOC, MLOC, MGL, 1, MYID, NPROCS, NMAP, &
               & NO32TM1S(1), NO32_GL(1))
-           !(PO41_GL(MGL));
+
                Call GATHER (1, MTLOC, MLOC, MGL, 1, MYID, NPROCS, NMAP, &
               & PO41TM1S(1), PO41_GL(1))
-           !(PO42_GL(MGL));
+
                Call GATHER (1, MTLOC, MLOC, MGL, 1, MYID, NPROCS, NMAP, &
               & PO42TM1S(1), PO42_GL(1))
-           !(SI1_GL(MGL));
+
                Call GATHER (1, MTLOC, MLOC, MGL, 1, MYID, NPROCS, NMAP, &
               & SI1TM1S(1), SI1_GL(1))
-           !(SI2_GL(MGL));
+
                Call GATHER (1, MTLOC, MLOC, MGL, 1, MYID, NPROCS, NMAP, &
               & SI2TM1S(1), SI2_GL(1))
-           !(CH41TM1S_GL(MGL));
+
                Call GATHER (1, MTLOC, MLOC, MGL, 1, MYID, NPROCS, NMAP, &
               & CH41TM1S(1), CH41TM1S_GL(1))
-           !!(CH41_GL(MGL));            !given by CH41TM1S_GL
-           !(CH42_GL(MGL));
+
                Call GATHER (1, MTLOC, MLOC, MGL, 1, MYID, NPROCS, NMAP, &
               & CH42TM1S(1), CH42_GL(1))
-           !(HS1_GL(MGL));
+
                Call GATHER (1, MTLOC, MLOC, MGL, 1, MYID, NPROCS, NMAP, &
               & HS1TM1S(1), HS1_GL(1))
-           !(HS2_GL(MGL));
+
                Call GATHER (1, MTLOC, MLOC, MGL, 1, MYID, NPROCS, NMAP, &
               & HS2TM1S(1), HS2_GL(1))
-           !(CPOP_GL(MGL,3));
+
                Call GATHER (1, MTLOC, MLOC, MGL, 3, MYID, NPROCS, NMAP, &
               & CPOP(1, 1), CPOP_GL(1, 1))
-           !(CPON_GL(MGL,3));
+
                Call GATHER (1, MTLOC, MLOC, MGL, 3, MYID, NPROCS, NMAP, &
               & CPON(1, 1), CPON_GL(1, 1))
-           !(CPOC_GL(MGL,3));
+
                Call GATHER (1, MTLOC, MLOC, MGL, 3, MYID, NPROCS, NMAP, &
               & CPOC(1, 1), CPOC_GL(1, 1))
-           !(CPOS_GL(MGL));
+
                Call GATHER (1, MTLOC, MLOC, MGL, 1, MYID, NPROCS, NMAP, &
               & CPOS(1), CPOS_GL(1))
-           !
-           !!(POC1_GL(MGL));            !given by CPOC_GL
-           !!(POC2_GL(MGL));
-           !!(POC3_GL(MGL));
-           !
-           !!(PON1_GL(MGL));            !given by CPON_GL
-           !!(PON2_GL(MGL));
-           !!(PON3_GL(MGL));
-           !
-           !!(POP1_GL(MGL));            !given by CPOP_GL
-           !!(POP2_GL(MGL));
-           !!(POP3_GL(MGL));
-           !
-           !!(PSISED_GL(MGL));            !given by CPOS_GL
-           !
-           !(HSED1_GL(MGL));            !
-           !
-           !
-           !
-           !-----
-           !===================================================================================|
-           !SUBROUTINE GATHER(N1,N2,NT,NTG,KT,MYID,NPROCS,GM,A,AG)
-           !INTEGER,   INTENT(IN)           :: N1,N2,NT,NTG,KT,MYID,NPROCS
-           !TYPE(GMAP), INTENT(IN)           :: GM(NPROCS)
-           !REAL(SP),    INTENT(IN)           :: A(N1:N2,KT)  !source array bounds
-           !REAL(SP),    INTENT(OUT)          :: AG(NTG,KT)
-           !            -----
-           !
-           !first 1 (N1) is starting index of local array HSED1
-           !MTLOC is end index of loal array HSED1
-           !NT is not used yet
-           !1:MGL is the dimension of the global array HSED1_GL
-           !second 1 (KT) (before MYID) is the vertical dimension (last dimension) of local array and global array
-           !HSED1(1) is the starting memory address of local array to communicate
-           !HSED1_GL is the starting memory address of global array to communicate
-           !
-           !trying to map A(1:NT,KT) part of array A(N1:N2,1:KT) to global array AG(1:NTG, 1:KT)
-		   ! where NT must be bigger than N2-N1+1,
-		   ! AG must be of size (NTG,KT)
-           !
-           !instead of passing A and AG, it only passes the referene (starting address of the array)
-           !in theory,
-           !
+
                Call GATHER (1, MTLOC, MLOC, MGL, 1, MYID, NPROCS, NMAP, &
               & HSED1(1), HSED1_GL(1))
-
-              Call GATHER (1, MTLOC, MLOC, MGL, 1, MYID, NPROCS, NMAP, &
-             & HSED(1), HSED_GL(1))
 
 
                Call GATHER (1, MTLOC, MLOC, MGL, 1, MYID, NPROCS, NMAP, &
@@ -2552,6 +2433,8 @@ Subroutine WQM_OUTPUT (NTHIS_OLD, NTSTN_OLD, NTHIS, NTSTN, CTR_HIS, &
 
            
             End If !!end LBcomment
+                          Call GATHER (1, MTLOC, MLOC, MGL, 1, MYID, NPROCS, NMAP, &
+             & HSED(1), HSED_GL(1))
 
 			If (SOLIDS_CALC) Then !Adi-2/13/18
                Call GATHER (1, MTLOC, MLOC, MGL, KBM1, MYID, NPROCS, &
@@ -2617,10 +2500,7 @@ Subroutine WQM_OUTPUT (NTHIS_OLD, NTSTN_OLD, NTHIS, NTSTN, CTR_HIS, &
             C2_GL (1:MGL, 1:KBM1, 17) = C2 (1:MGL, 1:KBM1, 17)
             C2_GL (1:MGL, 1:KBM1, 18) = C2 (1:MGL, 1:KBM1, 18)
             C2_GL (1:MGL, 1:KBM1, 19) = C2 (1:MGL, 1:KBM1, 19)
-!
-!
-        !
-        ! Wen Long added following for debugging algae
+
         !
            P1_GL = P1
            P2_GL = P2

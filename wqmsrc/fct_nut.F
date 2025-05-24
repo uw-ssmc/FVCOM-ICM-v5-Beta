@@ -1,3 +1,44 @@
+!fct_nut.F
+!************************************************************************
+!**                                                                    **
+!**                           FVCOM-ICM_4.0                            **
+!**                                                                    **
+!**               A Finite Volume Based Integrated Compartment         **
+!**                         Water Quality Model                        **      
+!**        The original unstructured-grid ICM code was developed by    ** 
+!**    the FVCOM development team at the University of Massachusetts   ** 
+!**         through a contract with U.S. Army Corps of Engineers       ** 
+!**         [Dr. Changsheng Chen (PI), Dr. Jianhua Qi and              ** 
+!**                      Dr. Geoffrey W. Cowles]                       **
+!**                                                                    **
+!**                Subsequent Development and Maintenance by           ** 
+!**                   PNNL/UW Salish Sea Modeling Center               **
+!**                                                                    **
+!**                 Tarang Khangaonkar    :  PNNL (2008 - Present)     **
+!**                 Lakshitha Premathilake:  PNNL (2019 - Present)     **
+!**                 Adi Nugraha           :  PNNL/UW (2018 - Present)  **
+!**                 Kurt Glaesmann        :  PNNL (2008 - Present)     **
+!**                 Laura Bianucci        :  PNNL/DFO(2015 - Present)  **
+!**                 Wen Long              :  PNNL (2012-2016)          **
+!**                 Taeyum Kim            :  PNNL (2008-2011)          **
+!**                 Rochelle G Labiosa    :  PNNL (2009-2010)          **
+!**                                                                    **
+!**                                                                    **
+!**                     Adopted from CE-QUAL-ICM  Model                **
+!**                           Developed by:                            **
+!**                                                                    **
+!**             Carl F. Cerco      : Water quality scheme              **
+!**             Raymond S. Chapman : Numerical solution scheme         **
+!**             Thomas M. Cole     : Computer algorithms & coding      **
+!**             Hydroqual          : Sediment compartment              **
+!**                                                                    **
+!**                    Water Quality Modeling Group                    **
+!**                    U.S. Army Corps of Engineers                    **
+!**                    Waterways Experiment Station                    **
+!**                    Vicksburg, Mississippi 39180                    **
+!**                                                                    **
+!************************************************************************
+!
 !       subroutine FCT_NUT()
 !
 !==============================================================================|
@@ -13,7 +54,7 @@ Subroutine FCT_NUT
       Use MOD_TGE, Only: NTSN, NBSN
   !
       Use MOD_HYDROVARS, Only: DZ,DZ2D, THOUR
-  !Wen Long took MOD_CONTROL out of MOD_HYDROVARS and put the used variables here
+  
       Use MOD_CONTROL, Only: INFLOW_TYPE
       Use MOD_BCS, Only: INODEQ, INOPNT,TXPNT_ID, TCRPNT_ID !!LOCAL NON-POINT SOURCE NODES
   !
@@ -88,15 +129,12 @@ Subroutine FCT_NUT
                  & K-1, II)*DZ2D(I,K))/(DZ2D(I,K)+DZ2D(I,K-1)), (C2(I, K, &
                  & II)*DZ2D(I,K+1)+C2(I, K+1, II)*DZ2D(I,K))/(DZ2D(I,K)+DZ2D(I,K+1)))
                End If
-           !
-           !       tykim commented out two lines below
+
                If (NUTMIN-C2F(I, K, II) > 0.0_SP) C2F (I, K, II) = &
               & NUTMIN
                If (C2F(I, K, II)-NUTMAX > 0.0_SP) C2F (I, K, II) = &
               & NUTMAX
-           !
-           !       IF(NUTMIN-C2F(I,K,II) >  C2F(I,K,II)*0.001 ) C2F(I,K,II) = NUTMIN
-           !       IF(C2F(I,K,II)-NUTMAX >  C2F(I,K,II)*0.001 ) C2F(I,K,II) = NUTMAX
+
             End Do
         !
 200         Continue

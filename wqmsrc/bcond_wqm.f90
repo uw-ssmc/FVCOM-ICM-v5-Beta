@@ -1,3 +1,44 @@
+!bcond_wqm.F
+!************************************************************************
+!**                                                                    **
+!**                           FVCOM-ICM_4.0                            **
+!**                                                                    **
+!**               A Finite Volume Based Integrated Compartment         **
+!**                         Water Quality Model                        **      
+!**        The original unstructured-grid ICM code was developed by    ** 
+!**    the FVCOM development team at the University of Massachusetts   ** 
+!**         through a contract with U.S. Army Corps of Engineers       ** 
+!**         [Dr. Changsheng Chen (PI), Dr. Jianhua Qi and              ** 
+!**                      Dr. Geoffrey W. Cowles]                       **
+!**                                                                    **
+!**                Subsequent Development and Maintenance by           ** 
+!**                   PNNL/UW Salish Sea Modeling Center               **
+!**                                                                    **
+!**                 Tarang Khangaonkar    :  PNNL (2008 - Present)     **
+!**                 Lakshitha Premathilake:  PNNL (2019 - Present)     **
+!**                 Adi Nugraha           :  PNNL/UW (2018 - Present)  **
+!**                 Kurt Glaesmann        :  PNNL (2008 - Present)     **
+!**                 Laura Bianucci        :  PNNL/DFO(2015 - Present)  **
+!**                 Wen Long              :  PNNL (2012-2016)          **
+!**                 Taeyum Kim            :  PNNL (2008-2011)          **
+!**                 Rochelle G Labiosa    :  PNNL (2009-2010)          **
+!**                                                                    **
+!**                                                                    **
+!**                     Adopted from CE-QUAL-ICM  Model                **
+!**                           Developed by:                            **
+!**                                                                    **
+!**             Carl F. Cerco      : Water quality scheme              **
+!**             Raymond S. Chapman : Numerical solution scheme         **
+!**             Thomas M. Cole     : Computer algorithms & coding      **
+!**             Hydroqual          : Sediment compartment              **
+!**                                                                    **
+!**                    Water Quality Modeling Group                    **
+!**                    U.S. Army Corps of Engineers                    **
+!**                    Waterways Experiment Station                    **
+!**                    Vicksburg, Mississippi 39180                    **
+!**                                                                    **
+!************************************************************************
+!
 !subroutine BCOND_WQM()
 !subroutine BCOND_NUT_PERTURBATION()
 !
@@ -19,12 +60,12 @@ Subroutine BCOND_WQM
       Use MOD_BCMAP, Only: IOBCN, I_OBC_N, WQOBC, NUT_TM
   !
       Use MOD_HYDROVARS, Only: GRAV, ZERO, ART1, DZ,DZ2D, H, D, DT, &
-     & UARD_OBCN, XFLUX_OBC, THOUR, RHO, XFLUX_OBC_WQM !LB added RHO 8jan2016 and XFLUX_OBC_WQM in may17,2016
+     & UARD_OBCN, XFLUX_OBC, THOUR, RHO, XFLUX_OBC_WQM !
   !
-  !Wen Long took MOD_CONTROL out of MOD_HYDROVARS and put the used variables here
+  !MOD_CONTROL out of MOD_HYDROVARS and put the used variables here
       Use MOD_CONTROL, Only: DTI, INFLOW_TYPE, POINT_ST_TYPE, MSR
       Use MOD_BCS, Only: INODEQ, ICELLQ, QBC_TM, DWDIS, WDIS, N_ICELLQ
-      Use MOD_WQM, Only: C2, C2F, NAC, AC, JDAY, SALT, DLT !LB added SALT 8jan2016, DLT 20may2016
+      Use MOD_WQM, Only: C2, C2F, NAC, AC, JDAY, SALT, DLT !
       Use MOD_PREC, Only: SP
       Use MOD_OBCS, Only: NEXT_OBC, DLTN_OBC
       Implicit None
@@ -32,8 +73,8 @@ Subroutine BCOND_WQM
       Real (SP) :: UFACT, FACT
       Real (SP) :: T2D, T2D_NEXT, T2D_OBC, XFLUX2D, TMP, TMAX, TMIN, &
      & RAMP_TS
-      Real (SP) :: TAasFsalt !LB 8jan2016
-      Integer :: stepsIn1day !LB 20may2016
+      Real (SP) :: TAasFsalt 
+      Integer :: stepsIn1day 
       Integer :: L1, L2, IERR
       Real (SP) :: CC, CP, PERT, PERT_NEXT
       Real (SP), Allocatable :: TTMP (:, :)
@@ -72,9 +113,9 @@ Subroutine BCOND_WQM
                      Do I = 1, NUMQBC
                         J11 = N_ICELLQ (I, 1)!first node of the element edge
                         J22 = N_ICELLQ (I, 2)!second node of the element edge
-                        C2F (J11, K, II) = WDIS (I, II)!Wen Long has doubt here, shouldn' it be divided by 2 so that
+                        C2F (J11, K, II) = WDIS (I, II)
                     !	it is distirbuted evenly by the two nodes connecting the edge?
-                        C2F (J22, K, II) = WDIS (I, II)! !Wen Long has doubt here, shouldn' it be divided by 2 so that
+                        C2F (J22, K, II) = WDIS (I, II)! 
                     !	it is distirbuted evenly by the two nodes connecting the edge?
                      End Do
                   End Do
@@ -103,10 +144,8 @@ Subroutine BCOND_WQM
 
 
      !RAMP_TS = Tanh (FLOAT(IINT)/FLOAT(8640+1)) !this is only the same as HYD if DLT=10sec
-         RAMP_TS = Tanh (FLOAT(IINT)/FLOAT(stepsIn1day+1))!LB changed to assure ramp time is 1 day, as in HYD for SalishSea 20may2016
-     !write(*,*)'LBnote: IINT=',IINT,' RAMP=',RAMP_TS
-     !
-     !
+         RAMP_TS = Tanh (FLOAT(IINT)/FLOAT(stepsIn1day+1))
+
          Do JCON = 1, NAC
             II = AC (JCON)
             Allocate (TTMP(NOBTY, KBM1))
@@ -120,31 +159,16 @@ Subroutine BCOND_WQM
                Do K = 1, KBM1
                   T2D = T2D + C2 (J, K, II) * DZ2D (J,K)
                   T2D_NEXT = T2D_NEXT + C2F (J1, K, II) * DZ2D (J1,K)
-                 !XFLUX2D = XFLUX2D + XFLUX_OBC (I, K) * DZ2D (J,K)  !LB commented 17may2016
-                  XFLUX2D = XFLUX2D + XFLUX_OBC_WQM (I, K, II) * DZ2D (J,K)!LB added 17may2016. XFLUX_OBC_WQM is calculated in adv_wqm.F, analogous to FVCOM
-!
-              !                IF(II.eq.2) write(2236,*)T2D_NEXT,C2F(J1,K,II),DZ2D(J1,K)
+ 
+                  XFLUX2D = XFLUX2D + XFLUX_OBC_WQM (I, K, II) * DZ2D (J,K)
+
                End Do
            !
                If (UARD_OBCN(I) > 0.0) Then
                   TMP = XFLUX2D + T2D * UARD_OBCN (I)
-!
-              !
-              !Wen Long, here DTI should be DLT!!!! There is no internal step in WQ model
-              !
-!
+
                   T2D_OBC = (T2D*DT(J)-TMP*DTI/ART1(J)) / D (J)
-!
-              !             DTI=DTE*FLOAT(ISPLIT) -- In FVCOM
-!
-              !            CALL BCOND_NUT_PERTURBATION(T2D_NEXT,T2D,TTMP,I,J,J1)
-              ! Perturbation case 1 TTMP(I,K) = TF1(J1,K) - T2D_NEXT
-              !            DO K=1,KBM1
-              !               if(II.eq.27) write(2238,*)'before',C2F(J,K,II),T2D_OBC,T2D_NEXT
-              !                C2F(J,K,II)=T2D_OBC+(C2F(J1,K,II)-T2D_NEXT)
-              !                if(II.eq.27) write(2238,*)'after',C2F(J,K,II)
-              !            ENDDO
-              ! Perturbation case 3
+
                   CC = Sqrt (GRAV*H(J)) * DTI / DLTN_OBC (I)
                   CP = CC + 1.0_SP
                   Do K = 1, KBM1
@@ -155,9 +179,7 @@ Subroutine BCOND_WQM
                  !
                      C2F (J, K, II) = T2D_OBC + &
                     & (CC*PERT_NEXT+PERT*(1.0_SP-DTI/10800.0_SP)) / CP
-                 !
-                 ! Perturbation case 2
-                 !               C2F(J,K,II)= T2D_OBC + (CC*PERT_NEXT + PERT)/CP
+
                   End Do
               ! The end of Perturbation
               !
@@ -190,23 +212,16 @@ Subroutine BCOND_WQM
                     & TMIN
                      If (C2F(J, K, II)-TMAX > 0.0_SP) C2F (J, K, II) = &
                     & TMAX
-                 !
-                 !           IF(TMIN-C2F(J,K,II) > C2F(J,K,II)*0.0001) C2F(J,K,II) = TMIN
-                 !           IF(C2F(J,K,II)-TMAX > C2F(J,K,II)*0.0001) C2F(J,K,II) = TMAX
-                 !
+
                   End Do
               !
                Else
               !
                   Do K = 1, KBM1
-                 !
-                 !            C2F(J,K,II) = C2(J,K,II)-0.5*RAMP_TS*(C2(J,K,II)-NUT_OBC_GL(II,I))
-                 !
-                 !           ENDDO
-                 !
+
                      If (IERR .Ne.-1) Then
-                    !         if(II.eq.4.and.I.eq.1)write(666,*)'tykim',I,K,II,WQOBC_TMP(I,K,II),C2(J,K,II)
-                        C2F (J, K, II) = C2 (J, K, II) - 0.0014 * &    !!Wen Long: 0.0014 should come from input control file
+
+                        C2F (J, K, II) = C2 (J, K, II) - 0.0014 * &   
                        & RAMP_TS * (C2(J, K, II)-WQOBC_TMP(I, K, II))
                     !
                      Else
@@ -248,60 +263,7 @@ Subroutine BCOND_NUT_PERTURBATION (T2D_NEXT, T2D, TTMP, I, J, J1)
       Real (SP) :: PERT_NEXT, PERT, T2D_NEXT, T2D
       Real (SP) :: T2D_NEXT1, TM12D_NEXT2, TM12D_NEXT1, TM22D_NEXT1
       Real (SP) :: TTMP (NOBTY, KBM1)
-  !
-  !   SELECT CASE(TYPE_TSOBC)
-  !
-  !   CASE(1)
-  !     DO K=1,KBM1
-  !       TTMP(I,K) = TF1(J1,K) - T2D_NEXT
-  !     ENDDO
-  !   CASE(2)
-  !     CC = SQRT(GRAV*H(J))*DTI/DLTN_OBC(I)
-  !     CP = CC + 1.0_SP
-  !     DO K=1,KBM1
-  !       PERT_NEXT = TF1(J1,K) - T2D_NEXT
-  !       PERT      = T1(J,K) - T2D
-  !       TTMP(I,K) = (CC*PERT_NEXT + PERT)/CP
-  !     ENDDO
-  !   CASE(3)
-  !     CC = SQRT(GRAV*H(J))*DTI/DLTN_OBC(I)
-  !     CP = CC + 1.0_SP
-  !     DO K=1,KBM1
-  !       PERT_NEXT = TF1(J1,K) - T2D_NEXT
-  !       PERT      = T1(J,K) - T2D
-  !       TTMP(I,K) = (CC*PERT_NEXT + PERT*(1.0_SP - DTI/10800.0_SP))/CP
-  !     ENDDO
-  !   CASE(4)
-  !     J2 = NEXT_OBC2(I)
-  !     T2D_NEXT1  =0.0_SP
-  !     TM12D_NEXT2=0.0_SP
-  !     TM12D_NEXT1=0.0_SP
-  !     TM22D_NEXT1=0.0_SP
-  !     DO K=1,KBM1
-  !       T2D_NEXT1  =T2D_NEXT1  +T1(J1,K)*DZ2D(J1,K)
-  !       TM12D_NEXT2=TM12D_NEXT2+T1M1(J2,K)*DZ2D(J2,K)
-  !       TM12D_NEXT1=TM12D_NEXT1+T1M1(J,K)*DZ2D(J,K)
-  !       TM22D_NEXT1=TM22D_NEXT1+T1M2(J1,K)*DZ2D(J1,K)
-  !     ENDDO
-  !
-  !     DO K=1,KBM1
-  !       CL = ((T1M2(J1,K)-TM22D_NEXT1)-(T1(J1,K)-T2D_NEXT1))/   &
-  !            ((T1(J1,K)-T2D_NEXT1)+(T1M2(J1,K)-TM22D_NEXT1)     &
-  !	           -2.0*(T1M1(J2,K)-TM12D_NEXT2))
-  !       IF(CL >= 1.0)THEN
-  !         MU = 1.0
-  !       ELSEIF(CL > 0.0 .AND. CL < 1.0)THEN
-  !         MU = CL
-  !       ELSE
-  !         MU = 0.0
-  !       ENDIF
-  !
-  !       TTMP(I,K)=((T1M1(J,K)-TM12D_NEXT1)*(1.0-MU)     &
-  !                 +2.0*MU*(T1(J1,K)-T2D_NEXT1))/(1.0+MU)
-  !     ENDDO
-  !
-  !   END SELECT
-  !
+
       Return
 End Subroutine BCOND_NUT_PERTURBATION
 !========================================================================

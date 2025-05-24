@@ -1,8 +1,48 @@
+!mod_ba.F
+!************************************************************************
+!**                                                                    **
+!**                           FVCOM-ICM_4.0                            **
+!**                                                                    **
+!**               A Finite Volume Based Integrated Compartment         **
+!**                         Water Quality Model                        **      
+!**        The original unstructured-grid ICM code was developed by    ** 
+!**    the FVCOM development team at the University of Massachusetts   ** 
+!**         through a contract with U.S. Army Corps of Engineers       ** 
+!**         [Dr. Changsheng Chen (PI), Dr. Jianhua Qi and              ** 
+!**                      Dr. Geoffrey W. Cowles]                       **
+!**                                                                    **
+!**                Subsequent Development and Maintenance by           ** 
+!**                   PNNL/UW Salish Sea Modeling Center               **
+!**                                                                    **
+!**                 Tarang Khangaonkar    :  PNNL (2008 - Present)     **
+!**                 Lakshitha Premathilake:  PNNL (2019 - Present)     **
+!**                 Adi Nugraha           :  PNNL/UW (2018 - Present)  **
+!**                 Kurt Glaesmann        :  PNNL (2008 - Present)     **
+!**                 Laura Bianucci        :  PNNL/DFO(2015 - Present)  **
+!**                 Wen Long              :  PNNL (2012-2016)          **
+!**                 Taeyum Kim            :  PNNL (2008-2011)          **
+!**                 Rochelle G Labiosa    :  PNNL (2009-2010)          **
+!**                                                                    **
+!**                                                                    **
+!**                     Adopted from CE-QUAL-ICM  Model                **
+!**                           Developed by:                            **
+!**                                                                    **
+!**             Carl F. Cerco      : Water quality scheme              **
+!**             Raymond S. Chapman : Numerical solution scheme         **
+!**             Thomas M. Cole     : Computer algorithms & coding      **
+!**             Hydroqual          : Sediment compartment              **
+!**                                                                    **
+!**                    Water Quality Modeling Group                    **
+!**                    U.S. Army Corps of Engineers                    **
+!**                    Waterways Experiment Station                    **
+!**                    Vicksburg, Mississippi 39180                    **
+!**                                                                    **
+!************************************************************************
+!
 !************************************************************************
 !**                                                                    **
 !** Benthic Algage Module                                              **
 !**                                                                    **
-!**    Wen Long,9/19/2014                                              **
 !**                                                                    **
 !************************************************************************
 !**                                                                    **
@@ -24,7 +64,7 @@ Module MOD_BA
 !
       Use MOD_FILEINFO, Only: BAI, BAO
       Use MOD_HYDROVARS, Only: DZ,DZ2D, D
-  !Wen Long took MOD_CONTROL out of MOD_HYDROVARS and put the used variables here
+  
       Use MOD_CONTROL, Only: SERIAL, MSR, PAR
   !
       Use MOD_OWQ, Only: IATBOT
@@ -514,7 +554,7 @@ Contains
           ! IF BIOMASS IS LESS THAN ALLOWED MINIMUM, SET PREDATION TO ZERO
           !
                If (BBM(I) > BALGMIN) Then
-                  PRB (I) = BBM (I) * BPRB * Exp (KTBB*(T(I, KWC)-TRB))!WLong and Laura: should not have BBM here
+                  PRB (I) = BBM (I) * BPRB * Exp (KTBB*(T(I, KWC)-TRB))
              !for PRB should have units 1/d
                Else
                   PRB (I) = 0.

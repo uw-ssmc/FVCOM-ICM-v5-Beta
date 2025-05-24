@@ -1,25 +1,44 @@
+!mod_sed.F
 !************************************************************************
 !**                                                                    **
-!**                  Chesapeake Bay Sediment Model                     **
+!**                           FVCOM-ICM_4.0                            **
 !**                                                                    **
-!** Third version (speeded up) received from Fitzpatrick May 8, 1990   **
-!**              First modified by C. Cerco May 9, 1990                **
-!**           Final modifications D.M. Di Toro, Jan 27, 1992           **
+!**               A Finite Volume Based Integrated Compartment         **
+!**                         Water Quality Model                        **      
+!**        The original unstructured-grid ICM code was developed by    ** 
+!**    the FVCOM development team at the University of Massachusetts   ** 
+!**         through a contract with U.S. Army Corps of Engineers       ** 
+!**         [Dr. Changsheng Chen (PI), Dr. Jianhua Qi and              ** 
+!**                      Dr. Geoffrey W. Cowles]                       **
 !**                                                                    **
-!** Modified (susp feeder inputs; deposit feeder dynamics)             **
-!**      -- HydroQual, Inc. (S. Lowe, M. Meyers) Latest: 18 Apr 97     **
+!**                Subsequent Development and Maintenance by           ** 
+!**                   PNNL/UW Salish Sea Modeling Center               **
 !**                                                                    **
-!** Modified (updated methanogenesis-sulfate reduction algorithms)     **
-!**      -- HydroQual, Inc. (N. Churi, D. Di Toro) Latest: 18 Apr 97   **
+!**                 Tarang Khangaonkar    :  PNNL (2008 - Present)     **
+!**                 Lakshitha Premathilake:  PNNL (2019 - Present)     **
+!**                 Adi Nugraha           :  PNNL/UW (2018 - Present)  **
+!**                 Kurt Glaesmann        :  PNNL (2008 - Present)     **
+!**                 Laura Bianucci        :  PNNL/DFO(2015 - Present)  **
+!**                 Wen Long              :  PNNL (2012-2016)          **
+!**                 Taeyum Kim            :  PNNL (2008-2011)          **
+!**                 Rochelle G Labiosa    :  PNNL (2009-2010)          **
 !**                                                                    **
-!** org flux to sediment ==> diagenesis ==> inorg flux to water column **
 !**                                                                    **
-!**     3-G model - G1=labile, G2=refractory, G3=slow refractory       **
+!**                     Adopted from CE-QUAL-ICM  Model                **
+!**                           Developed by:                            **
 !**                                                                    **
-!**       Problems with CH4SAT, DDSO4 fixed by CFC.  DDSO4 11/3/06     **
+!**             Carl F. Cerco      : Water quality scheme              **
+!**             Raymond S. Chapman : Numerical solution scheme         **
+!**             Thomas M. Cole     : Computer algorithms & coding      **
+!**             Hydroqual          : Sediment compartment              **
 !**                                                                    **
-!**    Modified by Wen Long and confirmed same as James Martin/Greg    **
-!**         Pellitiers Excel Results  12/22/2015                      **
+!**                    Water Quality Modeling Group                    **
+!**                    U.S. Army Corps of Engineers                    **
+!**                    Waterways Experiment Station                    **
+!**                    Vicksburg, Mississippi 39180                    **
+!**                                                                    **
+!************************************************************************
+!
 !**                                                                    **
 !************************************************************************
 !**                                                                    **
@@ -169,6 +188,7 @@ Module MOD_SED
        & ASC2, ASC3, CTEMP, LPOC, LPON, PCFWS, PNFWS, PPFWS, PSFWS, &
        & SIUPB, RPOC, RPON, RPOP, SSFWS, SSI, BENCH4A, BENCH4G, BENCOD, &
        & BENDEN, BENDO, BENDOC, BENNH4, BENNO3, BENPO4, BENSA, COD, DOXG, &
+       & POPSD, PONSD, POCSD, &
 #if defined(CSOD_CALC)
   & CSODflux,       &!LB: keep CSOD for later use in TOTINC (mod_DIC_TALK.F)
 #endif
@@ -634,11 +654,7 @@ Module MOD_SED
   !WLong moved this to wqm_sed.F.
   !POM diagenesis rate temperature theta.
   !used in setting the temperature control look up tables
-  !WLong: Im surprised that these are not in the input controls.
-  !       Well these are actually setup as equivalents to DPTHTA etc ****
-  !       I have now set this to the corresponding values in SED_READ() subroutine
-  !       and removed the equivalence declaration originally in wqm_modules.F - WLong,Feb 7/2014
-  !
+
       Real (SP) :: THTAPOP1, THTAPOP2, THTAPOP3, THTAPON1, THTAPON2, &
      & THTAPON3, THTAPOC1, THTAPOC2, THTAPOC3 !(G3)
   !  THTAPOP1,  &  !sediment POP diagenesis reaction temperature theta
@@ -2201,12 +2217,7 @@ Contains
             HSED (I) = HSEDALL * 0.01 !WLong convert from cm to m
             VSED (I) = VSED (I) * 2.73791E-5 !cm/yr to m/day = 0.01/365.0 = 2.73791E-5
          End Do
-    !
-    !WLong and LB: Should we do exchange here?????
-    !Answer: this gather() calls to HSED and HSED1 etc in main program does not
-    !need halo node information, hence it is not needed
-    !
-    !
+
     !Open the first time variable water column condition file if need be
     !and the read past the header lines
          If (ITVWCLF == 1) Then
@@ -2214,41 +2225,7 @@ Contains
             Open (WCL, File=WCLFN(WCLPTR), Status='OLD')
             Read (WCL, 1000)!read past the 3 header lines
        !
-       !READ (WCL,1010)     NXWCL,        &!jday of next record
-       !                            JCIN_R2,    &!C OM flux
-       !                            JNIN_R2,    &!N OM flux
-       !                            JPIN_R2,    &!P OM flux
-       !                            JSIN_R2,    &!Si OM flux
-       !                            O20_R2,        &!O20
-       !                            D_R2,        &!total water depth
-       !                            TW_R2,        &!water temperature
-       !                            NH30_R2,    &!nitrate
-       !                            NO30_R2,    &!ammonia
-       !                            PO40_R2,    &!phosphate concentration
-       !                            SIAT0_R2,    &!silicate
-       !                            CH40_R2,    &!methane
-       !                            SALT0_R2     !salinity
-       !
-       !    IF(MSR)THEN
-       !        WRITE(*,1010) NXWCL,        &!jday of next record
-       !                            JCIN_R2,    &!C OM flux
-       !                            JNIN_R2,    &!N OM flux
-       !                            JPIN_R2,    &!P OM flux
-       !                            JSIN_R2,    &!Si OM flux
-       !                            O20_R2,        &!O20
-       !                            D_R2,        &!total water depth
-       !                            TW_R2,        &!water temperature
-       !                            NH30_R2,    &!nitrate
-       !                            NO30_R2,    &!ammonia
-       !                            PO40_R2,    &!phosphate concentration
-       !                            SIAT0_R2,    &!silicate
-       !                            CH40_R2,    &!methane
-       !                            SALT0_R2     !salinity
-       !
-       !        WRITE(*,*)'here I ''m doing nothing '
-       !        READ(*,*)
-       !   ENDIF
-       !
+
 1000        Format (/ /)!Note only need two slashes to move to the third line! (Weird here)
 1010        Format (14(F12.5, 1 X))
          End If
@@ -2326,72 +2303,7 @@ Contains
        !
             BENSTRTM1S (I) = BENSTI
             SODTM1S (I) = SODI
-       !
-       !WLong: may also need to do the following to initialize 2nd layer dissolved concentrations
-       !these are not needed for equation solver to march to next time step, but they might be
-       !written to output files at the beginning of the model (before first time step finished)
-       !Answer: actually in wqm_main.F these is written to outputs after call to SED_CALC is done
-       !       hence it is not a problem.
-       !
-       !PIE1=PIENH4
-       !PIE2=PIENH4
-       !FD1=1/(1.0+m1*PIE1)
-       !FD2=1/(1.0+m2*PIE2)
-       !NH42I=NH4T2I*FD2
-       !
-       !NO32I=  NO3T2I
-       !
-       !IF(SALT(I,KBM1)<SALTND)THEN
-       !        DPIE1PO4=DPIE1PO4F
-       !ELSE
-       !        DPIE1PO4=DPIE1PO4S
-       !ENDIF
-       !IF(O20>O2CRITPO4)THEN
-       !        PIE1=PIE2PO4*DPIE1PO4
-       !ELSE
-       !        PIE1=PIE2PO4*DPIE1PO4**(O20/O2CRITPO4)
-       !ENDIF
-       !PIE2=PIE2PO4
-       !FD1=1/(1.0+m1*PIE1)
-       !FD2=1/(1.0+m2*PIE2)
-       !PO42I=PO4T2I*FD2
-       !
-       !IF(O20>O2CRITSI)THEN
-       !        PIE1=PIE2SI*DPIE1SI
-       !ELSE
-       !        PIE1=PIE2SI*DPIE1SI**(O20/O2CRITSI)
-       !ENDIF
-       !PIE2=PIE2SI
-       !FD1=1/(1.0+m1*PIE1)
-       !FD2=1/(1.0+m2*PIE2)
-       !SI2I= SIT2I*FD2
-       !
-       !PIE1=PIE1HS
-       !PIE2=PIE2HS
-       !FD1=1/(1.0+m1*PIE1)
-       !FD2=1/(1.0+m2*PIE2)
-       !HS2I= HST2I *FD2
-       !
-       !Wen Long: we should move the following to mod_ba
-       !IF(BALGAE_CALC)THEN
-       !        !biomass of benthic algae
-       !        BBM(I)        = BBMI
-       !ENDIF
-       !
-       !Wen Long: we should move the following to mod_sf
-       !!biomass of suspension feeders
-       !IF(SFEEDER)THEN
-       !        DO N=1,NSPECIES
-       !            SFEED(I,N)      = SFEEDI(N)
-       !        ENDDO
-       !ENDIF
-       !
-       !
-       !Wen Long: we should move the following to mod_df
-       !!biomass of deposition feeder
-       !IF(DFEEDER)THEN
-       !        DFEEDM1S(I)   = DFEEDI
-       !ENDIF
+       
        !
          End Do
     !
@@ -2466,14 +2378,6 @@ Contains
        !unit of ISEDMP is mgP/m^3 * m^2 * m /1000/1000
        !==> mgP/1000/1000 ==>gP/1000 ==> kgP
 
-	   !
-       !AN added NH4T2TM1S_SHARE and PO4T2TM1S_SHARE
-       !
-       !     If (SAV_CALC) Then
-       !        NH4T2TM1S_SHARE (I) = NH4T2TM1S (I)
-       !        PO4T2TM1S_SHARE (I) = PO4T2TM1S (I)
-	   !	    HST2TM1S_SHARE (I) = CHS (I)
-       !     End If
 
          End Do
     !
@@ -2661,8 +2565,7 @@ Contains
                If (SFEEDER) Then
                   JPOCaccum (I, 3) = JPOCaccum (I, 3) + JLPOC_SED_SF &
                  & (I) * FRCALG3 (3)!suspension feeders
-             !WLong and LB: why should LPOP go here?
-             !this needs to be sorted out
+
                End If
           !
           !G1 flux of PON, Unit : [(mm/d)*(gN/gC)*(1)*gC/m^3 ] ==> (mgN/m^2/day)
@@ -2710,8 +2613,7 @@ Contains
                If (SFEEDER) Then
                   JPONaccum (I, 3) = JPONaccum (I, 3) + JLPON_SED_SF &
                  & (I) * FRNALG3 (3)!suspension feeders
-             !WLong and LB: why should LPOP go here?
-             !this needs to be sorted out
+
                End If
           !
           !G1 flux of POP, Unit : [(mm/d)*(gP/gC)*(1)*gC/m^3 ] ==> mgP/m^2/day)
@@ -2763,8 +2665,7 @@ Contains
                If (SFEEDER) Then
                   JPOPaccum (I, 3) = JPOPaccum (I, 3) + JLPOP_SED_SF &
                  & (I) * FRPALG3 (3)!suspension feeders
-             !WLong and LB: why should LPOP go here?
-             !this needs to be sorted out
+
                End If
           !
           !Particulate Biogeonic Silica flux to sediments (positive to sediments)
@@ -2774,41 +2675,19 @@ Contains
           !    & (I, KWC) + WPSINETMMD * SIUPB (I, KWC) + JPOSaccum (I)!Note that SIAT is not included for it's not organic
                JPOSaccum (I) = WB1NETMMD * ASC1 * B1 (I, KWC) + &
               & WB2NETMMD * ASC2 * B2 (I, KWC) &
-              & + WPSINETMMD * SIUPB (I, KWC) + JPOSaccum (I)!Note that SIAT is not included for it's not organic
+              & + WPSINETMMD * SIUPB (I, KWC) + JPOSaccum (I)
           !
           !Should add RPOM contribution to Silicate based Si/C ratio in detritus
           !and JSIDETR is supposed to caculate that instead of being given from input
           !
                If (SFEEDER) Then
                   JPOSaccum (I) = JPOSaccum (I) + JSU_SED_SF (I)!+    SU_SED_SF(I)    !suspension feeder
-             !WLong commented SU_SED_SF for not understanding it
-             !It seems arleady accounted for in SF
+
                End If
           !
             Else
           !
-          !for test2E with POM from a file
-          !set Overlying water colum settling flux according to the values read fromt the file
-          !
-          !NXWCL,      &!jday of next record
-          !JCIN_R1,    &!C OM flux    (gO2/m^2/day)
-          !JNIN_R1,    &!N OM flux (gN/m^2/day)
-          !JPIN_R1,    &!P OM flux (gP/m^2/day)
-          !JSIN_R1,    &!Si OM flux (gSi/m^2/day)
-          !
-          !JPOC(I,1)   = JCIN_R1*FRCALG1(1)*1000.0/2.667  !G1 POC flux convert from gO2/m^2/day to mgC/m^2/day
-          !JPOC(I,2)   = JCIN_R1*FRCALG1(2)*1000.0/2.667  !G2 POC flux convert from gO2/m^2/day to mgC/m^2/day
-          !JPOC(I,3)   = JCIN_R1*FRCALG1(3)*1000.0/2.667  !G3 POC flux convert from gO2/m^2/day to mgC/m^2/day
-          !
-          !JPON(I,1)   = JNIN_R1*FRNALG1(1)*1000.0        !G1 PON flux converted from gN/m^2/day to mgN/m^2/day
-          !JPON(I,2)   = JNIN_R1*FRNALG1(2)*1000.0        !G2 PON flux converted from gN/m^2/day to mgN/m^2/day
-          !JPON(I,3)   = JNIN_R1*FRNALG1(3)*1000.0        !G3 PON flux converted from gN/m^2/day to mgN/m^2/day
-          !
-          !JPOP(I,1)   = JPIN_R1*FRPALG1(1)*1000.0        !G1 PON flux converted from gN/m^2/day to mgN/m^2/day
-          !JPOP(I,2)   = JPIN_R1*FRPALG1(2)*1000.0        !G2 PON flux converted from gN/m^2/day to mgN/m^2/day
-          !JPOP(I,3)   = JPIN_R1*FRPALG1(3)*1000.0        !G3 PON flux converted from gN/m^2/day to mgN/m^2/day
-          !
-          !JPOS(I)     = JSIN_R1*1000.0                   !Silicate flux from gSi/m^2/day to mgSi/m^2/day
+
           !
                JPOCaccum (I, 1) = JCIN_R1 * FRCALG1 (1) * 1000.0 / &
               & 2.667 !G1 POC flux converted from gO2/m^2/day to mgC/m^2/day
@@ -2876,8 +2755,7 @@ Contains
 	USE  MOD_WD, ONLY: ISWETN
 # endif
     !
-    !Wen Long: We are not tracking TDIC in water column
-    !          otherwise, we would need SEDDICSAV etc for Ocean Acidification
+
          Implicit None
     !
          Save
@@ -2905,221 +2783,6 @@ Contains
          SEDMC = 0.
          SEDMN = 0.
          SEDMP = 0.
-    !
-    !
-    !!******* Assign base net settling rates
-    !
-    !!   IDEBUG=1
-    !!   IF(MSR)WRITE(*,*)'DEBUG=',IDEBUG
-    !
-    !   DO I=1,MLOC
-    !     WSSNET(I) = WSSBNET(I)
-    !     WSLNET(I) = WSLBNET(I)
-    !     WSRNET(I) = WSRBNET(I)
-    !     WS1NET(I) = WS1BNET(I)
-    !     WS2NET(I) = WS2BNET(I)
-    !     WS3NET(I) = WS3BNET(I)
-    !     WSUNET(I) = WSUBNET(I)
-    !   ENDDO
-    !
-    !!   IDEBUG=2
-    !!   IF(MSR)WRITE(*,*)'DEBUG=',IDEBUG
-    !
-    !
-    !!******* Adjust net settling for SAV effect
-    !
-    !   IF (SAV_CALC) THEN
-    !     DO I=1,NSAVCELL
-    !       B=SAVCELL(I)
-    !       DO N=1,NSAVSPC(B)
-    !         SAVEFCT = (LEAF(B,N)+STEM(B,N)) * SAVFRAC(B,N)
-    !         WSSNET(B) = WSSNET(B) + WSSSAV * SAVEFCT  !increase of settling rate (m/d) to suspended solids
-    !         WSLNET(B) = WSLNET(B) + WSLSAV * SAVEFCT  !increase of settling rate (m/d) to LPOM
-    !         WSRNET(B) = WSRNET(B) + WSRSAV * SAVEFCT  !increase of settling rate (m/d) to RPOM
-    !         WS1NET(B) = WS1NET(B) + WS1SAV * SAVEFCT  !increase of settling rate (m/d) to alg 1
-    !         WS2NET(B) = WS2NET(B) + WS2SAV * SAVEFCT  !increase of settling rate (m/d) to alg 2
-    !         WS3NET(B) = WS3NET(B) + WS3SAV * SAVEFCT  !increase of settling rate (m/d) to alg 3
-    !         WSUNET(B) = WSUNET(B) + WSUSAV * SAVEFCT  !increase of settling rate (m/d) to particulate biogenic silicate (unavaiabl
-    !       ENDDO
-    !     ENDDO
-    !   ENDIF
-    !
-    !!   IDEBUG=3
-    !!   IF(MSR)WRITE(*,*)'DEBUG=',IDEBUG
-    !
-    !!***** Calculate fluxes
-    !
-    !   DO I=1,MLOC
-    !     KWC = KBM1
-    !
-    !!******* Settling rate (LHS has unit mm/day) ****
-    !
-    !     WSSINETMMD    = 1000.*WSSNET(I)
-    !     WLPOMNETMMD   = 1000.*WSLNET(I)
-    !     WRPOMNETMMD   = 1000.*WSRNET(I)
-    !     WB1NETMMD     = 1000.*WS1NET(I)
-    !     WB2NETMMD     = 1000.*WS2NET(I)
-    !     WB3NETMMD     = 1000.*WS3NET(I)
-    !     WPSINETMMD    = 1000.*WSUNET(I)
-    !
-    !!*** Fluxes***(mg/m^2/d) (positive into sediments)***
-    !
-    !    IF(ITVWCLF/=1)THEN !use settling calculated from overlying water settling
-    !
-    !        !G1 flux of POC, Unit : [(mm/d)*(1)*gC/m^3 ] ==> (mgC/m^2/day)
-    !        JPOC(I,1) = WB1NETMMD*FRCALG1(1)*B1(I,KWC)                            &
-    !                   +WB2NETMMD*FRCALG2(1)*B2(I,KWC)                         &
-    !                   +WB3NETMMD*FRCALG3(1)*B3(I,KWC)                         &
-    !                   +WLPOMNETMMD*LPOC(I,KWC)  !test case has LPOC=0
-    !                                            !full channel has LPOC meaningful
-    !
-    !
-    !
-    !
-    !            IF(SFEEDER)THEN
-    !                JPOC(I,1) =JPOC(I,1) +JLPOC_SED_SF(I)*FRCALG3(1)       ! suspension feeders
-    !            ENDIF
-    !
-    !
-    !        !G2 flux of POC, Unit : [(mm/d)*(1)*gC/m^3 ] ==> (mgC/m^2/day)
-    !        JPOC(I,2) = WB1NETMMD*FRCALG1(2)*B1(I,KWC)                            &
-    !                   +WB2NETMMD*FRCALG2(2)*B2(I,KWC)                         &
-    !                   +WB3NETMMD*FRCALG3(2)*B3(I,KWC)                         &
-    !                   +WRPOMNETMMD*RPOC(I,KWC)*FRPOC(I,2)/                    &
-    !                    (FRPOC(I,2)+FRPOC(I,3))
-    !
-    !
-    !        IF(SFEEDER)THEN
-    !            JPOC(I,2)=JPOC(I,2)  +JLPOC_SED_SF(I)*FRCALG3(2)       ! suspension feeders
-    !        ENDIF
-    !
-    !
-    !        !G3 flux of POC, Unit : [(mm/d)*(1)*gC/m^3 ] ==> (mgC/m^2/day)
-    !        JPOC(I,3) = WB1NETMMD*FRCALG1(3)*B1(I,KWC)+                           &
-    !                        WB2NETMMD*FRCALG2(3)*B2(I,KWC)                         &
-    !                        +WB3NETMMD*FRCALG3(3)*B3(I,KWC)                         &
-    !                        +WRPOMNETMMD*RPOC(I,KWC)*FRPOC(I,3)/                    &
-    !                        (FRPOC(I,2)+FRPOC(I,3))
-    !
-    !        IF(SFEEDER)THEN
-    !            JPOC(I,3) = JPOC(I,3) +JLPOC_SED_SF(I)*FRCALG3(3)                       !suspension feeders
-    !                        !WLong and LB: why should LPOP go here?
-    !                        !this needs to be sorted out
-    !        ENDIF
-    !
-    !        !G1 flux of PON, Unit : [(mm/d)*(gN/gC)*(1)*gC/m^3 ] ==> (mgN/m^2/day)
-    !        JPON(I,1) = WB1NETMMD*ANC1*FRNALG1(1)*B1(I,KWC)                       &
-    !                    +WB2NETMMD*ANC2*FRNALG2(1)*B2(I,KWC)                    &
-    !                    +WB3NETMMD*ANC3*FRNALG3(1)*B3(I,KWC)                    &
-    !                    +WLPOMNETMMD*LPON(I,KWC)
-    !        IF(SFEEDER)THEN
-    !            JPON(I,1)= JPON(I,1)+JLPON_SED_SF(I)*FRNALG3(1)                        !suspension feeders
-    !        ENDIF
-    !
-    !
-    !        !G2 flux of PON, Unit : [(mm/d)*(gN/gC)*(1)*gC/m^3 ] ==> (mgN/m^2/day)
-    !        JPON(I,2) = WB1NETMMD*ANC1*FRNALG1(2)*B1(I,KWC)                       &
-    !                    +WB2NETMMD*ANC2*FRNALG2(2)*B2(I,KWC)                    &
-    !                    +WB3NETMMD*ANC3*FRNALG3(2)*B3(I,KWC)                    &
-    !                    +WRPOMNETMMD*RPON(I,KWC)*FRPON(I,2)/                    &
-    !                        (FRPON(I,2)+FRPON(I,3))
-    !
-    !        IF(SFEEDER)THEN
-    !            JPON(I,2) = JPON(I,2) +JLPON_SED_SF(I)*FRNALG3(2)                   !suspension feeders
-    !        ENDIF
-    !
-    !        !G3 flux of PON, Unit : [(mm/d)*(gN/gC)*(1)*gC/m^3 ] ==> (mgN/m^2/day)
-    !        JPON(I,3) = WB1NETMMD*ANC1*FRNALG1(3)*B1(I,KWC)                       &
-    !                    +WB2NETMMD*ANC2*FRNALG2(3)*B2(I,KWC)                    &
-    !                    +WB3NETMMD*ANC3*FRNALG3(3)*B3(I,KWC)                    &
-    !                    +WRPOMNETMMD*RPON(I,KWC)*FRPON(I,3)/                    &
-    !                        (FRPON(I,2)+FRPON(I,3))
-    !        IF(SFEEDER)THEN
-    !            JPON(I,3)=JPON(I,3) + JLPON_SED_SF(I)*FRNALG3(3)                      !suspension feeders
-    !                                !WLong and LB: why should LPOP go here?
-    !                                !this needs to be sorted out
-    !        ENDIF
-    !
-    !        !G1 flux of POP, Unit : [(mm/d)*(gP/gC)*(1)*gC/m^3 ] ==> mgP/m^2/day)
-    !        JPOP(I,1) =  WB1NETMMD*Q1(I,KWC)*FRPALG1(1)*B1(I,KWC)               &
-    !                    +WB2NETMMD*Q2(I,KWC)*FRPALG2(1)*B2(I,KWC)               &
-    !                    +WB3NETMMD*Q3(I,KWC)*FRPALG3(1)*B3(I,KWC)               &
-    !                    +WLPOMNETMMD*LPOP(I,KWC)
-    !        IF(SFEEDER)THEN
-    !            JPOP(I,1)=JPOP(I,1)+JLPOP_SED_SF(I)*FRPALG3(1)                        !suspension feeders
-    !        ENDIF
-    !
-    !        !G2 flux of POP, Unit : [(mm/d)*(gP/gC)*(1)*gC/m^3 ] ==> (mgP/m^2/day)
-    !        JPOP(I,2) =  WB1NETMMD*Q1(I,KWC)*FRPALG1(2)*B1(I,KWC)               &
-    !                    +WB2NETMMD*Q2(I,KWC)*FRPALG2(2)*B2(I,KWC)               &
-    !                    +WB3NETMMD*Q3(I,KWC)*FRPALG3(2)*B3(I,KWC)               &
-    !                    +WRPOMNETMMD*RPOP(I,KWC)*FRPOP(I,2)/                    &
-    !                        (FRPOP(I,2)+FRPOP(I,3))
-    !        IF(SFEEDER)THEN
-    !            JPOP(I,2)=JPOP(I,2)+JLPOP_SED_SF(I)*FRPALG3(2)                        !suspension feeders
-    !        ENDIF
-    !
-    !        !G3 flux of POP, Unit : [(mm/d)*(gP/gC)*(1)*gC/m^3 ] ==> (mgP/m^2/day)
-    !        JPOP(I,3) =  WB1NETMMD*Q1(I,KWC)*FRPALG1(3)*B1(I,KWC)               &
-    !                    +WB2NETMMD*Q2(I,KWC)*FRPALG2(3)*B2(I,KWC)               &
-    !                    +WB3NETMMD*Q3(I,KWC)*FRPALG3(3)*B3(I,KWC)               &
-    !                    +WRPOMNETMMD*RPOP(I,KWC)*FRPOP(I,3)/                    &
-    !                        (FRPOP(I,2)+FRPOP(I,3))
-    !        IF(SFEEDER)THEN
-    !            JPOP(I,3)=JPOP(I,3)+JLPOP_SED_SF(I)*FRPALG3(3)                        !suspension feeders
-    !                                !WLong and LB: why should LPOP go here?
-    !                                !this needs to be sorted out
-    !        ENDIF
-    !
-    !        !Particulate Biogeonic Silica flux to sediments (positive to sediments)
-    !        !Unit: (mm/d) * (gSi/gC) * (g/m^3) ==> mgSi/m^2/d
-    !        JPOS(I) =     WB1NETMMD*ASC1*B1(I,KWC)                                &
-    !                    +WB2NETMMD*ASC2*B2(I,KWC)                              &
-    !                    +WB3NETMMD*ASC3*B3(I,KWC)                                &    !WLong we need to add contribution due to
-    !                    +WPSINETMMD*SIUPB(I,KWC)                                       !SIUPB (particulate biogenic)
-    !                                                                            !Note that SIAT is not included for it's
-    !                                                                                !not organic
-    !
-    !                    !Should add RPOM contribution to Silicate based Si/C ratio in detritus
-    !                    !and JSIDETR is supposed to caculate that instead of being given from input
-    !
-    !
-    !        IF(SFEEDER)THEN
-    !            JPOS(I)=JPOS(I)+ JSU_SED_SF(I)        !+    SU_SED_SF(I)    !suspension feeder
-    !                                                !WLong commented SU_SED_SF for not understanding it
-    !                                                !It seems arleady accounted for in SF
-    !        ENDIF
-    !
-    !     ELSE     !set Overlying water colum settling flux according to the values read fromt the file
-    !            !NXWCL,        &!jday of next record
-    !            !JCIN_R1,    &!C OM flux    (gO2/m^2/day)
-    !            !JNIN_R1,    &!N OM flux (gN/m^2/day)
-    !            !JPIN_R1,    &!P OM flux (gP/m^2/day)
-    !            !JSIN_R1,    &!Si OM flux (gSi/m^2/day)
-    !
-    !             JPOC(I,1) = JCIN_R1*FRCALG1(1)*1000.0/2.667  !G1 POC flux convert from gO2/m^2/day to mgC/m^2/day
-    !            JPOC(I,2) = JCIN_R1*FRCALG1(2)*1000.0/2.667  !G2 POC flux convert from gO2/m^2/day to mgC/m^2/day
-    !            JPOC(I,3) = JCIN_R1*FRCALG1(3)*1000.0/2.667  !G3 POC flux convert from gO2/m^2/day to mgC/m^2/day
-    !
-    !            JPON(I,1) = JNIN_R1*FRNALG1(1)*1000.0        !G1 PON flux converted from gN/m^2/day to mgN/m^2/day
-    !            JPON(I,2) = JNIN_R1*FRNALG1(2)*1000.0        !G2 PON flux converted from gN/m^2/day to mgN/m^2/day
-    !            JPON(I,3) = JNIN_R1*FRNALG1(3)*1000.0        !G3 PON flux converted from gN/m^2/day to mgN/m^2/day
-    !
-    !            JPOP(I,1) = JPIN_R1*FRPALG1(1)*1000.0        !G1 PON flux converted from gN/m^2/day to mgN/m^2/day
-    !            JPOP(I,2) = JPIN_R1*FRPALG1(2)*1000.0        !G2 PON flux converted from gN/m^2/day to mgN/m^2/day
-    !            JPOP(I,3) = JPIN_R1*FRPALG1(3)*1000.0        !G3 PON flux converted from gN/m^2/day to mgN/m^2/day
-    !
-    !            JPOS(I) = JSIN_R1*1000.0                    !Silicate flux from gSi/m^2/day to mgSi/m^2/day
-    !
-    !            IF(MSR)THEN
-    !                WRITE(*,*)'JDAY_R1=', JDAY,         &!
-    !                          'JCIN_R1=',JCIN_R1,         &!
-    !                          'JNIN_R1=',JNIN_R1,         &!
-    !                          'JPIN_R1=',JPIN_R1,        &!
-    !                          'JSIN_R1=',JSIN_R1
-    !            !    READ(*,*)
-    !            ENDIF
-    !     ENDIF
     !
     !
          Do I = 1, MLOC !LB moved DO here because of moved calculations of JPOM
@@ -3272,14 +2935,7 @@ Contains
             STP20 = TEMPD - 20.
        !
        !
-            CSISAT = CSISATT20 * THTASISAT ** STP20 !WLong calculation saturation concentration based on temperature control
-       !
-	   !
-       !
-       ! Overlying water concentrations
-       ! Converted to mg/m^3
-       !
-       !
+            CSISAT = CSISATT20 * THTASISAT ** STP20 
             KWC = KBM1
        !
        !PO40 (mgP/m^3)
@@ -3342,7 +2998,7 @@ Contains
        !
        !WLong   CH4SAT = 99.*(1.+(ZD(I,KWC)+D(I)*DZ2D(I,KWC)+HSED(I))/10.)*0.9759**STP20
        !     CH4SAT = 99.*(1.+(D(I)+HSED(I))/10.)*0.9759**STP20
-            CH4SAT = 100. * (1.+(D(I)+HSED(I))/10.) * 1.024 ** (-STP20)!WLong, 0.9759 should be 1.024 according to QAPP
+            CH4SAT = 100. * (1.+(D(I)+HSED(I))/10.) * 1.024 ** (-STP20)
        !Also exponent is 20-T rather than T-20
        !And 1/1.024 = 0.9765625
        !     1/0.9759=1.0246951531919255
@@ -3366,7 +3022,7 @@ Contains
             XAPP1HSD = GET_ZHTA1HSD (TEMPD)
             XAPP1HSP = GET_ZHTA1HSP (TEMPD)
        !
-            XK2NO3 = GET_ZHTAK2NO3 (TEMPD)!*H2        !m/d     !WLong (3-36-9)    !WLong, no need to multiply by H
+            XK2NO3 = GET_ZHTAK2NO3 (TEMPD)!*H2        !m/d    
             XKSI = GET_ZHTASI (TEMPD) * H2 !m/d     !DMD book eqn(7.7)
        !
             XAPPCH4 = GET_ZHTACH4 (TEMPD)
@@ -3374,13 +3030,7 @@ Contains
        !    KL12NOM  = DDP/H2*GET_ZL12NOM(TEMPD)         !OLD code uses H2 (this depends on definition of DD)
        !
             KL12NOM = DDP / (H2/2) * GET_ZL12NOM (TEMPD)!normalized porewater diffusion rate across layer1,2 (m/day)
-       !We see new DDP is half of old DDP to keep KL12NOM the same
-       !DMD(13.6)
-       !
-       !
-       !POC1R = 100,000 mgC/m^3 ~= 0.1 mgC/gSediment if M2 =1kg/L
-       !***Note it is based on M2, not M1 ****
-       !
+
        !    W12NOM   = DPP/H2*GET_ZW12NOM(TEMPD)*POC1/1.0E5     !Old code uses H2
        !
             If (TF_SSTATE) Then
@@ -3424,22 +3074,7 @@ Contains
             End If
        !
        !---------------
-       !IF (ISWBEN == 0) THEN
-       !  IF (TEMPD >= TEMPBEN) THEN    !If time exceeding benthic stress time, then reset benthic pressure to zero
-       !    ISWBEN  = 1
-       !    BFORMAX = 0.
-       !  ENDIF
-       !  BFOR = KMO2DP/(KMO2DP+O20)    !oxygen regulation for benthic community's bioturbation
-       !ELSE
-       !  IF (TEMPD < TEMPBEN) THEN
-       !    ISWBEN = 0                    !do not set benthic stress to zero
-       !  ENDIF
-       !  BFORMAX = AMAX1(KMO2DP/(KMO2DP+O20),BFORMAX)
-       !  BFOR    = BFORMAX
-       !ENDIF
-       !
-       !Wen Long commented the upper method of resetting BFORMAX to zero
-       !------------------
+
        !
             BFOR = KMO2DP / (KMO2DP+O20)
        !
@@ -3458,12 +3093,7 @@ Contains
        !
             BFORMAX = AMAX1 (BENSTR, BFORMAX)
        !
-       !## -- add minimum mixing term and bio-irrigation formulation
-       !##
-       !##     W12    = W12NOM*(1.-KBENSTR*BENSTR)
-       !##     KL12   = KL12NOM
-       !##     w12min = Dpmin/(h2/2) is minimum particle mixing
-       !
+
        !     W12MIN = DPMIN/H2 !Old Code
             W12MIN = DPMIN / (H2/2.0)!New Code (WLong)
        !We see that new DPMIN is half of old DPMIN to keep WL12MIN the same
@@ -3505,12 +3135,7 @@ Contains
        !
             If ( .Not. TF_SSTATE) Then !non-steady state calculation, integration one time step DLTS
           !
-          !
-          !non-steady state solution of sediment diagenesis (mgN/m^3, mgC/m^3, mgP/m^3)
-          !based on assuming H1 <<H2
-          !See WLong notes eqn (2-13-1) for over all solution of POC, PON, POP
-          !
-          !WLong notes (2-15) for POCi
+
                POC1 = (JPOC(I, 1)*DLTS_H2+POC1TM1) / &
               & (1.+(XKPOC1+W2)*DLTS_H2)
                POC2 = (JPOC(I, 2)*DLTS_H2+POC2TM1) / &
@@ -3545,8 +3170,7 @@ Contains
           !
                PSISED = ((JPOS(I)+JSIDETR)*DLTS_H2+PSISEDTM1) / &
               & (1.+(K3+W2)*DLTS_H2)!WLong notes (2-16) (DMD book 13.31, 13.33)
-          !Maybe we should put JSIDTER in JPOS directly based on Si/C ration in RPOC and LPOC
-          !
+
           !Bellow are Greg Pelletier's calculation: (same as James L Martin)
           !
                PSISED = (JPOS(I)*DLTS_H2+PSISEDTM1) / &
@@ -3627,22 +3251,11 @@ Contains
                   POP2 = (JPOP(I, 2)-DF_GROW_POC2(I)/AMCP+FRPOP(I, &
                  & 2)*(DF_MORT(I)+DF_PRED(I))/AMCP) / (XKPOP2+W2)!WLong (2-23-2)
              !
-             !WLong: if have W2 and POM G3 class as no relaction, how could it reach steady state?
-             !yes, it can. Should we also calculate POC3 and POP3? Yes
-             !
-             !WLong: should we also have DFEEDER contribution to silicate in sediments?
-             !    -maybe
-             !
+
                End If
           !
             End If
-       !
-       !
-       !
-       !Make sure PON, POC, POP greater than zero (this should not happen if
-       !an implicit scheme is used and the reactions are of first order to PON, POC, POP
-       !for the deposition feeder model
-       !
+
        !
             If (PON1 < 0.0) PON1 = 0.0
             If (PON2 < 0.0) PON2 = 0.0
@@ -3733,40 +3346,7 @@ Contains
        !if IERR = 0   good, find soultion and SOD converges
        !   IERR = 1   did not find solution of SOD within [SODMIN, SODMAX] range
        !   IERR = 2   did not find the solution within the IMAX interations (did not converge)
-       !
-       ! Wen Long --we should add oxygenb consumption due to ROOT and Tuber respiration which contributed
-       !            to CO2 generation by losing ROOT and Tuber mass with a fraction of FDOSAV
-       !
-       !
-       !Wen Long: We should have SEDDOSAV included here so that it afffects SOD.
-       !          Or this is tricky as DOXG in sediment top layer is assumed to be
-       !          a linear distribution. Basically SEDDOSAV should affect
-       !          the oxygen flux (SOD) and hence the thickness of the top layer
-       !
-       !The presense of SAV roots in sediments should change the oxygen content
-       ! in sediment. Strickly speaking roots are distrbuted over both aerobic and anaerobic layers
-       ! of sediments and two layered structure of sediment chemistry analysis based on DOXG
-       ! is not completely valid instantaneously. Over a longer period, the two-layer assumption is still okay
-       !
-       !Without going into detailed effects of SEDDOSAV (root and tuber respiration) on DOXG distribution
-       !in sediments, we can simply aggregate vertically and make it affect SOD directly
-       !SOD finally act as a sink term to water column, so if we add the following section here
-       !we will NOT need the SEDDOSAV terms in DTDO calculation in wqm_kin.F's OXYGEN() subroutines
-       !
-       !WL IF(SAV_CALC)THEN
-       !WL      SOD=SOD+SEDDOSAV(I)    !need to make sure SEDDOSAV is greater than zero for respiration
-       !WL ENDIF
-       !
-       !WL Alternatively, we can add SEDDOSAV to BENDO calcuation in wqm_sed.F, which finally gets in DTDO in wqm_kin.F
-       !WL and in that case we are not considering SEDDOSAV as part of SOD which is logically questionable
-       !WL Ideally we would want to have the leaf production (production of DOXG by photosynethesis) of oxygen NOT counted in SOD,
-       !WL instead count that as water column DDOXGO source, and have the tuber and root part respiration
-       !WL consumption of DOXG counted in SOD
-       !
-       !
-       !       IF (IERR.NE.0.AND.BENTHIC_OUTPUT) WRITE(BFO,3000) IERR,I
-       !
-       !print error and diagnostic information if estimate of SOD does not work
+
        !
             If (IERR == 1 .Or. IERR == 2) Then
           !
@@ -3936,7 +3516,7 @@ Contains
                  & HS1, HS2, HST2
                   If (MSR) WRITE (6, 9909) SI0, SI1, SI2, SIT2
 
-		      ! Modified by AN Debugging
+
 				  WRITE (*, 9889) JDAY, SODMAX, ERROR
                   WRITE (*, 9900) JDAY, CTEMP (I), POP1, POP2, &
                  & POP3
@@ -4386,8 +3966,13 @@ Contains
               POC_CONCENS(I, 2) = (POC1 + POC2 + POC3)*0.001
               DOC_CONCENS(I, 1) = CH41*(12.0/32.0)     ! mgO2/L = mgC/L *(12/32)= gC/m^3
               DOC_CONCENS(I, 2) = CH42*(12.0/32.0)
+              !DOC_CONCENS(I, 1) = BENDOC(I)     ! mgO2/L = mgC/L *(12/32)= gC/m^3
+              !DOC_CONCENS(I, 2) = BENDOC(I)
             END IF
 !------------------------------------------------------------------------------
+            POCSD(I) = (POC1 + POC2 + POC3)*0.001    ! gC/m^3
+            PONSD(I) = (PON1 + PON2 + PON3)*0.001    ! gC/m^3
+            POPSD(I) = (POP1 + POP2 + POP3)*0.001    ! gC/m^3
 
 !		 	ENDIF
        !
@@ -4502,16 +4087,7 @@ End Subroutine SED_CALC
     !
          Integer :: I
     !
-    !***** Compute time-average values
-    !
-    !   DO I=1,MLOC
-    !     AG3CFL(I) = AG3CFL(I)/TINTIM
-    !     AG3NFL(I) = AG3NFL(I)/TINTIM
-    !     AG3PFL(I) = AG3PFL(I)/TINTIM
-    !     ASDTMP(I) = ASDTMP(I)/TINTIM
-    !   ENDDO
-    !
-    !***** Compute G3 organic concentrations
+
     !
          Do I = 1, MLOC
             CPOC (I, 3) = AG3CFL (I) / &
@@ -4953,11 +4529,11 @@ End Subroutine SED_CALC
     !The error message without initializing C and E was:
     !   Run-Time Check Failure. The variable 'mod_sed_mp_zbrent_$C' is being used without being defined
     !
-    !C=0.5*(A+B)         !? WLong how to initialize this one?
+    !C=0.5*(A+B)         !
     !
          C = B !WLong followed JLM code and initialize C as B instead of (A+B)/2
     !
-         E = B - A !? WLong how to initialize this one?
+         E = B - A !
     !WLong following JLM, no need to initiate E here
     !
     !start with FC = FB, i.e. searching from SODMAX end towards SODMIN
@@ -5255,54 +4831,7 @@ End Subroutine SED_CALC
          C1S = FD1 * CT1S !dissolved concentration in layer 1
          C2S = FD2 * CT2S !dissolved concentration in layer 2
     !
-    !
-    !!Do debugging here for PO4
-    !
-    !  IF(PIE1==400.0) THEN !must be PO4 now
-    !
-    !        WRITE(*,*)'FD1', FD1
-    !        WRITE(*,*)'FD2', FD2
-    !        WRITE(*,*)'FP1', FP1
-    !        WRITE(*,*)'FP2', FP2
-    !
-    !        WRITE(*,*)'B1, B2, DELTA, A11, A21', B1, B2, DELTA, A11, A21
-    !
-    !        WRITE(*,*)'A12, A22',A12, A22
-    !
-    !        WRITE(*,*)'F21',F21
-    !
-    !        WRITE(*,*)'-F21-XK2-W2-K3, A22',-F21-XK2-W2-K3,A22
-    !        WRITE(*,*)'F21 XK2 W2 K3', F21,XK2, W2, K3  !XK2 =0
-    !        WRITE(*,*)'XK1',XK1,'XK0+K1H1D*FD1+K1H1P*FP1',XK0+K1H1D*FD1+K1H1P*FP1
-    !        WRITE(*,*)'XK0, K1H1D, FD1, K1H1P, FP1', XK0,K1H1D,FD1,K1H1P,FP1
-    !
-    !
-    !        WRITE(*,*)'CT1S, CT2S', CT1S, CT2S
-    !
-    !  ENDIF
-    !
-    !
-    !
-    !IF(MSR)THEN
-    !     WRITE(*,*)'KL12=', KL12
-    !        WRITE(*,*)'W12=', W12
-    !        WRITE(*,*)'W2=', W2
-    !        WRITE(*,*)'FD1=',FD1
-    !        WRITE(*,*)'FP1=',FP1
-    !
-    !        WRITE(*,*)'FD2=',FD2
-    !        WRITE(*,*)'FP2=',FP2
-    !
-    !        WRITE(*,*)'A11=',A11
-    !        WRITE(*,*)'A12=',A12
-    !        WRITE(*,*)'A21=',A21
-    !        WRITE(*,*)'A22=',A22
-    !        WRITE(*,*)'B_1=',B_1
-    !        WRITE(*,*)'B_2=',B_2
-    !!        READ(*,*)
-    !ENDIF
-    !
-    !
+
     !
          Return
       End Subroutine SEDTSFNL
@@ -5336,10 +4865,7 @@ End Subroutine SED_CALC
       !**** New code for methane formation.  CH4 starts forming                           *
       !**** once all sulfate is used up. (Chapter 11 of DMD book instead of Chapter 10)   *
       !**** *******************************************************************************
-      !
-      !
-      !WLong: I moved this here (was coded in WASP and CE-QUAL-ICM but not
-      !    verified if it works
+
       !
          Logical :: TF_SSTATE !Type of integration FALSE - time intergration from current step to next step
       !                    TRUE  - steady state solution
@@ -5393,7 +4919,7 @@ End Subroutine SED_CALC
       !i.e. left hand is diffusion rate with temperature control,
       !right hand is (H2/2)*KL12NOM
       !
-#if(0)  /* Wen Long: not very clear on how the quadratic equation for SO42 is derived, based on WASP cand ICM code */
+#if(0)  /* !: not very clear on how the quadratic equation for SO42 is derived, based on WASP cand ICM code */ 
       !
       !
       !*
@@ -5407,7 +4933,7 @@ End Subroutine SED_CALC
       !* and why we need to derive a quadratic equation for SO42
       !*
       !
-      !   HSO4  =SQRT(2.*DDSO4*SO40*H2/XJC1/)                !Equation (4-142) of WLong notes, where we seem to be missing "alpha_SO
+      !   HSO4  =SQRT(2.*DDSO4*SO40*H2/XJC1/)                !Equation (4-142) of WLong notes, where we seem to be missing alpha_SO
       !wihich is 1/2 *********
       !Well, it depends on how DDSO4 is defined
       !
@@ -5448,8 +4974,8 @@ End Subroutine SED_CALC
          FP1 = M1 * PIE1 / (1.+M1*PIE1)
          FD2 = 1. / (1.+M2*PIE2)
          FP2 = M2 * PIE2 / (1.+M2*PIE2)
-         FP1SO4 = FP1 !WLong: ??? seems FP1SO4 and FP2SO4 should be zero *WLong notes (4-128))4-129)
-         FP2SO4 = FP2 !WLong: ??? seems FP1SO4 and FP2SO4 should be zero *WLong notes (4-128)(4-129)
+         FP1SO4 = FP1  
+         FP2SO4 = FP2 
       !
       !
       !DMD book page 244 to 246
@@ -5506,11 +5032,7 @@ End Subroutine SED_CALC
       !
       !
       !
-      !(after assuming H1~=0, JH2ST,2=0, JH2ST,1=0 (***WLong: ok to assume JH2ST,1=0, but
-      !should not assume JH2ST,2=0???), i.e. BX(4) should  have -J2 in it. However, here it is added to RA1
-      !term in the solution for SO42)
-      !
-      !
+
          AD (3, 3) = - (W2) - (FP1) * (W12) - (FD1) * (S) - (FD1) * &
         & (KL12SO4) - (KHS_1)
       !             -(FD1)*(KL12)-(KHS_1)                            !WLong, *****should be KL12 *****
@@ -5546,52 +5068,22 @@ End Subroutine SED_CALC
       !
          If ( .Not. TF_SSTATE) Then
             BX (4) = (H2) * (HST2TM1) / (DLTS)!&!            !WLong eqn (4-8-24)
-         !           +J2                                !**** should not really ignore JH2ST,2****
+         !           +J2                                
          !
          Else
             BX (4) = 0.d0 !&!!WLong eqn (4-8-24)
-         !           +J2        !**** should not really ignore JH2ST,2****
+         !           +J2    
          End If
-      !
-      !
-      !maybe the J2 is implemented only when SO42 is solved with J2, see RA1 term below
-      !
-      !
-      !
-      !re-arrange the equations for easier solution
-      !
-      !    SO41*HH(1,1)+HH(1,2)*SO42 + G(1) = 0
-      !    SO41*HH(2,1)+HH(2,2)*SO42 + G(2) =0
-      !
-      !find solution of HST1 in terms of AD(3,3), AD(3,4), AD(4,3),AD(4,4),BX(3),BX(4)
-      !then substitute that into equations of SO4
-      !
-      !See WLong notes eqn(4-8-29) and (4-8-27)
+
       !
          G (1) = (BX(1)*AD(3, 3)*AD(4, 4)-BX(3)*AD(1, 3)*AD(4, &
         & 4)-BX(1)*AD(3, 4)*AD(4, 3)+BX(4)*AD(1, 3)*AD(3, &
         & 4)+BX(2)*AD(1, 3)*AD(3, 4)) / (AD(1, 3)*AD(3, 4))
-      !
-      !
-      !i.e. AD(1,3)*AD(3,4)*G(1) =  AD(3,3)*AD(4,4)                    *BX(1)
-      !                            -AD(3,4)*AD(4,3)                    *BX(1)
-      !                            +AD(1,3)*AD(3,4)                    *BX(2)
-      !                            -AD(1,3)*AD(4,4)                    *BX(3)
-      !                            +AD(1,3)*AD(3,4)                    *BX(4)
-      !
-      !
-      !
+
          G (2) = (BX(1)*AD(3, 3)*AD(4, 4)-BX(3)*AD(1, 3)*AD(4, &
         & 4)-BX(1)*AD(3, 4)*AD(4, 3)+BX(4)*AD(1, 3)*AD(3, 4)) / (AD(1, &
         & 3)*AD(3, 4))
-      !
-      !
-      !i.e. AD(1,3)*AD(3,4)*G(2) =    AD(3,3)*AD(4,4)                    * BX(1)
-      !                             - AD(3,4)*AD(4,3)                    * BX(1)
-      !                             - AD(1,3)*AD(4,4)                    * BX(3)
-      !                              +AD(1,3)*AD(3,4)                    * BX(4)
-      !
-      !
+
       !
          HH (1, 1) = (AD(1, 1)*AD(3, 3)*AD(4, 4)-AD(1, 1)*AD(3, &
         & 4)*AD(4, 3)+AD(1, 3)*AD(2, 1)*AD(3, 4)) / (AD(1, 3)*AD(3, 4))
@@ -5605,54 +5097,9 @@ End Subroutine SED_CALC
          HH (2, 2) = (AD(1, 2)*AD(3, 3)*AD(4, 4)-AD(1, 2)*AD(3, &
         & 4)*AD(4, 3)) / (AD(1, 3)*AD(3, 4))
       !
-      !
-      !WLong: the above are still only linear equations to solve, NOT sure where does the
-      !nonlinear (quadratic) equation for SO41 come from. And it is related to KMSO4
-      !which is saturation concentration of SO4 for generation of CH4.
-      !ie. presense of SO4 in layer 2 limits production of CH4
-      !
-      !
-      !    SO41*HH(1,1)+HH(1,2)*SO42 + G(1) = 0
-      !    SO41*HH(2,1)+HH(2,2)*SO42 + G(2) =0
-      !
-      !
-      !
-      !WLong: I guess this is same as DMD book page 245 except it is written as a quadratic equatin of
-      !SO42 instead of HSO4. (Need to re-derive this from (4-152) of WLong notes)
-      !
-      !The derivation of RA0, RA1, RA2 should be similar to the lines of DMD book page 248, except
-      !the book only listed them for solving steady state CH4 equations, the derivation was done
-      !using MAXIMA software
-      !
-      !W. Long did simiar derivations for SO42 by hand, see notes (4-8-63) to (4-8-84), except
-      !that AD(1,3), i.e. A13 (4-8-16) is assumed zero (JSO4,1=0, see comments above (4-8-50) in WLong notes ).
-      !The deriviation by Wen Long had J2 (JSO4,2) included (4-8-55), (4-8-12), however here BX(2) has J2 ignored
-      !Also BX(4) has J2 ignored as well! Following W.Long's hand derivation we see that in (4-8-82), i.e. RA1
-      !has J2 in it. Below, RA1 does have J2 included, so alrough BX(2) and BX(4) above did not contain J2
-      !somehow it is included below in RA1 term.
-      !
-      !
-      !
+
       !Find the solution for SO42 based on quadratic equation
-      !
-      !    RA2 *  x^2 + RA1 * x + RA0 = 0
-      !
-      !where x is SO42 concentration (mgO2/L) in oxygen equivalents
-      !
-      !     -RA1 +/- sqrt( RA1^2 - 4.0*RA0* RA2)       DISC
-      ! x= --------------------------------------- = ---------
-      !           2 * RA2                               RA2
-      !
-      !                -[RA1 -/+ sqrt(RA1^2 - 4.0 * RA0 * RA2)]
-      !where DISC = -------------------------------------------
-      !                            2
-      !
-      !The solution method is based on Vieta's formula: (http://en.wikipedia.org/wiki/Quadratic_equation)
-      !
-      !  x1+x2= - RA1/RA2    (i.e. x1+x2 = -b/a for equation a*x^2+b*x+c=0)
-      !  x1*x2=   RA0/RA2    (i.e. x1*x2 =  c/a for equation a*x^2+b*x+c=0)
-      !
-      !
+
          RA2 = HH (1, 1) * HH (2, 2) - HH (1, 2) * HH (2, 1)
       !
          RA0 = (HH(1, 1)*G(2)-HH(2, 1)*G(1)) * (KMSO4)!Here KMSO4 is saturation concentration of SO4 in oxygen equivalents
@@ -5660,18 +5107,8 @@ End Subroutine SED_CALC
       !
       !
          RA1 = (HH(1, 1)*G(2)-HH(2, 1)*G(1)) + (HH(1, 1)*HH(2, 2)-HH(1, &
-        & 2)*HH(2, 1)) * (KMSO4) + HH (1, 1) * J2 !WLong, why add J2 here ???? This shouuld be in the JHST,2 in BX(4) above
-      !
-      !
-      !i.e.   (H11*H22-H12*H21)               *x^2
-      !     + [ (H11*G2-H21*G1) +
-      !        +(H11*H22-H12*H21)KMSO4
-      !        + H11*J2
-      !       ]                               *x
-      !     + (H11*G2-H21*G1)*KMSO4 = 0
-      !
-      !
-      !WLong: then solve this equation: a2*x^2+a1*x+a0=0
+        & 2)*HH(2, 1)) * (KMSO4) + HH (1, 1) * J2 
+
       !
       !Sign infront of sqrt
          SN1 = 1. !solution of a2*x^2+a1*x+a0=0
@@ -5752,7 +5189,7 @@ End Subroutine SED_CALC
       !
       !
       !
-      !Check here and make sure HST1 and HST2 do not go negative ***WLONG***
+
       !
       !
       !   IF(HST1.LT.0.0)HST1=0
@@ -5908,22 +5345,13 @@ End Subroutine SED_CALC
       !then solve for HSO4
       !
          RA2 = 2 * 0.5 * S * J2 !here J2 is in gO2/m^2/d and has carbon diagenesis discounted by denitrification
-      !what's left is to be oxidized by sulfate or for generating methane
+      !whats left is to be oxidized by sulfate or for generating methane
       !0.5 is alphas_SO4_C in oxygen equivalents (gO2/gO2)
       !
          RA1 = DDSO4 * 0.5 * J2
       !
          RA0 = - S * H2 * DDSO4 * SO40
-      !
-      !IDEBUG_SED=IDEBUG_SED+1
-      !IF(MSR)THEN
-      !            WRITE(*,*)'JDAY=',JDAY,'IDEBUG_SED=',IDEBUG_SED
-      !            WRITE(*,*)'RA2=',RA2
-      !            WRITE(*,*)'RA1=',RA1
-      !            WRITE(*,*)'RA0=',RA0
-      !            !READ(*,*)
-      !ENDIF
-      !
+
       !Sign in front of sqrt
          SN1 = 1. !solution of a2*x^2+a1*x+a0=0
       !
@@ -6086,7 +5514,7 @@ End Subroutine SED_CALC
          End If
       !
       !
-      !solve for HST1, HST2 according to (3-30)(3-31) of WLong's notes
+      !solve for HST1, HST2 according to (3-30)(3-31) of WLongs notes
       !
       !
          HST1 = (-AD(4, 4)*BX(3)+AD(3, 4)*BX(4)) / (AD(3, 3)*AD(4, &
@@ -6106,18 +5534,7 @@ End Subroutine SED_CALC
          HS2AV = FD2 * HST2
       !
          IDEBUG_SED = IDEBUG_SED + 1
-      !IF(MSR)THEN
-      !            WRITE(*,*)'JDAY=',JDAY,'IDEBUG_SED=',IDEBUG_SED
-      !            WRITE(*,*)'HST1=',HST1
-      !            WRITE(*,*)'HST2=',HST2
-      !            WRITE(*,*)'DBLSO42=',DBLSO42
-      !            WRITE(*,*)'DBLSO41=',DBLSO41
-      !            WRITE(*,*)'HS1=',HS1
-      !            WRITE(*,*)'HS2=',HS2
-      !            WRITE(*,*)'HS2AV=',HS2AV
-      !            WRITE(*,*)'HSO4=',HSO4
-      !            READ(*,*)
-      !ENDIF
+
       !
          SO41 = DBLSO41
          SO42 = DBLSO42
@@ -6135,20 +5552,7 @@ End Subroutine SED_CALC
       !WLong (4-62)
       !
          IDEBUG_SED = IDEBUG_SED + 1
-      !IF(MSR)THEN
-      !        WRITE(*,*)'JDAY=',JDAY,'IDEBUG_SED=',IDEBUG_SED
-      !        WRITE(*,*)'SO41=',SO41
-      !        WRITE(*,*)'SO42=',SO42
-      !        WRITE(*,*)'SO42AV=',SO42AV
-      !        WRITE(*,*)'SO4T2=',SO4T2
-      !        WRITE(*,*)'JHS=',JHS
-      !        WRITE(*,*)'HS1=',HS1
-      !        WRITE(*,*)'HS0=',HS0
-      !        WRITE(*,*)'CSODHS=',CSODHS
-      !        !READ(*,*)
-      !ENDIF
-      !
-      !
+
       !solve for methane equation
       !
       !
@@ -6168,18 +5572,10 @@ End Subroutine SED_CALC
       !
          X1J2 = J2 * DBLSO42 / (SO42+KMSO4)!never used = J2-XJ2
       !e.g. the amount of J2 oxidized by SO42
-      !
-      !WLong, I think we should use J2-J2*HSO4/H2 as the diagenesis for JCH4 (4-70) (i.e. 4-157))
-      !
+
       !
          IDEBUG_SED = IDEBUG_SED + 1
-      !IF(MSR)THEN
-      !        WRITE(*,*)'JDAY=',JDAY,'IDEBUG_SED=',IDEBUG_SED
-      !        WRITE(*,*)'XJ2=',XJ2
-      !        WRITE(*,*)'XJ2CH4=',XJ2CH4
-      !        READ(*,*)
-      !ENDIF
-      !
+
       !**** Methane solved assuming steady state
       !
          KMC1 = 0.0
@@ -6200,9 +5596,7 @@ End Subroutine SED_CALC
          K3 = 0.0 !WLong (3-36-6)
       !
          J2 = XJ2 !gO2/m^2/day  !carbon diagenesis flux converted from mgC/m^3/day to gO2/m^3/day
-      !WLong: should be X1J2 instead?
-      !WLong (4-167) (4-70) (4-71)
-      !
+
       !call steady state calculations
          Call SEDSSFNL (CH41, CH42, CH42AV, CH4T1, CH4T2, CH4T2AV, &
         & CH41TM1, CH4T2TM1, 1)
@@ -6500,8 +5894,7 @@ End Subroutine SED_CALC
               & JSIN_R2, O20_R2, D_R2, TW_R2, NH30_R2, NO30_R2, &
               & PO40_R2, SIAT0_R2, CH40_R2, SALT0_R2 !salinity
             !
-            !WRITE(*,*)'here I ''m doing nothing '
-            !READ(*,*)
+
             End If
          !
             NXWCL = (WCLPTR-1) * WCLFDAYS + NXWCL !global record time in all forcing of WCL

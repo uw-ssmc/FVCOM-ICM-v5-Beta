@@ -1,0 +1,14 @@
+the SEDTC is added to wqm_con.npt for sediment temperature calculation 
+
+SED_TEMP in makefile is for sed temperature calculation
+
+WET_DRY in makefile for wetting and drying with casename_run.dat to turn it on or off
+
+HYDRO_INTERP is option for interpolating hydrodynamics
+
+DTI is not anymore read from wqm_con.npt, it is given the same as DLT 
+
+Wen Long 10/12/2016
+
+
+

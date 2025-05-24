@@ -78,7 +78,7 @@ Module MOD_CO2SYS
 !
       Real (SP), Allocatable, Dimension (:, :) :: DICUPT, DICBMP, &
      & DICPRD, DICMNL, DICDEN, DICGAS, DICSED, ALKNH4, ALKNO3, ALKNIT, &
-     & ALKDEN, ALKREM, ALKNH4SED, ALKNO3SED
+     & ALKDEN, ALKREM, ALKNH4SED, ALKNO3SED,INSTCDFLX
   !DICNIT
 !
       Real (SP), Allocatable, Dimension (:, :) :: DICUPT_GL, DICBMP_GL, &
@@ -94,6 +94,7 @@ Module MOD_CO2SYS
       Character (Len=4) :: UNITCO2ATM
 !
 	  Real (SP), Dimension (2) :: JDstart1 !AN
+       REAL (SP), ALLOCATABLE, DIMENSION (:,:) :: Ca2Ion,Calcite,Aragonite
 Contains
   !subroutine CO2SYSCONSTANTS
   !subroutine CO2SYSCONST_ALLOC
@@ -143,6 +144,12 @@ Contains
          CO2star_sat = 0.0
          Allocate (CO2star_surf(0:MTLOC))
          CO2star_surf = 0.0
+         ALLOCATE (Calcite(0:MTLOC,KBM1))
+         Calcite = 0.0
+         ALLOCATE (Aragonite(0:MTLOC,KBM1))
+         Aragonite = 0.0
+         ALLOCATE (Ca2Ion(0:MTLOC,KBM1))
+         Ca2Ion = 0.0
 !
     !allocation of variables to save DTTALK and DTTIC outputs
          Allocate (DICUPT(0:MTLOC, KBM1))
@@ -158,6 +165,8 @@ Contains
     !ALLOCATE(DICNIT(0:MTLOC,KBM1));   DICNIT  = 0.0  !DICNIT=-NT
          Allocate (DICGAS(0:MTLOC, KBM1))
          DICGAS = 0.0 !DICGAS=FLUXCO2  !only surface value is different to zero !Wen Long: clould have been just one layer
+         ALLOCATE(INSTCDFLX(0:MTLOC,KBM1))
+         INSTCDFLX = 0.0
          Allocate (DICSED(0:MTLOC, KBM1))
          DICSED = 0.0 !DICSED=BENDIC   !only bottom value is different to zero  !Wen Long: could have just been one layer
 !
