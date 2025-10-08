@@ -65,7 +65,7 @@ Module MOD_ALGAL
   !
       Use MOD_PREC, Only: SP
       Use MOD_SIZES, Only: MGL
-      Use MOD_LIMS, Only: KBM1, MTLOC, MLOC
+      Use MOD_LIMS, Only: KBM1, MTLOC, MLOC, IINT
   !
       Use MOD_WQM, Only: ACHLC1, ACHLC2, ACHLC3, ALOFN, ALPHMIN1, &
      & ALPHMIN2, ALPHMIN3, ALPHRAT1, ALPHRAT2, ALPHRAT3, ANC1, ANC2, &
@@ -85,7 +85,8 @@ Module MOD_ALGAL
      & PM2, PM3, PN1, PN2, PO4, PR1, PR2, PRSP1, PRSP2, PRSP3, Q01, &
      & Q02, Q03, SEDIMENT_CALC, SNFIX, STF1, STF2, STF3, T, &
      & TOTAL_NETPP, TVPR, V2, VMAX1, VMAX2, VMAX3, WS1, WS1NET, WS2, &
-     & WS2NET, WS3, WS3NET
+     & WS2NET, WS3, WS3NET, CbntIon, BiCbntIon, pH, FP1CO2, FP2CO2, &
+     & A_P1, A_P2, B_P1, B_P2, C_P1, C_P2, D_P1, D_P2
       Use MOD_FILEINFO, Only: AGR, ALO
   !
       Use MOD_HYDROVARS, Only: DZ, DZ2D, D
@@ -93,6 +94,7 @@ Module MOD_ALGAL
   !
       Use MOD_OWQ, Only: IAVG, KESS
       Use MOD_ZOOP, Only: B1SZ, B2SZ, B1LZ, B2LZ
+      USE MOD_WQMINIT, Only: CARBONATE_CALC, CBN_IMPACT_BIO
       Implicit None
   !
   !LB: moved the definitions below to this location to have acces to TRPR, TMP1, TR1, TMP2, TR2, TMP3, TR3 withing get_f*** function
@@ -831,6 +833,19 @@ Contains
           !!RGL below without P, Si limitation
           !       IK = P3(I,K)*NL3(I,K)/(ALPHA+1.0E-10)
           !       FI3(I,K) = IAVG(I,K)/(SQRT(IK*IK+IAVG(I,K)*IAVG(I,K)+1.0E-10))
+
+          !---------- calculating limiting factor for phytoplankton growth due to CO2 and pH changes ----------------
+               IF(CARBONATE_CALC == .TRUE. .AND. IINT > 1 .AND. CBN_IMPACT_BIO == .TRUE.) THEN
+                  FP1CO2(I,K) = (A_P1*BiCbntIon(I,K)/(B_P1 + BiCbntIon(I,K))) - EXP(-C_P1*CbntIon(I,K)) - D_P1*(10**(-pH(I,K)))
+                  FP2CO2(I,K) = (A_P2*BiCbntIon(I,K)/(B_P2 + BiCbntIon(I,K))) - EXP(-C_P2*CbntIon(I,K)) - D_P2*(10**(-pH(I,K)))
+               ELSE
+                  FP1CO2(I,K) = 1.0
+                  FP2CO2(I,K) = 1.0
+               END IF
+
+               IF(MSR) THEN
+                  WRITE(*,*)"debugging...........",FP1CO2(I,K),FP2CO2(I,K),BiCbntIon(I,K),CbntIon(I,K),D_P1,pH(I,K),C_P1
+               END IF
             End Do
          End Do
     !
@@ -936,11 +951,11 @@ Contains
              !         P2(I,K) = P2(I,K)*AMIN1(FI2(I,K),NL2(I,K),PL2(I,K),SL2(I,K))/CCHL2(I,K)
              !         P3(I,K) = P3(I,K)*AMIN1(FI3(I,K),NL3(I,K),PL3(I,K),SL3(I,K))/CCHL3(I,K)
              !RGL below without P or Si limitation
-                  P1NNF (I, K) = P1 (I, K) * AMIN1 (FI1(I, K), &
+                  P1NNF (I, K) = P1 (I, K) * FP1CO2(I,K) * AMIN1 (FI1(I, K), &
                  & NL1NNF(I, K), PL1(I, K)) / CCHL1 (I, K)
-                  P1 (I, K) = P1 (I, K) * AMIN1 (FI1(I, K), NL1(I, K), &
+                  P1 (I, K) = P1 (I, K) * FP1CO2(I,K) * AMIN1 (FI1(I, K), NL1(I, K), &
                  & PL1(I, K)) / CCHL1 (I, K)
-                  P2 (I, K) = P2 (I, K) * AMIN1 (FI2(I, K), NL2(I, K), &
+                  P2 (I, K) = P2 (I, K) * FP2CO2(I,K) * AMIN1 (FI2(I, K), NL2(I, K), &
                  & PL2(I, K)) / CCHL2 (I, K)
              !         P3(I,K) = P3(I,K)*AMIN1(FI3(I,K),NL3(I,K))/CCHL3(I,K)
                End Do
@@ -956,11 +971,11 @@ Contains
              !         P2(I,K) = P2(I,K)*FI2(I,K)*AMIN1(NL2(I,K),PL2(I,K),SL2(I,K))/CCHL2(I,K)
              !         P3(I,K) = P3(I,K)*FI3(I,K)*AMIN1(NL3(I,K),PL3(I,K),SL3(I,K))/CCHL3(I,K)
              !RGL below without P or Si limitation
-                  P1NNF (I, K) = P1 (I, K) * FI1 (I, K) * AMIN1 &
+                  P1NNF (I, K) = P1 (I, K) * FP1CO2(I,K) * FI1 (I, K) * AMIN1 &
                  & (NL1NNF(I, K), PL1(I, K)) / CCHL1 (I, K)
-                  P1 (I, K) = P1 (I, K) * FI1 (I, K) * AMIN1 (NL1(I, &
+                  P1 (I, K) = P1 (I, K) * FP1CO2(I,K) * FI1 (I, K) * AMIN1 (NL1(I, &
                  & K), PL1(I, K)) / CCHL1 (I, K)
-                  P2 (I, K) = P2 (I, K) * FI2 (I, K) * AMIN1 (NL2(I, &
+                  P2 (I, K) = P2 (I, K) * FP2CO2(I,K) * FI2 (I, K) * AMIN1 (NL2(I, &
                  & K), PL2(I, K)) / CCHL2 (I, K)
              !         P3(I,K) = P3(I,K)*FI3(I,K)*NL3(I,K)/CCHL3(I,K)
                End Do

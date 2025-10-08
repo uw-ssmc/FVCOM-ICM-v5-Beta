@@ -1628,10 +1628,10 @@ Contains
           !
           !LB: debug DOXG
                If (DOXG(I, K) == 0.0) Then
-                  Write (*,*) 'I,K,DOXG=', I, K, DOXG (I, K)
-                  Write (*,*) 'DCOD(I-1,K)=', DCOD (I-1, K)
-                  Write (*,*) 'FTCOD(I,K),COD(I,K)=', FTCOD (I, K), COD &
-                 & (I, K)
+                  !Write (*,*) 'I,K,DOXG=', I, K, DOXG (I, K)
+                  !Write (*,*) 'DCOD(I-1,K)=', DCOD (I-1, K)
+                  !Write (*,*) 'FTCOD(I,K),COD(I,K)=', FTCOD (I, K), COD &
+                 !& (I, K)
                End If
           !
                If (COD_CALC) Then

@@ -70,6 +70,8 @@ Contains
          Use MOD_SIZES, Only: MGL
          Use MOD_CONTROL, Only: PAR, SERIAL
 		 USE MOD_FILEINFO, ONLY: AIRC
+       Use MOD_WQMINIT, Only: CBN_IMPACT_BIO
+       USE MOD_WQM, ONLY : A_P1, A_P2, B_P1, B_P2, C_P1, C_P2, D_P1, D_P2
 !
          Use MOD_CO2SYS, Only: K0, FugFac, pCO2atm, AIRSEA_OPTION, &
         & MAPCO2ATM, UNITCO2ATM, NXPCO2, pco2atmNX, &       !CO2star_sat,       &!
@@ -136,6 +138,10 @@ Contains
 
          Read (AIRC, 1032) JDstart1(1), JDstart1(2)
          If (MSR) write (*,*) '  JDstart1=', JDstart1(1), JDstart1(2)
+         IF(CBN_IMPACT_BIO == .TRUE.) THEN
+            READ(AIRC, 1033) A_P1, B_P1, C_P1, D_P1
+            READ(AIRC, 1033) A_P2, B_P2, C_P2, D_P2
+         END IF
 
 
 !
@@ -164,6 +170,7 @@ Contains
 1030     Format (F8.0)
 1031     Format (F8.1, F8.3)
 1032     Format (F8.0, F8.0) !AN
+1033     FORMAT (F8.4, F8.4, F8.4, F8.4)
 !
          Return
       End Subroutine PCO2AIR_READ_INITIAL

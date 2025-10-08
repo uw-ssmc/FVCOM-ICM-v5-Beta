@@ -47,7 +47,7 @@ Module MOD_PH_PCO2
 !
       Use MOD_CONTROL, Only: MSR
 !
-      Use MOD_WQM, Only: pH, pCO2, TALK, TDIC, T, SALT
+      Use MOD_WQM, Only: pH, pCO2, TALK, TDIC, T, SALT, CbntIon, BiCbntIon
 !
       Use MOD_CO2SYS, Only: KW, K0, K1, K2, TB, KBb, TF, KF, TS, KS, &
      & IonS, FugFac, CO2star_surf, CO2SYSCONSTANTS,Ca2Ion,Calcite,Aragonite       !KSi,    &!
@@ -127,7 +127,7 @@ Contains
          Real (SP) :: ln10 = Log (10.0)
                   REAL (SP) :: gravAcc = 9.80665        ! gravitational acceleration  (m/s2)
          REAL (SP) :: a0C,a1C,a2C,b0C,b1C,b2C,a0A,a1A,a2A,b0A,b1A,b2A,Pbar,Rc,Tk
-         REAL (SP) :: logKcal,logKArg,DelVCal,DelKCal,DelVArg,DelKArg, Kcal,KArg,Carbonate
+         REAL (SP) :: logKcal,logKArg,DelVCal,DelKCal,DelVArg,DelKArg, Kcal,KArg,Carbonate,BiCarbonate
 !------------------------------------- pressure correction for solubility product -----------------
 !------------------- coefficient for calcite --------------------
 !--------------- coefficients for calcite -----------------------------
@@ -242,10 +242,13 @@ Contains
               Kcal = Kcal*EXP(-(DelVCal/(Rc*Tk))*Pbar + (0.5*DelKCal/(Rc*Tk))*(Pbar*Pbar))  ! pressure corrected 
               KArg = KArg*EXP(-(DelVArg/(Rc*Tk))*Pbar + (0.5*DelKArg/(Rc*Tk))*(Pbar*Pbar))
 
-              Carbonate = (TC * K1(I, K)*K2(I, K)) / (H2+K1(I, K)*H+K1(I, K)*K2(I, K))!mole/kg-SW
+              CbntIon(I,K) = (TC * K1(I, K)*K2(I, K)) / (H2+K1(I, K)*H+K1(I, K)*K2(I, K))!mole/kg-SW
+              BiCbntIon(I,K) = (TC * K1(I, K)*H) / (H2+K1(I, K)*H+K1(I, K)*K2(I, K))   !mole/kg-SW
               
               Calcite(I,K) = (Ca2Ion(I,K)*Carbonate)/Kcal 
               Aragonite(I,K) = (Ca2Ion(I,K)*Carbonate)/KArg
+
+
               
             End Do
          End Do

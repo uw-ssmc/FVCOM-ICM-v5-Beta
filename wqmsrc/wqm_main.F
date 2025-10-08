@@ -141,7 +141,7 @@ Program FVCOMICM
      & NEW_VOLUMES, ALGAE_CALC, ZOO_CALC, CARBON_CALC, NITROGEN_CALC, &
      & PHOSPHORUS_CALC, COD_CALC, OXYGEN_CALC, SILICA_CALC, LEFT_FLOWB, &
      & IFLOWP, C1MIN, C1MAX, DOVDAYS, ACC, DLTVAL, DLTMAX, DLTFTN, &
-     & WQMINIT_DEALLOC, CARBONATE_CALC
+     & WQMINIT_DEALLOC, CARBONATE_CALC, CBN_IMPACT_BIO
 !
       Use MOD_ALGAL, Only: ALGAE
 !
@@ -308,6 +308,8 @@ Program FVCOMICM
       MYID = 1
       NPROCS = 1
       VTK_FLNUM = 300
+      CBN_IMPACT_BIO = .TRUE.
+      
 #  if defined (MULTIPROCESSOR)
       Call INIT_MPI_ENV (MYID, NPROCS, SERIAL, PAR, MSR)
 #  endif
@@ -448,6 +450,7 @@ Program FVCOMICM
     !----------------------------------------------------------------------------------------------------
 
       IINT = 0
+      
 
   !************************************************************************
   !**                          Begin Simulation                          **
@@ -2791,10 +2794,12 @@ Subroutine WQM_OUTPUT (NTHIS_OLD, NTSTN_OLD, NTHIS, NTSTN, CTR_HIS, &
                Call GATHER (1, MTLOC, MLOC, MGL, 1, MYID, NPROCS, NMAP, &
               & BENSTRTM1S(1), BENSTRTM1S_GL(1))
 
+                Call GATHER (1, MTLOC, MLOC, MGL, 1, MYID, NPROCS, NMAP, &
+             & HSED(1), HSED_GL(1))
+
            
             End If !!end LBcomment
-                          Call GATHER (1, MTLOC, MLOC, MGL, 1, MYID, NPROCS, NMAP, &
-             & HSED(1), HSED_GL(1))
+
 
 			If (SOLIDS_CALC) Then !Adi-2/13/18
                Call GATHER (1, MTLOC, MLOC, MGL, KBM1, MYID, NPROCS, &

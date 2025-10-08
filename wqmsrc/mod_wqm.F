@@ -114,7 +114,7 @@ Module MOD_WQM
       Real (SP), Allocatable, Dimension (:, :) :: T, SALT, SSI, B1, B2, &
      & B3, LDOC, RDOC, LPOC, RPOC, NH4, NO3, UREA, LDON, RDON, LPON, &
      & RPON, PO4, LDOP, RDOP, LPOP, RPOP, PIP, COD, DOXG, SIUPB, SIAT, &
-     & PIB1, PIB2, PIB3, TDIC, TALK, pH, pCO2
+     & PIB1, PIB2, PIB3, TDIC, TALK, pH, pCO2,CbntIon,BiCbntIon, FP1CO2, FP2CO2
   !
   !T,    & !1 water column temperature (degC)
   !SALT, & !2 salinity in water column (psu)
@@ -756,6 +756,8 @@ Module MOD_WQM
  CHARACTER(LEN = 30), ALLOCATABLE, DIMENSION (:) :: TCROutVrb
  !---------------------------------- sediment cmm parameters ------------------------------------
  REAL(SP) :: VonKrmn,Rgfh,PtcDensity,ErsnCoeff,CrtShear,SdmPrst
+ !---------------------------------- Carbonate chemistry impact on Bio --------------------------
+ REAL(SP) :: A_P1, A_P2, B_P1, B_P2, C_P1, C_P2, D_P1, D_P2
 
 
 Contains
@@ -848,6 +850,14 @@ Contains
          pH = 8.0 !LB 
          Allocate (pCO2(0:MTLOC, KBM1))
          pCO2 = 0.0 !LB
+         Allocate (CbntIon(0:MTLOC, KBM1))
+         CbntIon = 0.0
+         Allocate (BiCbntIon(0:MTLOC, KBM1))
+         BiCbntIon = 0.0
+         Allocate (FP1CO2(0:MTLOC, KBM1))
+         FP1CO2 = 0.0
+         Allocate (FP2CO2(0:MTLOC, KBM1))
+         FP2CO2 = 0.0
 !
 
                Allocate (pH_GL(MGL, KBM1))
