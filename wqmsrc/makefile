@@ -38,8 +38,8 @@
 #                           UNCOMMENT TO INCLUDE NETCDF OUTPUT CAPABILITY
 #--------------------------------------------------------------------------
            FLAG_2       =  -DNETCDF_IO
-           IOLIBS       =  -L/share/apps/netcdf/4.7.4/intel/18.0.4/lib -lnetcdff # /home/BIAN431/mypsdiag/netcdf_install/lib  -lnetcdf
-           IOINCS       =  -I/share/apps/netcdf/4.7.4/intel/18.0.4/include      # /home/BIAN431/mypsdiag/netcdf_install/include
+           IOLIBS       =  -L/share/apps/netcdf/4.9.3/intel/2022.1.0/lib -lnetcdff # /home/BIAN431/mypsdiag/netcdf_install/lib  -lnetcdf
+           IOINCS       =  -I/share/apps/netcdf/4.9.3/intel/2022.1.0/include      # /home/BIAN431/mypsdiag/netcdf_install/include
 
 #
 #Flag to turn on the various outputs for program checking

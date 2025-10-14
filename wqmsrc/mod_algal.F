@@ -843,9 +843,9 @@ Contains
                   FP2CO2(I,K) = 1.0
                END IF
 
-               IF(MSR) THEN
-                  WRITE(*,*)"debugging...........",FP1CO2(I,K),FP2CO2(I,K),BiCbntIon(I,K),CbntIon(I,K),D_P1,pH(I,K),C_P1
-               END IF
+               !IF(MSR) THEN
+               !   WRITE(*,*)"debugging...........",FP1CO2(I,K),FP2CO2(I,K),BiCbntIon(I,K),CbntIon(I,K),D_P1,pH(I,K),C_P1
+              !END IF
             End Do
          End Do
     !
