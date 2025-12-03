@@ -308,7 +308,7 @@ Program FVCOMICM
       MYID = 1
       NPROCS = 1
       VTK_FLNUM = 300
-      CBN_IMPACT_BIO = .TRUE.
+      CBN_IMPACT_BIO = .FALSE.
       
 #  if defined (MULTIPROCESSOR)
       Call INIT_MPI_ENV (MYID, NPROCS, SERIAL, PAR, MSR)
@@ -3281,7 +3281,8 @@ SUBROUTINE MainSetup
                      & TcrOutVrb, TxcHotstart, TxcHotWC,TxcHotSD1,TxcHotSD2, BioAcc,KuptkSZ, KuptkLZ, KowPCB, & 
                      & GrwthSZ,GrwthLZ,CnbToDWSZ,LipidFracSZ,CnbToDWLZ, LipidFracLZ,TxcAccSZ,TxcAccLZ,DynUptkON, &
                      & OxgToCbnSZ,OxgToCbnLZ,OxgRspRateSZ,OxgRspRateLZ,WetToDryRtSZ, WetToDryRtLZ, EchToEoxSZ, & 
-                     & EchToEoxLZ,AlphaSZ,AlphaLZ, VDiffCoff, KDecay,ExcLossSZ,ExcLossLZ
+                     & EchToEoxLZ,AlphaSZ,AlphaLZ, VDiffCoff, KDecay,ExcLossSZ,ExcLossLZ,ZOO_DVM,ShpFacDVM,PeakTmDVM, &
+                     & SpanDVM,WmaxSZ,WmaxLZ,PrayLaySZ,PrayLayLZ,SleepLaySZ,SleepLayLZ
   USE MOD_SIZES, ONLY: NCP, NTXVB, NBTCR, HydVersionNum
   USE MOD_CONTROL, ONLY: MSR
   IMPLICIT NONE
@@ -3298,7 +3299,7 @@ SUBROUTINE MainSetup
     STOP
   END IF
 
-  NAMELIST /WQM_SETUP/ HydVersionNum,NumWqVrb,WqCalcOn,TxcKntOn,TcrKntOn,NumTxVrb,NumTcrVrb
+  NAMELIST /WQM_SETUP/ HydVersionNum,NumWqVrb,WqCalcOn,TxcKntOn,TcrKntOn,ZOO_DVM,NumTxVrb,NumTcrVrb
   OPEN (UNIT=377,FILE='WQM_welcome.nml', ACTION = 'READ')
 
   READ(377,NML = WQM_SETUP, IOSTAT = end_file)
@@ -3378,6 +3379,13 @@ SUBROUTINE MainSetup
 
   END IF
   !------------------------------------------------------------------------------
+
+  !----------------------- zooplankton DVM settings -----------------------------
+  IF(ZOO_DVM == .TRUE.) THEN
+        NAMELIST /DVM_ZOOP/ShpFacDVM,PeakTmDVM,SpanDVM,WmaxSZ,WmaxLZ,PrayLaySZ,&
+                    PrayLayLZ,SleepLaySZ,SleepLayLZ
+        READ(377,NML = DVM_ZOOP, IOSTAT = end_file)
+  END IF
 
  IF((TxcKntOn == .FALSE.) .AND. (NumTxVrb > 0)) THEN
     NumTxVrb = 0

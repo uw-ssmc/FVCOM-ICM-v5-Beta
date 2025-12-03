@@ -758,6 +758,9 @@ Module MOD_WQM
  REAL(SP) :: VonKrmn,Rgfh,PtcDensity,ErsnCoeff,CrtShear,SdmPrst
  !---------------------------------- Carbonate chemistry impact on Bio --------------------------
  REAL(SP) :: A_P1, A_P2, B_P1, B_P2, C_P1, C_P2, D_P1, D_P2
+ !---------------------------------- zooplankton DVM parameters ---------------------------------
+ REAL(SP) :: ShpFacDVM,PeakTmDVM,SpanDVM,WmaxSZ,WmaxLZ,PrayLaySZ,PrayLayLZ,SleepLaySZ,SleepLayLZ
+ LOGICAL :: ZOO_DVM
 
 
 Contains

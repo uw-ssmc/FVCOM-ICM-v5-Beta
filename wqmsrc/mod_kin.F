@@ -60,6 +60,7 @@ Module MOD_KIN
      & SZ, LZ, TVPRSZ, TVPRLZ, GET_FT,GET_FTPR,GET_FTBM,TMSZ,KTGSZ1, &
      & KTGSZ2,KTBSZ,KTBLZ,TRSZ,TRLZ,TRPRSZ,KTPRSZ,TRPRLZ,KTPRLZ,KTGLZ1,&
      & KTGLZ2,TMLZ
+      
 
 !
   !************************************************************************
@@ -250,13 +251,15 @@ Contains
     !
          Use MOD_WQM, Only: ANC1, ANC2, ANC3, ASC1, ASC2, ASC3, B1, B2, &
         & B3, DOXG, JDAY, LDOC, LPOC, LPON, LPOP, Q1, Q2, Q3, RDOC, &
-        & RPOC, RPON, RPOP, T !,              &!
+        & RPOC, RPON, RPOP, T, ZOO_DVM !,              &!
+
+        Use MOD_HYDROVARS, Only: DZ,DZ2D, D
     !
     !
          Implicit None
          Real (SP) :: NRRATE, DOREF, CRRATE, FRLD, FRRD, FRLP, FRRP, &
         & ANCPSZ, FRL, FRR, ANCPLZ, APCPSZ, PRRATE, APCPLZ, FRB1SZ, &
-        & FRB2SZ, FRB3SZ, FRB1LZ, FRB2LZ, FRB3LZ
+        & FRB2SZ, FRB3SZ, FRB1LZ, FRB2LZ, FRB3LZ, WWLZ1, WWLZ2, WWSZ1, WWSZ2
          Real (SP), Dimension (0:MTLOC, KBM1) :: DTSZ, DTLZ
          Integer :: I, J, K, ITEMP
     !
@@ -384,7 +387,29 @@ Contains
               & K)-PRSZLZ(I, K)-PRSZ(I, K)) / 86400.
                DTLZ (I, K) = ((GLZ(I, K)-BMLZ(I, K)-MLZ(I, K))*LZ(I, &
               & K)-PRLZ(I, K)) / 86400.
-          !
+          !------------------------------------------------------------------------------
+            IF(ZOO_DVM == .TRUE.) THEN
+                    IF((K>1) .AND. (K<KBM1)) THEN
+                         CALL DVM_FUNC(I,K,WWSZ1,WWLZ1)
+                         CALL DVM_FUNC(I,K-1,WWSZ2,WWLZ2)
+                         DTSZ (I,K) = DTSZ (I,K) + (WWSZ1*SZ(I,K) - WWSZ2*SZ(I,K-1))/(D(I)*DZ2D(I,K))
+                         DTLZ (I,K) = DTLZ (I,K) + (WWLZ1*LZ(I,K) - WWLZ2*LZ(I,K-1))/(D(I)*DZ2D(I,K))
+                    END IF
+
+                    IF (K == 1) THEN
+                         CALL DVM_FUNC(I,K,WWSZ1,WWLZ1)
+                         DTSZ (I,K) = DTSZ (I,K) + (WWSZ1*SZ(I,K))/(D(I)*DZ2D(I,K))
+                         DTLZ (I,K) = DTLZ (I,K) + (WWLZ1*LZ(I,K))/(D(I)*DZ2D(I,K))
+                    END IF
+
+                    IF (K == KBM1) THEN
+                         CALL DVM_FUNC(I,K-1,WWSZ1,WWLZ1)
+                         DTSZ (I,K) = DTSZ (I,K) + (WWSZ1*SZ(I,K-1))/(D(I)*DZ2D(I,K))
+                         DTLZ (I,K) = DTLZ (I,K) + (WWLZ1*LZ(I,K-1))/(D(I)*DZ2D(I,K))
+                    END IF
+            END IF
+          !-----------------------------------------------------------------------------
+
             End Do
          End Do
     !--------------------------------------------------------------------------------
@@ -2141,5 +2166,54 @@ Contains
 
          Return
       End Subroutine BEN_FLUX
-  !
+!------------------------------------------------------------------------------
+
+
+!------------------------------------------------------------------------------
+SUBROUTINE DVM_FUNC(Node_ID,LAY_NO,Vel_SZ,Vel_LZ)
+
+  USE MOD_WQM, ONLY: JDAY,ShpFacDVM,PeakTmDVM,SpanDVM,WmaxSZ,WmaxLZ,PrayLaySZ, &
+                     & PrayLayLZ,SleepLaySZ,SleepLayLZ
+  USE MOD_HYDROVARS, ONLY: D,ZZ
+
+  IMPLICIT NONE
+
+  REAL(SP), INTENT(OUT) :: Vel_SZ, Vel_LZ
+  INTEGER, INTENT(IN) :: LAY_NO,Node_ID
+  REAL(SP) :: tm,DepthRangeSZ,layer_depthSZ,DepthRangeLZ,layer_depthLZ
+
+  tm = (JDAY - INT(JDAY))*24.0
+
+  DepthRangeSZ = D(Node_ID)*ZZ(SleepLaySZ) - D(Node_ID)*ZZ(PrayLaySZ)
+  DepthRangeLZ = D(Node_ID)*ZZ(SleepLayLZ) - D(Node_ID)*ZZ(PrayLayLZ)
+
+  IF(DepthRangeSZ <= 0.0 .OR. DepthRangeLZ <= 0.0) THEN
+     WRITE(*,*)'The zooplankton inhabitant depth range becomes negative'
+     WRITE(*,*)'Please check the inputs to zooplankton DVM'
+     STOP
+  END IF
+  
+  layer_depthSZ = D(Node_ID)*ZZ(LAY_NO) - D(Node_ID)*ZZ(PrayLaySZ)
+  layer_depthLZ = D(Node_ID)*ZZ(LAY_NO) - D(Node_ID)*ZZ(PrayLayLZ)
+  
+  IF(LAY_NO <= PrayLaySZ .OR. LAY_NO >= SleepLaySZ) THEN
+     Vel_SZ = 0.0
+  ELSE
+     Vel_SZ = WmaxSZ*(layer_depthSZ/DepthRangeSZ)*ShpFacDVM*EXP(-((tm - PeakTmDVM)/SpanDVM)**ShpFacDVM)* & 
+                         & (((tm - PeakTmDVM)/SpanDVM)**(ShpFacDVM - 1.0))
+  END IF
+
+
+  IF(LAY_NO <= PrayLayLZ .OR. LAY_NO >= SleepLayLZ) THEN
+     Vel_LZ = 0.0
+  ELSE
+     Vel_LZ = WmaxLZ*(layer_depthLZ/DepthRangeLZ)*ShpFacDVM*EXP(-((tm - PeakTmDVM)/SpanDVM)**ShpFacDVM)* &
+                         & (((tm - PeakTmDVM)/SpanDVM)**(ShpFacDVM - 1.0))
+  END IF
+
+END SUBROUTINE
+!------------------------------------------------------------------------------
+
+
+
 End Module MOD_KIN
