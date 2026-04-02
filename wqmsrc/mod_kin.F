@@ -2201,21 +2201,20 @@ SUBROUTINE DVM_FUNC(Node_ID,LAY_NO,Vel_SZ,Vel_LZ)
   IF(LAY_NO <= PrayLaySZ .OR. LAY_NO >= SleepLaySZ) THEN
      Vel_SZ = 0.0
   ELSE
-     Vel_SZ = WmaxSZ*EXP(-((tm - PeakTmDVM)/SpanDVM)**ShpFacDVM)* & 
-                         & (((tm - PeakTmDVM)/SpanDVM)**(ShpFacDVM - 1.0)) !WmaxSZ*(layer_depthSZ/DepthRangeSZ)*ShpFacDVM*
+     Vel_SZ = WmaxSZ*(layer_depthSZ/DepthRangeSZ)*ShpFacDVM*EXP(-((tm - PeakTmDVM)/SpanDVM)**ShpFacDVM)* & 
+                         & (((tm - PeakTmDVM)/SpanDVM)**(ShpFacDVM - 1.0)) 
   END IF
 
 
   IF(LAY_NO <= PrayLayLZ .OR. LAY_NO >= SleepLayLZ) THEN
      Vel_LZ = 0.0
   ELSE
-     Vel_LZ = WmaxLZ*EXP(-((tm - PeakTmDVM)/SpanDVM)**ShpFacDVM)* &
-                         & (((tm - PeakTmDVM)/SpanDVM)**(ShpFacDVM - 1.0)) !WmaxLZ*(layer_depthLZ/DepthRangeLZ)*ShpFacDVM*
+     Vel_LZ = WmaxLZ*(layer_depthLZ/DepthRangeLZ)*ShpFacDVM*EXP(-((tm - PeakTmDVM)/SpanDVM)**ShpFacDVM)* &
+                         & (((tm - PeakTmDVM)/SpanDVM)**(ShpFacDVM - 1.0)) 
   END IF
 
 END SUBROUTINE
 !------------------------------------------------------------------------------
-!If(MSR) Write (*,*) 'DVM velocity at node ',Node_ID,' layer ',LAY_NO,' is ',Vel_SZ,' m/s for small zooplankton and ',Vel_LZ,' m/s for large zooplankton'
 
 
 End Module MOD_KIN
