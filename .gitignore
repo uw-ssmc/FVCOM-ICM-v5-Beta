@@ -1,0 +1,9 @@
+# Main WQM build artifacts
+wqmsrc/*.o
+wqmsrc/*.mod
+wqmsrc/*.f90
+wqmsrc/wqm_txc_v4
+
+# METIS build artifacts
+METIS_source/*.o
+METIS_source/libmetis.a
