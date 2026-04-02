@@ -251,9 +251,10 @@ Contains
     !
          Use MOD_WQM, Only: ANC1, ANC2, ANC3, ASC1, ASC2, ASC3, B1, B2, &
         & B3, DOXG, JDAY, LDOC, LPOC, LPON, LPOP, Q1, Q2, Q3, RDOC, &
-        & RPOC, RPON, RPOP, T, ZOO_DVM !,              &!
+        & RPOC, RPON, RPOP, T, ZOO_DVM, PrayLaySZ, PrayLayLZ, SleepLaySZ,SleepLayLZ !,              &!
 
         Use MOD_HYDROVARS, Only: DZ,DZ2D, D
+
     !
     !
          Implicit None
@@ -389,20 +390,20 @@ Contains
               & K)-PRLZ(I, K)) / 86400.
           !------------------------------------------------------------------------------
             IF(ZOO_DVM == .TRUE.) THEN
-                    IF((K>1) .AND. (K<KBM1)) THEN
+                    IF((K>PrayLaySZ) .AND. (K<SleepLaySZ)) THEN !FIXME: need to add option for different LZ layers
                          CALL DVM_FUNC(I,K,WWSZ1,WWLZ1)
                          CALL DVM_FUNC(I,K-1,WWSZ2,WWLZ2)
                          DTSZ (I,K) = DTSZ (I,K) + (WWSZ1*SZ(I,K) - WWSZ2*SZ(I,K-1))/(D(I)*DZ2D(I,K))
                          DTLZ (I,K) = DTLZ (I,K) + (WWLZ1*LZ(I,K) - WWLZ2*LZ(I,K-1))/(D(I)*DZ2D(I,K))
                     END IF
 
-                    IF (K == 1) THEN
+                    IF (K == PrayLaySZ) THEN
                          CALL DVM_FUNC(I,K,WWSZ1,WWLZ1)
                          DTSZ (I,K) = DTSZ (I,K) + (WWSZ1*SZ(I,K))/(D(I)*DZ2D(I,K))
                          DTLZ (I,K) = DTLZ (I,K) + (WWLZ1*LZ(I,K))/(D(I)*DZ2D(I,K))
                     END IF
 
-                    IF (K == KBM1) THEN
+                    IF (K == SleepLaySZ) THEN
                          CALL DVM_FUNC(I,K-1,WWSZ1,WWLZ1)
                          DTSZ (I,K) = DTSZ (I,K) + (WWSZ1*SZ(I,K-1))/(D(I)*DZ2D(I,K))
                          DTLZ (I,K) = DTLZ (I,K) + (WWLZ1*LZ(I,K-1))/(D(I)*DZ2D(I,K))
@@ -1763,11 +1764,12 @@ Contains
           !Stumm and Morgan (third edition) pp242
             End Do
 		 Else If(AIRSEA_OPTION == 6) Then ! Combination of Option 1 method and Wanninkhof et al (2013)
-		    FACTOR = AREAR * (BREAR*WMS) ** CREAR
+		    
 !
 			Do I = 1, MLOC
 !
 		    If (JDAY <= JDstart1(1) .OR. JDAY >= JDstart1(2)) Then
+               FACTOR = AREAR * (BREAR*WMS) ** CREAR
 			   CHLORN = SALT (I, 1) / 1.80655
                TDOS = T (I, 1)
                RNU = 0.54 + 0.7 * TDOS / 30 - 0.07 * SALT (I, 1) / 35.
@@ -1780,7 +1782,7 @@ Contains
 			  !End If
 !
 			Else If (JDAY > JDstart1(1) .AND. JDAY < JDstart1(2)) Then
-
+                    FACTOR = 0.251 * WMS ** 2.0
           !Schmidt number for O2 (W92)
                Sc = 1953.4 - 128.0 * T (I, 1) + 3.9918 * T (I, 1) ** &
               & 2.0 - 0.050091 * T (I, 1) ** 3.0
@@ -2184,8 +2186,8 @@ SUBROUTINE DVM_FUNC(Node_ID,LAY_NO,Vel_SZ,Vel_LZ)
 
   tm = (JDAY - INT(JDAY))*24.0
 
-  DepthRangeSZ = D(Node_ID)*ZZ(SleepLaySZ) - D(Node_ID)*ZZ(PrayLaySZ)
-  DepthRangeLZ = D(Node_ID)*ZZ(SleepLayLZ) - D(Node_ID)*ZZ(PrayLayLZ)
+  DepthRangeSZ = -(D(Node_ID)*ZZ(SleepLaySZ) - D(Node_ID)*ZZ(PrayLaySZ))
+  DepthRangeLZ = -(D(Node_ID)*ZZ(SleepLayLZ) - D(Node_ID)*ZZ(PrayLayLZ))
 
   IF(DepthRangeSZ <= 0.0 .OR. DepthRangeLZ <= 0.0) THEN
      WRITE(*,*)'The zooplankton inhabitant depth range becomes negative'
@@ -2193,14 +2195,14 @@ SUBROUTINE DVM_FUNC(Node_ID,LAY_NO,Vel_SZ,Vel_LZ)
      STOP
   END IF
   
-  layer_depthSZ = D(Node_ID)*ZZ(LAY_NO) - D(Node_ID)*ZZ(PrayLaySZ)
-  layer_depthLZ = D(Node_ID)*ZZ(LAY_NO) - D(Node_ID)*ZZ(PrayLayLZ)
+  layer_depthSZ = -(D(Node_ID)*ZZ(LAY_NO) - D(Node_ID)*ZZ(PrayLaySZ))
+  layer_depthLZ = -(D(Node_ID)*ZZ(LAY_NO) - D(Node_ID)*ZZ(PrayLayLZ))
   
   IF(LAY_NO <= PrayLaySZ .OR. LAY_NO >= SleepLaySZ) THEN
      Vel_SZ = 0.0
   ELSE
      Vel_SZ = WmaxSZ*(layer_depthSZ/DepthRangeSZ)*ShpFacDVM*EXP(-((tm - PeakTmDVM)/SpanDVM)**ShpFacDVM)* & 
-                         & (((tm - PeakTmDVM)/SpanDVM)**(ShpFacDVM - 1.0))
+                         & (((tm - PeakTmDVM)/SpanDVM)**(ShpFacDVM - 1.0)) 
   END IF
 
 
@@ -2208,12 +2210,11 @@ SUBROUTINE DVM_FUNC(Node_ID,LAY_NO,Vel_SZ,Vel_LZ)
      Vel_LZ = 0.0
   ELSE
      Vel_LZ = WmaxLZ*(layer_depthLZ/DepthRangeLZ)*ShpFacDVM*EXP(-((tm - PeakTmDVM)/SpanDVM)**ShpFacDVM)* &
-                         & (((tm - PeakTmDVM)/SpanDVM)**(ShpFacDVM - 1.0))
+                         & (((tm - PeakTmDVM)/SpanDVM)**(ShpFacDVM - 1.0)) 
   END IF
 
 END SUBROUTINE
 !------------------------------------------------------------------------------
-
 
 
 End Module MOD_KIN

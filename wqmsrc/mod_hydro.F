@@ -227,10 +227,16 @@ Contains
             Do K = 1, KBM1
                Do I = 1, MLOC
                   SL (I, K) = SL_GL (NGID(I), K)
+                  IF (SL(I,K) < 0.0000001) THEN 
+                    SL(I,K) = 0.0
+                  END IF
                End Do
           !
                Do I = 1, NHN
                   SL (I+MLOC, K) = SL_GL (HN_LST(I), K)
+                    IF (SL(I,K) < 0.0000001) THEN 
+                    SL(I,K) = 0.0
+                  END IF
                End Do
             End Do
        !
