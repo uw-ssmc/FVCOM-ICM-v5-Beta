@@ -56,5 +56,6 @@ Ensure all required runtime inputs are available in expected paths before execut
 
 ## Notes
 
-- This repository contains generated build artifacts (`*.o`, `*.mod`, and generated `*.f90` files in some workflows).
+- This repository is source-oriented and does not include generated build artifacts (`*.o`, `*.mod`, etc.).
+- Build artifacts are generated locally during compilation.
 - Use `make clean` to remove local build products before rebuilding.
