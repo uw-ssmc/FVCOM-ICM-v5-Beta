@@ -1,6 +1,6 @@
-# FVCOM 4.3 Water Quality Model (WQM)
-
-This repository contains a Fortran-based FVCOM 4.3 water quality model implementation and related build inputs.
+FVCOM-ICM
+About
+FVCOM-ICMv5.0 model expands version 4.0. This repo is for beta testing new capabilites such as adding DVM for zooplankton.
 
 ## Repository layout
 
