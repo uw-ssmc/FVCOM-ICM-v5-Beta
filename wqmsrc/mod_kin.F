@@ -390,20 +390,20 @@ Contains
               & K)-PRLZ(I, K)) / 86400.
           !------------------------------------------------------------------------------
             IF(ZOO_DVM == .TRUE.) THEN
-                    IF((K>PrayLaySZ) .AND. (K<SleepLaySZ)) THEN !FIXME: need to add option for different LZ layers
+                    IF((K>1) .AND. (K<10)) THEN 
                          CALL DVM_FUNC(I,K,WWSZ1,WWLZ1)
                          CALL DVM_FUNC(I,K-1,WWSZ2,WWLZ2)
                          DTSZ (I,K) = DTSZ (I,K) + (WWSZ1*SZ(I,K) - WWSZ2*SZ(I,K-1))/(D(I)*DZ2D(I,K))
                          DTLZ (I,K) = DTLZ (I,K) + (WWLZ1*LZ(I,K) - WWLZ2*LZ(I,K-1))/(D(I)*DZ2D(I,K))
                     END IF
 
-                    IF (K == PrayLaySZ) THEN
+                    IF (K == 1) THEN
                          CALL DVM_FUNC(I,K,WWSZ1,WWLZ1)
                          DTSZ (I,K) = DTSZ (I,K) + (WWSZ1*SZ(I,K))/(D(I)*DZ2D(I,K))
                          DTLZ (I,K) = DTLZ (I,K) + (WWLZ1*LZ(I,K))/(D(I)*DZ2D(I,K))
                     END IF
 
-                    IF (K == SleepLaySZ) THEN
+                    IF (K == 10) THEN
                          CALL DVM_FUNC(I,K-1,WWSZ1,WWLZ1)
                          DTSZ (I,K) = DTSZ (I,K) + (WWSZ1*SZ(I,K-1))/(D(I)*DZ2D(I,K))
                          DTLZ (I,K) = DTLZ (I,K) + (WWLZ1*LZ(I,K-1))/(D(I)*DZ2D(I,K))
