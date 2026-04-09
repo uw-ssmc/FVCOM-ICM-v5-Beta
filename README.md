@@ -1,5 +1,6 @@
-FVCOM-ICM
-About
+# FVCOM-ICM v5 Beta
+
+## Overview
 FVCOM-ICMv5.0 model expands version 4.0. This repo is for beta testing new capabilites such as adding DVM for zooplankton.
 
 ## Repository layout
