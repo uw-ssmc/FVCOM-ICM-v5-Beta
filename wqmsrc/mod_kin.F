@@ -393,22 +393,41 @@ Contains
                     DTSZ (I, K) = DTSZ (I, K) * 86400. !Convert to seconds 
                     DTLZ (I, K) = DTLZ (I, K) * 86400.
                     IF((K>PrayLaySZ) .AND. (K<SleepLaySZ)) THEN !FIXME: need to add option for different LZ layers
-                         CALL DVM_FUNC(I,K,WWSZ1,WWLZ1)
-                         CALL DVM_FUNC(I,K-1,WWSZ2,WWLZ2)
-                         DTSZ (I,K) = DTSZ (I,K) + (WWSZ1*SZ(I,K) - WWSZ2*SZ(I,K-1))/(D(I)*DZ2D(I,K))
-                        ! DTLZ (I,K) = DTLZ (I,K) + (WWLZ1*LZ(I,K) - WWLZ2*LZ(I,K-1))/(D(I)*DZ2D(I,K))
+                       !  CALL DVM_FUNC(I,K,WWSZ1,WWLZ1)
+                        ! CALL DVM_FUNC(I,K-1,WWSZ2,WWLZ2)
+                        WWSZ1 = -1
+                        WWSZ2 = 1
+                         IF(WWSZ1 < 0) THEN !Sinking
+                              DTSZ (I,K) = DTSZ (I,K) + (WWSZ1*SZ(I,K) - WWSZ2*SZ(I,K-1))/(D(I)*DZ2D(I,K))
+                              ! DTLZ (I,K) = DTLZ (I,K) + (WWLZ1*LZ(I,K) - WWLZ2*LZ(I,K-1))/(D(I)*DZ2D(I,K))
+                         ELSE !Rising
+                              DTSZ (I,K) = DTSZ (I,K) + (WWSZ1*SZ(I,K+1) - WWSZ2*SZ(I,K))/(D(I)*DZ2D(I,K))
+                              ! DTLZ (I,K) = DTLZ (I,K) + (WWLZ1*LZ(I,K+1) - WWLZ2*LZ(I,K))/(D(I)*DZ2D(I,K))
+                         END IF
                     END IF
 
                     IF (K == PrayLaySZ) THEN
-                         CALL DVM_FUNC(I,K,WWSZ1,WWLZ1)
-                         DTSZ (I,K) = DTSZ (I,K) + (WWSZ1*SZ(I,K))/(D(I)*DZ2D(I,K))
-                       !  DTLZ (I,K) = DTLZ (I,K) + (WWLZ1*LZ(I,K))/(D(I)*DZ2D(I,K))
+                       !  CALL DVM_FUNC(I,K,WWSZ1,WWLZ1)
+                         WWSZ1 = -1
+                         IF(WWSZ1 < 0) THEN !Sinking
+                              DTSZ (I,K) = DTSZ (I,K) + (WWSZ1*SZ(I,K))/(D(I)*DZ2D(I,K))
+                              !  DTLZ (I,K) = DTLZ (I,K) + (WWLZ1*LZ(I,K))/(D(I)*DZ2D(I,K))
+                         ELSE !Rising
+                              DTSZ (I,K) = DTSZ (I,K) + (WWSZ1*SZ(I,K+1))/(D(I)*DZ2D(I,K))
+                           !  DTLZ (I,K) = DTLZ (I,K) + (WWLZ1*LZ(I,K+1))/(D(I)*DZ2D(I,K))
+                         END IF
                     END IF
 
                     IF (K == SleepLaySZ) THEN
-                         CALL DVM_FUNC(I,K-1,WWSZ1,WWLZ1)
-                         DTSZ (I,K) = DTSZ (I,K) + (WWSZ1*SZ(I,K-1))/(D(I)*DZ2D(I,K))
-                       !  DTLZ (I,K) = DTLZ (I,K) + (WWLZ1*LZ(I,K-1))/(D(I)*DZ2D(I,K))
+                       !  CALL DVM_FUNC(I,K-1,WWSZ1,WWLZ1)
+                       WWSZ1 = 1
+                         IF(WWSZ1 < 0) THEN !Rising
+                              DTSZ (I,K) = DTSZ (I,K) + (WWSZ1*SZ(I,K))/(D(I)*DZ2D(I,K))
+                              !  DTLZ (I,K) = DTLZ (I,K) + (WWLZ1*LZ(I,K))/(D(I)*DZ2D(I,K))
+                         ELSE !Sinking
+                              DTSZ (I,K) = DTSZ (I,K) + (WWSZ1*SZ(I,K-1))/(D(I)*DZ2D(I,K))
+                              !  DTLZ (I,K) = DTLZ (I,K) + (WWLZ1*LZ(I,K-1))/(D(I)*DZ2D(I,K))
+                         END IF
                     END IF
                     DTSZ (I, K) = DTSZ (I, K) / 86400. !Convert back to days 
                     DTLZ (I, K) = DTLZ (I, K) / 86400.
@@ -2205,16 +2224,16 @@ SUBROUTINE DVM_FUNC(Node_ID,LAY_NO,Vel_SZ,Vel_LZ)
   IF(LAY_NO <= PrayLaySZ .OR. LAY_NO >= SleepLaySZ) THEN
      Vel_SZ = 0.0
   ELSE
-     Vel_SZ = WmaxSZ*EXP(-((tm - PeakTmDVM)/SpanDVM)**ShpFacDVM)* & 
-                         & (((tm - PeakTmDVM)/SpanDVM)**(ShpFacDVM - 1.0)) !(layer_depthSZ/DepthRangeSZ)*ShpFacDVM*
+     Vel_SZ = WmaxSZ*(layer_depthSZ/DepthRangeSZ)*ShpFacDVM*EXP(-((tm - PeakTmDVM)/SpanDVM)**ShpFacDVM)* & 
+                         & (((tm - PeakTmDVM)/SpanDVM)**(ShpFacDVM - 1.0)) 
   END IF
 
 
   IF(LAY_NO <= PrayLayLZ .OR. LAY_NO >= SleepLayLZ) THEN
      Vel_LZ = 0.0
   ELSE
-     Vel_LZ = WmaxLZ*EXP(-((tm - PeakTmDVM)/SpanDVM)**ShpFacDVM)* &
-                         & (((tm - PeakTmDVM)/SpanDVM)**(ShpFacDVM - 1.0)) !(layer_depthLZ/DepthRangeLZ)*ShpFacDVM*
+     Vel_LZ = WmaxLZ*(layer_depthLZ/DepthRangeLZ)*ShpFacDVM*EXP(-((tm - PeakTmDVM)/SpanDVM)**ShpFacDVM)* &
+                         & (((tm - PeakTmDVM)/SpanDVM)**(ShpFacDVM - 1.0)) 
   END IF
 
 END SUBROUTINE
