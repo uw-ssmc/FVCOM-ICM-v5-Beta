@@ -259,14 +259,24 @@ Contains
     !
          Implicit None
          Real (SP) :: NRRATE, DOREF, CRRATE, FRLD, FRRD, FRLP, FRRP, &
-        & ANCPSZ, FRL, FRR, ANCPLZ, APCPSZ, PRRATE, APCPLZ, FRB1SZ, &
-        & FRB2SZ, FRB3SZ, FRB1LZ, FRB2LZ, FRB3LZ, WWLZ1, WWLZ2, WWSZ1, WWSZ2
+     & ANCPSZ, FRL, FRR, ANCPLZ, APCPSZ, PRRATE, APCPLZ, FRB1SZ, &
+     & FRB2SZ, FRB3SZ, FRB1LZ, FRB2LZ, FRB3LZ, WWLZ1, WWLZ2, WWSZ1, &
+     & WWSZ2, DVMSZTERM, DVMSZVOL, DVMSZPOSTOP, DVMSZPOSMID, DVMSZPOSBOT, &
+     & DVMSZPOSTOT, DVMSZNETTOT, DVMSZMAXPOS
          Real (SP), Dimension (0:MTLOC, KBM1) :: DTSZ, DTLZ
-         Integer :: I, J, K, ITEMP
+      Integer :: I, J, K, ITEMP, DVMSZMAXI, DVMSZMAXK
     !
     ! DETERMINE JULIAN DAY
          DTSZ = 0.0
          DTLZ = 0.0
+         DVMSZPOSTOP = 0.0
+         DVMSZPOSMID = 0.0
+         DVMSZPOSBOT = 0.0
+         DVMSZPOSTOT = 0.0
+         DVMSZNETTOT = 0.0
+         DVMSZMAXPOS = 0.0
+         DVMSZMAXI = 0
+         DVMSZMAXK = 0
     !
          J = AINT(1.0 + AMOD (JDAY, 365.25))
     !
@@ -395,19 +405,52 @@ Contains
                     IF((K>PrayLaySZ) .AND. (K<SleepLaySZ)) THEN !FIXME: need to add option for different LZ layers
                          CALL DVM_FUNC(I,K,WWSZ1,WWLZ1)
                          CALL DVM_FUNC(I,K-1,WWSZ2,WWLZ2)
-                         DTSZ (I,K) = DTSZ (I,K) + (WWSZ1*SZ(I,K) - WWSZ2*SZ(I,K-1))/(D(I)*DZ2D(I,K))
+                                         DVMSZTERM = (WWSZ1*SZ(I,K) - WWSZ2*SZ(I,K-1))/(D(I)*DZ2D(I,K))
+                                         DTSZ (I,K) = DTSZ (I,K) + DVMSZTERM
+                                         DVMSZVOL = D(I)*DZ2D(I,K)
+                                         DVMSZNETTOT = DVMSZNETTOT + DVMSZTERM*DVMSZVOL
+                                         IF(DVMSZTERM > 0.0) THEN
+                                              DVMSZPOSMID = DVMSZPOSMID + DVMSZTERM*DVMSZVOL
+                                              IF(DVMSZTERM > DVMSZMAXPOS) THEN
+                                                   DVMSZMAXPOS = DVMSZTERM
+                                                   DVMSZMAXI = I
+                                                   DVMSZMAXK = K
+                                              END IF
+                                         END IF
                         ! DTLZ (I,K) = DTLZ (I,K) + (WWLZ1*LZ(I,K) - WWLZ2*LZ(I,K-1))/(D(I)*DZ2D(I,K))
                     END IF
 
                     IF (K == PrayLaySZ) THEN
                          CALL DVM_FUNC(I,K,WWSZ1,WWLZ1)
-                         DTSZ (I,K) = DTSZ (I,K) + (WWSZ1*SZ(I,K))/(D(I)*DZ2D(I,K))
+                                         DVMSZTERM = (WWSZ1*SZ(I,K))/(D(I)*DZ2D(I,K))
+                                         DTSZ (I,K) = DTSZ (I,K) + DVMSZTERM
+                                         DVMSZVOL = D(I)*DZ2D(I,K)
+                                         DVMSZNETTOT = DVMSZNETTOT + DVMSZTERM*DVMSZVOL
+                                         IF(DVMSZTERM > 0.0) THEN
+                                              DVMSZPOSTOP = DVMSZPOSTOP + DVMSZTERM*DVMSZVOL
+                                              IF(DVMSZTERM > DVMSZMAXPOS) THEN
+                                                   DVMSZMAXPOS = DVMSZTERM
+                                                   DVMSZMAXI = I
+                                                   DVMSZMAXK = K
+                                              END IF
+                                         END IF
                        !  DTLZ (I,K) = DTLZ (I,K) + (WWLZ1*LZ(I,K))/(D(I)*DZ2D(I,K))
                     END IF
 
                     IF (K == SleepLaySZ) THEN
                          CALL DVM_FUNC(I,K-1,WWSZ1,WWLZ1)
-                         DTSZ (I,K) = DTSZ (I,K) + (WWSZ1*SZ(I,K-1))/(D(I)*DZ2D(I,K))
+                                         DVMSZTERM = (WWSZ1*SZ(I,K-1))/(D(I)*DZ2D(I,K))
+                                         DTSZ (I,K) = DTSZ (I,K) + DVMSZTERM
+                                         DVMSZVOL = D(I)*DZ2D(I,K)
+                                         DVMSZNETTOT = DVMSZNETTOT + DVMSZTERM*DVMSZVOL
+                                         IF(DVMSZTERM > 0.0) THEN
+                                              DVMSZPOSBOT = DVMSZPOSBOT + DVMSZTERM*DVMSZVOL
+                                              IF(DVMSZTERM > DVMSZMAXPOS) THEN
+                                                   DVMSZMAXPOS = DVMSZTERM
+                                                   DVMSZMAXI = I
+                                                   DVMSZMAXK = K
+                                              END IF
+                                         END IF
                        !  DTLZ (I,K) = DTLZ (I,K) + (WWLZ1*LZ(I,K-1))/(D(I)*DZ2D(I,K))
                     END IF
                     DTSZ (I, K) = DTSZ (I, K) / 86400. !Convert back to days 
@@ -417,6 +460,16 @@ Contains
 
             End Do
          End Do
+               IF(ZOO_DVM == .TRUE.) THEN
+                    DVMSZPOSTOT = DVMSZPOSTOP + DVMSZPOSMID + DVMSZPOSBOT
+                    IF(DVMSZPOSTOT > 0.0) THEN
+                         WRITE(*,*) 'DVM_SZ_POS_MASS_TOP_MID_BOT_TOT(gC/m2/s):', &
+       &            DVMSZPOSTOP, DVMSZPOSMID, DVMSZPOSBOT, DVMSZPOSTOT
+                         WRITE(*,*) 'DVM_SZ_NET_MASS(gC/m2/s):', DVMSZNETTOT
+                         WRITE(*,*) 'DVM_SZ_MAX_POS_TERM(i,k,gC/m3/s):', &
+       &            DVMSZMAXI, DVMSZMAXK, DVMSZMAXPOS
+                    END IF
+               END IF
     !--------------------------------------------------------------------------------
     ! EFFECT OF ZOOPLANKTON ON ALGAE (GM C/M**3/DAY)
     !
