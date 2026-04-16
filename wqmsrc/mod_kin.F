@@ -396,7 +396,7 @@ Contains
                        !  CALL DVM_FUNC(I,K,WWSZ1,WWLZ1)
                         ! CALL DVM_FUNC(I,K-1,WWSZ2,WWLZ2)
                         WWSZ1 = -1
-                        WWSZ2 = 1
+                        WWSZ2 = -1
                          IF(WWSZ1 < 0) THEN !Sinking
                               DTSZ (I,K) = DTSZ (I,K) + (WWSZ1*SZ(I,K) - WWSZ2*SZ(I,K-1))/(D(I)*DZ2D(I,K))
                               ! DTLZ (I,K) = DTLZ (I,K) + (WWLZ1*LZ(I,K) - WWLZ2*LZ(I,K-1))/(D(I)*DZ2D(I,K))
