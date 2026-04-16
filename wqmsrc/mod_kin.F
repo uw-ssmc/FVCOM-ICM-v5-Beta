@@ -61,8 +61,9 @@ Module MOD_KIN
      & KTGSZ2,KTBSZ,KTBLZ,TRSZ,TRLZ,TRPRSZ,KTPRSZ,TRPRLZ,KTPRLZ,KTGLZ1,&
      & KTGLZ2,TMLZ
       
+
 !
-     !************************************************************************
+  !************************************************************************
   !** additional paramters were made spatially variable these include:   **
   !**     KDC,    KLC,    KRC,    KDN,    KLN,    KRN,    KDP,           **
   !**     KLP,    KRP,   KSUA,   KCOD, KDCALG, KLCALG, KRCALG,           **
@@ -259,7 +260,7 @@ Contains
          Implicit None
          Real (SP) :: NRRATE, DOREF, CRRATE, FRLD, FRRD, FRLP, FRRP, &
         & ANCPSZ, FRL, FRR, ANCPLZ, APCPSZ, PRRATE, APCPLZ, FRB1SZ, &
-        & FRB2SZ, FRB3SZ, FRB1LZ, FRB2LZ, FRB3LZ, WWLZ1, WWLZ2, WWSZ1, WWSZ2
+      & FRB2SZ, FRB3SZ, FRB1LZ, FRB2LZ, FRB3LZ, WWLZ1, WWLZ2, WWLZ3, WWSZ1, WWSZ2, WWSZ3
          Real (SP), Dimension (0:MTLOC, KBM1) :: DTSZ, DTLZ
          Integer :: I, J, K, ITEMP
     !
@@ -391,38 +392,39 @@ Contains
             IF(ZOO_DVM == .TRUE.) THEN
                     DTSZ (I, K) = DTSZ (I, K) * 86400. !Convert to seconds 
                     DTLZ (I, K) = DTLZ (I, K) * 86400.
+                    ! Interior layers: flux through top (K/K+1) and bottom (K-1/K) faces
+                    ! Upwind with layer-indexed velocities:
+                    !   WWSZ1/WWLZ1 -> K, WWSZ2/WWLZ2 -> K-1, WWSZ3/WWLZ3 -> K+1
                     IF((K>PrayLaySZ) .AND. (K<SleepLaySZ)) THEN !FIXME: need to add option for different LZ layers
-                         CALL DVM_FUNC(I,K,WWSZ1,WWLZ1) !Positive for rising negative for sinking
-                         CALL DVM_FUNC(I,K-1,WWSZ2,WWLZ2) !Positive for rising negative for sinking
-                         IF(WWSZ1 < 0.0) THEN !Sinking
-                              DTSZ (I,K) = DTSZ (I,K) + (WWSZ1*SZ(I,K) - WWSZ2*SZ(I,K-1))/(D(I)*DZ2D(I,K))
-                              ! DTLZ (I,K) = DTLZ (I,K) + (WWLZ1*LZ(I,K) - WWLZ2*LZ(I,K-1))/(D(I)*DZ2D(I,K))
-                         ELSE !Rising
-                              DTSZ (I,K) = DTSZ (I,K) + (WWSZ1*SZ(I,K+1) - WWSZ2*SZ(I,K))/(D(I)*DZ2D(I,K))
-                              ! DTLZ (I,K) = DTLZ (I,K) + (WWLZ1*LZ(I,K+1) - WWLZ2*LZ(I,K))/(D(I)*DZ2D(I,K))
-                         END IF
+                         CALL DVM_FUNC(I,K,WWSZ1,WWLZ1)     ! velocity at layer K
+                         CALL DVM_FUNC(I,K-1,WWSZ2,WWLZ2)   ! velocity at layer K-1
+                         CALL DVM_FUNC(I,K+1,WWSZ3,WWLZ3)   ! velocity at layer K+1
+                         DTSZ (I,K) = DTSZ (I,K) + ( MAX(WWSZ3,0.0)*SZ(I,K+1) + MIN(WWSZ1,0.0)*SZ(I,K) &
+                                                    - MAX(WWSZ1,0.0)*SZ(I,K)   - MIN(WWSZ2,0.0)*SZ(I,K-1) ) &
+                                                    / (D(I)*DZ2D(I,K))
+                         ! DTLZ (I,K) = DTLZ (I,K) + ( MAX(WWLZ3,0.0)*LZ(I,K+1) + MIN(WWLZ1,0.0)*LZ(I,K) &
+                         !                            - MAX(WWLZ1,0.0)*LZ(I,K)   - MIN(WWLZ2,0.0)*LZ(I,K-1) ) &
+                         !                            / (D(I)*DZ2D(I,K))
                     END IF
 
+                    ! Prey layer (shallowest active layer): only top face flux (no inflow from below)
                     IF (K == PrayLaySZ) THEN
-                         CALL DVM_FUNC(I,K,WWSZ1,WWLZ1) !Positive for rising negative for sinking
-                         IF(WWSZ1 < 0.0) THEN !Sinking
-                              DTSZ (I,K) = DTSZ (I,K) + (WWSZ1*SZ(I,K))/(D(I)*DZ2D(I,K))
-                              !  DTLZ (I,K) = DTLZ (I,K) + (WWLZ1*LZ(I,K))/(D(I)*DZ2D(I,K))
-                         ELSE !Rising
-                              DTSZ (I,K) = DTSZ (I,K) + (WWSZ1*SZ(I,K+1))/(D(I)*DZ2D(I,K))
-                           !  DTLZ (I,K) = DTLZ (I,K) + (WWLZ1*LZ(I,K+1))/(D(I)*DZ2D(I,K))
-                         END IF
+                         CALL DVM_FUNC(I,K,WWSZ1,WWLZ1)     ! velocity at layer K
+                         CALL DVM_FUNC(I,K+1,WWSZ3,WWLZ3)   ! velocity at layer K+1
+                         DTSZ (I,K) = DTSZ (I,K) + ( MAX(WWSZ3,0.0)*SZ(I,K+1) + MIN(WWSZ1,0.0)*SZ(I,K) ) &
+                                                    / (D(I)*DZ2D(I,K))
+                         ! DTLZ (I,K) = DTLZ (I,K) + ( MAX(WWLZ3,0.0)*LZ(I,K+1) + MIN(WWLZ1,0.0)*LZ(I,K) ) &
+                         !                            / (D(I)*DZ2D(I,K))
                     END IF
 
+                    ! Sleep layer (deepest active layer): only bottom face flux (no inflow from above)
                     IF (K == SleepLaySZ) THEN
-                         CALL DVM_FUNC(I,K-1,WWSZ1,WWLZ1) !Positive for rising negative for sinking
-                         IF(WWSZ1 < 0.0) THEN !Sinking
-                              DTSZ (I,K) = DTSZ (I,K) - (WWSZ1*SZ(I,K-1))/(D(I)*DZ2D(I,K))
-                              !  DTLZ (I,K) = DTLZ (I,K) - (WWLZ1*LZ(I,K-1))/(D(I)*DZ2D(I,K))
-                         ELSE !Rising
-                              DTSZ (I,K) = DTSZ (I,K) - (WWSZ1*SZ(I,K))/(D(I)*DZ2D(I,K))
-                              !  DTLZ (I,K) = DTLZ (I,K) - (WWLZ1*LZ(I,K))/(D(I)*DZ2D(I,K))
-                         END IF
+                         CALL DVM_FUNC(I,K,WWSZ1,WWLZ1)     ! velocity at layer K
+                         CALL DVM_FUNC(I,K-1,WWSZ2,WWLZ2)   ! velocity at layer K-1
+                         DTSZ (I,K) = DTSZ (I,K) - ( MAX(WWSZ1,0.0)*SZ(I,K) + MIN(WWSZ2,0.0)*SZ(I,K-1) ) &
+                                                    / (D(I)*DZ2D(I,K))
+                         ! DTLZ (I,K) = DTLZ (I,K) - ( MAX(WWLZ1,0.0)*LZ(I,K) + MIN(WWLZ2,0.0)*LZ(I,K-1) ) &
+                         !                            / (D(I)*DZ2D(I,K))
                     END IF
                     DTSZ (I, K) = DTSZ (I, K) / 86400. !Convert back to days 
                     DTLZ (I, K) = DTLZ (I, K) / 86400.
