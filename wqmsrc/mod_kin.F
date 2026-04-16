@@ -395,8 +395,8 @@ Contains
                     IF((K>PrayLaySZ) .AND. (K<SleepLaySZ)) THEN !FIXME: need to add option for different LZ layers
                        !  CALL DVM_FUNC(I,K,WWSZ1,WWLZ1)
                         ! CALL DVM_FUNC(I,K-1,WWSZ2,WWLZ2)
-                        WWSZ1 = 1
-                        WWSZ2 = 1
+                        WWSZ1 = 1 !Positive for rising negative for sinking
+                        WWSZ2 = 1 !Positive for rising negative for sinking
                          IF(WWSZ1 < 0) THEN !Sinking
                               DTSZ (I,K) = DTSZ (I,K) + (WWSZ1*SZ(I,K) - WWSZ2*SZ(I,K-1))/(D(I)*DZ2D(I,K))
                               ! DTLZ (I,K) = DTLZ (I,K) + (WWLZ1*LZ(I,K) - WWLZ2*LZ(I,K-1))/(D(I)*DZ2D(I,K))
@@ -408,7 +408,7 @@ Contains
 
                     IF (K == PrayLaySZ) THEN
                        !  CALL DVM_FUNC(I,K,WWSZ1,WWLZ1)
-                         WWSZ1 = 1
+                         WWSZ1 = 1 !Positive for rising negative for sinking
                          IF(WWSZ1 < 0) THEN !Sinking
                               DTSZ (I,K) = DTSZ (I,K) + (WWSZ1*SZ(I,K))/(D(I)*DZ2D(I,K))
                               !  DTLZ (I,K) = DTLZ (I,K) + (WWLZ1*LZ(I,K))/(D(I)*DZ2D(I,K))
@@ -420,13 +420,13 @@ Contains
 
                     IF (K == SleepLaySZ) THEN
                        !  CALL DVM_FUNC(I,K-1,WWSZ1,WWLZ1)
-                       WWSZ1 = -1
-                         IF(WWSZ1 < 0) THEN !Rising
-                              DTSZ (I,K) = DTSZ (I,K) + (WWSZ1*SZ(I,K))/(D(I)*DZ2D(I,K))
-                              !  DTLZ (I,K) = DTLZ (I,K) + (WWLZ1*LZ(I,K))/(D(I)*DZ2D(I,K))
-                         ELSE !Sinking
-                              DTSZ (I,K) = DTSZ (I,K) + (WWSZ1*SZ(I,K-1))/(D(I)*DZ2D(I,K))
-                              !  DTLZ (I,K) = DTLZ (I,K) + (WWLZ1*LZ(I,K-1))/(D(I)*DZ2D(I,K))
+                       WWSZ1 = 1 !Positive for rising negative for sinking
+                         IF(WWSZ1 < 0) THEN !Sinking
+                              DTSZ (I,K) = DTSZ (I,K) - (WWSZ1*SZ(I,K-1))/(D(I)*DZ2D(I,K))
+                              !  DTLZ (I,K) = DTLZ (I,K) - (WWLZ1*LZ(I,K-1))/(D(I)*DZ2D(I,K))
+                         ELSE !Rising
+                              DTSZ (I,K) = DTSZ (I,K) - (WWSZ1*SZ(I,K))/(D(I)*DZ2D(I,K))
+                              !  DTLZ (I,K) = DTLZ (I,K) - (WWLZ1*LZ(I,K))/(D(I)*DZ2D(I,K))
                          END IF
                     END IF
                     DTSZ (I, K) = DTSZ (I, K) / 86400. !Convert back to days 
