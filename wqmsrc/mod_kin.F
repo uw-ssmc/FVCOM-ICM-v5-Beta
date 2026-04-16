@@ -250,8 +250,7 @@ Contains
     !
          Use MOD_WQM, Only: ANC1, ANC2, ANC3, ASC1, ASC2, ASC3, B1, B2, &
         & B3, DOXG, JDAY, LDOC, LPOC, LPON, LPOP, Q1, Q2, Q3, RDOC, &
-     & RPOC, RPON, RPOP, T, ZOO_DVM, PrayLaySZ, PrayLayLZ, SleepLaySZ,SleepLayLZ, &
-     & WmaxSZ, WmaxLZ !,              &!
+        & RPOC, RPON, RPOP, T, ZOO_DVM, PrayLaySZ, PrayLayLZ, SleepLaySZ,SleepLayLZ !,              &!
 
         Use MOD_HYDROVARS, Only: DZ,DZ2D, D
 
@@ -393,11 +392,9 @@ Contains
                     DTSZ (I, K) = DTSZ (I, K) * 86400. !Convert to seconds 
                     DTLZ (I, K) = DTLZ (I, K) * 86400.
                     IF((K>PrayLaySZ) .AND. (K<SleepLaySZ)) THEN !FIXME: need to add option for different LZ layers
-                       !  CALL DVM_FUNC(I,K,WWSZ1,WWLZ1)
-                        ! CALL DVM_FUNC(I,K-1,WWSZ2,WWLZ2)
-                        WWSZ1 = WmaxSZ !Positive for rising negative for sinking
-                        WWSZ2 = WmaxLZ !Positive for rising negative for sinking
-                         IF(WWSZ1 < 0) THEN !Sinking
+                         CALL DVM_FUNC(I,K,WWSZ1,WWLZ1) !Positive for rising negative for sinking
+                         CALL DVM_FUNC(I,K-1,WWSZ2,WWLZ2) !Positive for rising negative for sinking
+                         IF(WWSZ1 < 0.0) THEN !Sinking
                               DTSZ (I,K) = DTSZ (I,K) + (WWSZ1*SZ(I,K) - WWSZ2*SZ(I,K-1))/(D(I)*DZ2D(I,K))
                               ! DTLZ (I,K) = DTLZ (I,K) + (WWLZ1*LZ(I,K) - WWLZ2*LZ(I,K-1))/(D(I)*DZ2D(I,K))
                          ELSE !Rising
@@ -407,9 +404,8 @@ Contains
                     END IF
 
                     IF (K == PrayLaySZ) THEN
-                       !  CALL DVM_FUNC(I,K,WWSZ1,WWLZ1)
-                         WWSZ1 = WmaxSZ !Positive for rising negative for sinking
-                         IF(WWSZ1 < 0) THEN !Sinking
+                         CALL DVM_FUNC(I,K,WWSZ1,WWLZ1) !Positive for rising negative for sinking
+                         IF(WWSZ1 < 0.0) THEN !Sinking
                               DTSZ (I,K) = DTSZ (I,K) + (WWSZ1*SZ(I,K))/(D(I)*DZ2D(I,K))
                               !  DTLZ (I,K) = DTLZ (I,K) + (WWLZ1*LZ(I,K))/(D(I)*DZ2D(I,K))
                          ELSE !Rising
@@ -419,9 +415,8 @@ Contains
                     END IF
 
                     IF (K == SleepLaySZ) THEN
-                       !  CALL DVM_FUNC(I,K-1,WWSZ1,WWLZ1)
-                       WWSZ1 = WmaxSZ !Positive for rising negative for sinking
-                         IF(WWSZ1 < 0) THEN !Sinking
+                         CALL DVM_FUNC(I,K-1,WWSZ1,WWLZ1) !Positive for rising negative for sinking
+                         IF(WWSZ1 < 0.0) THEN !Sinking
                               DTSZ (I,K) = DTSZ (I,K) - (WWSZ1*SZ(I,K-1))/(D(I)*DZ2D(I,K))
                               !  DTLZ (I,K) = DTLZ (I,K) - (WWLZ1*LZ(I,K-1))/(D(I)*DZ2D(I,K))
                          ELSE !Rising
